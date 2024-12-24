@@ -42,6 +42,7 @@ state.update({
     "clicked": [],
     "displayed": [],
     "last_clicked": 0,
+    "action_keys": [{"for": []}],
 })
 
 
@@ -79,16 +80,15 @@ def set_user(user, **kwargs):
         state.main_drawer = False
 
 
-def remove_volume(clear_state=True):
+def remove_volume():
     vol_nodes: vtkCollection = slicer_app.scene.GetNodesByClass(
         "vtkMRMLVolumeNode"
     )
     for i_vol in range(vol_nodes.GetNumberOfItems()):
         slicer_app.scene.RemoveNode(vol_nodes.GetItemAsObject(i_vol))
 
-    if clear_state:
-        state.displayed = []
-        state.clicked = []
+    state.displayed = []
+    state.clicked = []
 
 
 def create_load_task(item):
@@ -107,7 +107,6 @@ def create_load_task(item):
 
 
 def load_files(item):
-    remove_volume(clear_state=False)
     with TemporaryDirectory() as tmp_dir:
         file_list = []
         for file in CLIENT.listFile(item["_id"]):
@@ -157,6 +156,7 @@ def handle_rowclick(row):
     if row.get('_modelType') == 'item':
         if time() - state.last_clicked > 1:
             if not state.displayed or state.displayed[0]["_id"] != row["_id"]:
+                remove_volume()
                 state.last_clicked = time()
                 state.displayed = [row]
                 state.clicked = [row]
@@ -259,6 +259,20 @@ with SinglePageWithDrawerLayout(
                 "[$event]"
             ),
         )
+        gwc.GirderDataDetails(
+            v_if=("displayed.length > 0",),
+            action_keys=("action_keys",),
+            value=("displayed",),
+        )
+
+        with VContainer(v_if=("displayed.length > 0",)):
+            VBtn(
+                "Clear view",
+                large=True,
+                loading=("file_loading_busy",),
+                click=remove_volume,
+                style="margin-right: 20px"
+            )
 
 
 if __name__ == "__main__":
