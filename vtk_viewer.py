@@ -36,7 +36,9 @@ state.update({
     "file_loading_busy": False,
     "current_layout_name": "Quad View",
     "clicked": [],
+    "displayed": [],
     "last_clicked": 0,
+    "action_keys": [{"for": []}],
 })
 
 
@@ -80,8 +82,19 @@ def set_user(user, **kwargs):
         state.main_drawer = False
 
 
-def remove_volume():
-    pass
+@state.change("location")
+def update_clicked(location, **kwargs):
+    if location:
+        location_id = location.get("_id", "")
+        if location_id and state.displayed:
+            state.clicked = [item for item in state.displayed
+                             if item["folderId"] == location_id]
+
+
+def remove_volume(clear_state=True):
+    if clear_state:
+        state.displayed = []
+        state.clicked = []
 
 
 def create_load_task(item):
@@ -100,7 +113,7 @@ def create_load_task(item):
 
 
 def load_files(item):
-    remove_volume()
+    remove_volume(clear_state=False)
     with TemporaryDirectory() as tmp_dir:
         file_list = []
         for file in CLIENT.listFile(item["_id"]):
@@ -145,8 +158,9 @@ def update_location(new_location):
 def handle_rowclick(row):
     if row.get('_modelType') == 'item':
         if time() - state.last_clicked > 1:
-            if not state.clicked or state.clicked[0]["_id"] != row["_id"]:
+            if not state.displayed or state.displayed[0]["_id"] != row["_id"]:
                 state.last_clicked = time()
+                state.displayed = [row]
                 state.clicked = [row]
                 create_load_task(row)
             else:
@@ -242,6 +256,12 @@ with SinglePageWithDrawerLayout(
                 handle_rowclick,
                 "[$event]"
             ),
+        )
+
+        gwc.GirderDataDetails(
+            v_if=("displayed.length > 0",),
+            action_keys=("action_keys",),
+            value=("displayed",)
         )
 
 
