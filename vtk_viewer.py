@@ -91,10 +91,15 @@ def update_clicked(location, **kwargs):
                              if item["folderId"] == location_id]
 
 
-def remove_volume(clear_state=True):
-    if clear_state:
-        state.displayed = []
-        state.clicked = []
+def remove_volume():
+    for view in range(4):
+        renderers[view].RemoveAllViewProps()
+        render_windows[view].Render()
+
+    ctrl.view_update()
+
+    state.displayed = []
+    state.clicked = []
 
 
 def create_load_task(item):
@@ -113,7 +118,6 @@ def create_load_task(item):
 
 
 def load_files(item):
-    remove_volume(clear_state=False)
     with TemporaryDirectory() as tmp_dir:
         file_list = []
         for file in CLIENT.listFile(item["_id"]):
@@ -159,12 +163,12 @@ def handle_rowclick(row):
     if row.get('_modelType') == 'item':
         if time() - state.last_clicked > 1:
             if not state.displayed or state.displayed[0]["_id"] != row["_id"]:
+                remove_volume()
                 state.last_clicked = time()
                 state.displayed = [row]
                 state.clicked = [row]
                 create_load_task(row)
             else:
-                state.clicked = []
                 remove_volume()
 
 
@@ -263,6 +267,16 @@ with SinglePageWithDrawerLayout(
             action_keys=("action_keys",),
             value=("displayed",)
         )
+
+        with VContainer(v_if=("displayed.length > 0",)):
+            VBtn(
+                "Clear view",
+                large=True,
+                bottom=True,
+                loading=("file_loading_busy",),
+                click=remove_volume,
+                style="margin-right: 20px"
+            )
 
 
 if __name__ == "__main__":
