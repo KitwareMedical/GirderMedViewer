@@ -1,9 +1,11 @@
 from vtkmodules.all import (
+    vtkCommand,
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
     vtkResliceImageViewer,
     vtkInteractorStyleImage,
+    vtkWidgetEvent
 )
 from vtk import (
     vtkSmartVolumeMapper,
@@ -78,6 +80,13 @@ def render_slices(image_data, renderers, render_windows, interactors):
             cursor_rep.GetResliceCursorActor().GetThickSlabProperty(i).SetRepresentationToWireframe()
         cursor_rep.GetResliceCursorActor().GetCursorAlgorithm().SetReslicePlaneNormal(axis)
 
+        # (Oblique) Keep orthogonality between axis
+        viewers[axis].GetResliceCursorWidget().GetEventTranslator().RemoveTranslation(
+            vtkCommand.LeftButtonPressEvent
+        )
+        viewers[axis].GetResliceCursorWidget().GetEventTranslator().SetTranslation(
+            vtkCommand.LeftButtonPressEvent, vtkWidgetEvent.Rotate
+        )
         # Update all views on events
         viewers[axis].GetResliceCursorWidget().AddObserver(
             'AnyEvent',
