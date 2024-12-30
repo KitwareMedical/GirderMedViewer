@@ -19,7 +19,7 @@ from time import time
 # -----------------------------------------------------------------------------
 
 config = ConfigParser()
-configFilePath = "C:\\Users\\Kitware\\Inria\\GirderMedViewer\\app.cfg"
+configFilePath = "./app.cfg"
 config.read(configFilePath)
 
 
