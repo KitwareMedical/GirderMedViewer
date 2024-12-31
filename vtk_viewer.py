@@ -1,18 +1,18 @@
 import asyncio
 from configparser import ConfigParser
-from trame.app import get_server
+from girder_client import GirderClient
+from girder.models.file import File
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from time import time
 from trame_server.utils.asynchronous import create_task
+from trame.app import get_server
 from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import gwc, html, vtk
 from trame.widgets.vuetify2 import (VContainer, VRow, VCol,
                                     VBtn, VCard, VIcon)
-from girder_client import GirderClient
-from pathlib import Path
-from tempfile import TemporaryDirectory
 from vtk import vtkNIFTIImageReader
 from vtk_utils import create_rendering_pipeline, render_slices, render_3D
-from girder.models.file import File
-from time import time
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -37,6 +37,7 @@ state.update({
     "current_layout_name": "Quad View",
     "clicked": [],
     "displayed": [],
+    "detailed": [],
     "last_clicked": 0,
     "action_keys": [{"for": []}],
 })
@@ -83,12 +84,16 @@ def set_user(user, **kwargs):
 
 
 @state.change("location")
-def update_clicked(location, **kwargs):
+def on_location_changed(location, **kwargs):
     if location:
         location_id = location.get("_id", "")
-        if location_id and state.displayed:
-            state.clicked = [item for item in state.displayed
+        if location_id:
+            if state.displayed:
+                state.clicked = [item for item in state.displayed
                              if item["folderId"] == location_id]
+            state.detailed = state.clicked if state.clicked else [location]
+        else:
+            state.detailed = []
 
 
 def remove_volume():
@@ -100,6 +105,7 @@ def remove_volume():
 
     state.displayed = []
     state.clicked = []
+    state.detailed = [state.location] if state.location and state.location.get("_id", "") else []
 
 
 def create_load_task(item):
@@ -166,6 +172,7 @@ def handle_rowclick(row):
                 remove_volume()
                 state.last_clicked = time()
                 state.displayed = [row]
+                state.detailed = [row]
                 state.clicked = [row]
                 create_load_task(row)
             else:
@@ -263,9 +270,9 @@ with SinglePageWithDrawerLayout(
         )
 
         gwc.GirderDataDetails(
-            v_if=("displayed.length > 0",),
+            v_if=("detailed.length > 0",),
             action_keys=("action_keys",),
-            value=("displayed",)
+            value=("detailed",)
         )
 
         with VContainer(v_if=("displayed.length > 0",)):
