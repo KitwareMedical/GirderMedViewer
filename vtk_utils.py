@@ -117,7 +117,7 @@ def render_slices(image_data, renderers, render_windows, interactors):
         )
 
         # Reset camera and render.
-        viewers[axis].GetRenderer().ResetCamera()
+        viewers[axis].GetRenderer().ResetCameraScreenSpace(0.8)
         viewers[axis].Render()
 
 
@@ -148,7 +148,7 @@ def render_3D(image_data, renderer, render_window):
 
     renderer.AddVolume(volume)
 
-    renderer.ResetCamera()
+    renderer.ResetCameraScreenSpace(0.8)
     render_window.Render()
 
 
