@@ -74,19 +74,33 @@ def render_slices(image_data, renderers, render_windows, interactors):
         # (Oblique): Make all vtkResliceImageViewer instance share the same
         viewers[axis].SetResliceCursor(viewers[0].GetResliceCursor())
         for i in range(3):
-            cursor_rep.GetResliceCursorActor().GetCenterlineProperty(i).SetLineWidth(4)
-            cursor_rep.GetResliceCursorActor().GetCenterlineProperty(i).RenderLinesAsTubesOn()
-            cursor_rep.GetResliceCursorActor().GetCenterlineProperty(i).SetRepresentationToWireframe()
-            cursor_rep.GetResliceCursorActor().GetThickSlabProperty(i).SetRepresentationToWireframe()
-        cursor_rep.GetResliceCursorActor().GetCursorAlgorithm().SetReslicePlaneNormal(axis)
+            cursor_rep.GetResliceCursorActor() \
+                .GetCenterlineProperty(i) \
+                .SetLineWidth(4)
+            cursor_rep.GetResliceCursorActor() \
+                .GetCenterlineProperty(i)\
+                .RenderLinesAsTubesOn()
+            cursor_rep.GetResliceCursorActor() \
+                .GetCenterlineProperty(i) \
+                .SetRepresentationToWireframe()
+            cursor_rep.GetResliceCursorActor() \
+                .GetThickSlabProperty(i) \
+                .SetRepresentationToWireframe()
+        cursor_rep.GetResliceCursorActor() \
+            .GetCursorAlgorithm() \
+            .SetReslicePlaneNormal(axis)
 
         # (Oblique) Keep orthogonality between axis
-        viewers[axis].GetResliceCursorWidget().GetEventTranslator().RemoveTranslation(
-            vtkCommand.LeftButtonPressEvent
-        )
-        viewers[axis].GetResliceCursorWidget().GetEventTranslator().SetTranslation(
-            vtkCommand.LeftButtonPressEvent, vtkWidgetEvent.Rotate
-        )
+        viewers[axis].GetResliceCursorWidget()\
+            .GetEventTranslator()\
+            .RemoveTranslation(
+                vtkCommand.LeftButtonPressEvent
+            )
+        viewers[axis].GetResliceCursorWidget() \
+            .GetEventTranslator() \
+            .SetTranslation(
+                vtkCommand.LeftButtonPressEvent, vtkWidgetEvent.Rotate
+            )
         # Update all views on events
         viewers[axis].GetResliceCursorWidget().AddObserver(
             'AnyEvent',

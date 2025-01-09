@@ -1,6 +1,7 @@
-trame
-trame-gwc
-trame-vuetify
-trame-vtk
-vtk
-girder-client
+girder-client==3.2.6
+trame==3.76
+trame-gwc==0.1.0
+trame-rca==0.6.0
+trame-vuetify==2.7.1
+trame-vtk==2.8.12
+vtk==9.4.1
