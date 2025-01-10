@@ -1,6 +1,7 @@
 import asyncio
 from configparser import ConfigParser
 from girder_client import GirderClient
+from math import floor
 import os
 from tempfile import TemporaryDirectory
 from time import time
@@ -8,8 +9,9 @@ from trame_server.utils.asynchronous import create_task
 from trame.app import get_server
 from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets import gwc, html, vtk
-from trame.widgets.vuetify2 import (VContainer, VRow, VCol,
+from trame.widgets.vuetify2 import (VContainer, VRow, VCol, VTooltip, Template,
                                     VBtn, VCard, VIcon)
+from typing import Callable, Optional
 from vtk import vtkNIFTIImageReader
 from vtk_utils import create_rendering_pipeline, render_slices, render_3D
 
@@ -32,10 +34,11 @@ server = get_server(client_type="vue2")
 state, ctrl = server.state, server.controller
 state.update({
     "display_authentication": False,
+    "display_obliques": True,
     "main_drawer": False,
     "user": None,
     "file_loading_busy": False,
-    "current_layout_name": "Quad View",
+    "quad_view": True,
     "clicked": [],
     "displayed": [],
     "detailed": [],
@@ -105,7 +108,9 @@ def on_location_changed(location, **kwargs):
 def remove_volume():
     for view in range(4):
         renderers[view].RemoveAllViewProps()
+        renderers[view].ResetCameraClippingRange()
         render_windows[view].Render()
+        interactors[view].Render()
 
     ctrl.view_update()
 
@@ -167,7 +172,8 @@ def load_files(item):
         image_data,
         renderers[:3],
         render_windows[:3],
-        interactors[:3]
+        interactors[:3],
+        obliques=state.display_obliques
     )
 
     render_3D(
@@ -187,7 +193,6 @@ def handle_rowclick_on_file_manager(row):
     if row.get('_modelType') == 'item':
         # Ignore double click on item
         if time() - state.last_clicked > 1:
-
             if not state.displayed or state.displayed[0]["_id"] != row["_id"]:
                 remove_volume()
                 state.last_clicked = time()
@@ -199,9 +204,213 @@ def handle_rowclick_on_file_manager(row):
                 remove_volume()
 
 
+def hide_obliques():
+    state.display_obliques = False
+    for view in range(3):
+        for axis in range(3):
+            render_windows[view].cursor_rep.GetResliceCursorActor() \
+                .GetCenterlineProperty(axis) \
+                .SetOpacity(0.0)
+        render_windows[view].reslice_image.GetResliceCursorWidget() \
+            .ProcessEventsOff()
+        renderers[view].ResetCameraClippingRange()
+        render_windows[view].Render()
+        interactors[view].Render()
+
+    ctrl.view_update()
+
+
+def show_obliques():
+    state.display_obliques = True
+    for view in range(3):
+        for axis in range(3):
+            render_windows[view].cursor_rep.GetResliceCursorActor() \
+                .GetCenterlineProperty(axis) \
+                .SetOpacity(1.0)
+        render_windows[view].reslice_image.GetResliceCursorWidget() \
+            .ProcessEventsOn()
+        renderers[view].ResetCameraClippingRange()
+        render_windows[view].Render()
+        interactors[view].Render()
+
+    ctrl.view_update()
+
+
 # -----------------------------------------------------------------------------
 # Layout
 # -----------------------------------------------------------------------------
+
+
+class Button():
+    def __init__(
+        self,
+        *,
+        tooltip: str,
+        icon: str,
+        icon_color: str = None,
+        click: Optional[Callable] = None,
+        size: int = 40,
+        **kwargs,
+    ) -> None:
+
+        with VTooltip(
+            tooltip,
+            right=True,
+            transition="slide-x-transition"
+        ):
+            with Template(v_slot_activator="{ on, attrs }"):
+                with VBtn(
+                    text=True,
+                    rounded=0,
+                    height=size,
+                    width=size,
+                    min_height=size,
+                    min_width=size,
+                    click=click,
+                    v_bind="attrs",
+                    v_on="on",
+                    **kwargs,
+                ):
+                    VIcon(icon, size=floor(0.6 * size), color=icon_color)
+
+
+class ToolsStrip(html.Div):
+    def __init__(self, **kwargs):
+        super().__init__(
+            classes="bg-grey-darken-4 d-flex flex-column align-center",
+            **kwargs,
+        )
+
+        with self:
+            with html.Div(v_if=("display_obliques",),):
+                Button(
+                    tooltip="Hide obliques",
+                    icon="mdi-eye-remove-outline",
+                    click=hide_obliques,
+                    disabled=("displayed.length === 0",)
+                )
+
+            with html.Div(v_else=True):
+                Button(
+                    tooltip="Show obliques",
+                    icon="mdi-eye-outline",
+                    click=show_obliques,
+                    disabled=("displayed.length === 0",),
+                )
+
+            Button(
+                tooltip="Clear View",
+                icon="mdi-reload",
+                click=remove_volume,
+                loading=("file_loading_busy",),
+                disabled=("displayed.length === 0",)
+            )
+
+
+class ViewGutter(html.Div):
+    def __init__(self, view=0):
+        super().__init__(
+            classes="gutter",
+            style=(
+                "position: absolute;"
+                "top: 0;"
+                "left: 0;"
+                "background-color: transparent;"
+                "height: 100%;"
+            )
+        )
+        self.view = view
+        with self:
+            with html.Div(
+                v_if=("displayed.length>0",),
+                classes="gutter-content d-flex flex-column fill-height pa-2"
+            ):
+                Button(
+                    tooltip="Reset View",
+                    icon="mdi-camera-flip-outline",
+                    icon_color="white",
+                    click=self.reset_view,
+                )
+
+                Button(
+                    v_if=("quad_view",),
+                    tooltip="Extend to fullscreen",
+                    icon="mdi-fullscreen",
+                    icon_color="white",
+                    click=self.extend_fullscreen,
+                )
+
+                Button(
+                    v_else=True,
+                    tooltip="Exit fullscreen",
+                    icon="mdi-fullscreen-exit",
+                    icon_color="white",
+                    click=self.exit_fullscreen,
+                )
+
+    def reset_view(self):
+        reslice_image = render_windows[self.view].reslice_image
+        if reslice_image:
+            bounds = renderers[self.view].GetViewProps() \
+                .GetLastProp() \
+                .GetBounds()
+            center = (
+                (bounds[0] + bounds[1]) / 2.0,
+                (bounds[2] + bounds[3]) / 2.0,
+                (bounds[4] + bounds[5]) / 2.0
+            )
+            # Replace slice cursor at the volume center
+            reslice_image.GetResliceCursor().SetCenter(center)
+            reslice_image.GetResliceCursorWidget().ResetResliceCursor()
+        else:
+            renderers[self.view].GetActiveCamera().SetFocalPoint((0, 0, 0))
+            renderers[self.view].GetActiveCamera().SetPosition((0, 0, 1))
+
+        renderers[self.view].ResetCameraScreenSpace(0.8)
+        render_windows[self.view].Render()
+        interactors[self.view].Render()
+
+        ctrl.view_update()
+
+    def extend_fullscreen(self):
+        state.quad_view = False
+
+    def exit_fullscreen(self):
+        state.quad_view = True
+
+
+class QuadView(VContainer):
+    def __init__(self, **kwargs):
+        super().__init__(
+            classes="fill-height pa-0",
+            **kwargs
+        )
+
+        with self:
+            with VRow(style="height:50%", no_gutters=True):
+                with VCol(cols=6):
+                    with vtk.VtkRemoteView(render_windows[0]) as sag_view:
+                        ViewGutter(0)
+                        ctrl.view_update.add(sag_view.update)
+                        ctrl.view_reset_camera.add(sag_view.reset_camera)
+                with VCol(cols=6):
+                    with vtk.VtkRemoteView(render_windows[3]) as threed_view:
+                        ViewGutter(3)
+                        ctrl.view_update.add(threed_view.update)
+                        ctrl.view_reset_camera.add(threed_view.reset_camera)
+
+            with VRow(style="height:50%", no_gutters=True):
+                with VCol(cols=6):
+                    with vtk.VtkRemoteView(render_windows[1]) as cor_view:
+                        ViewGutter(1)
+                        ctrl.view_update.add(cor_view.update)
+                        ctrl.view_reset_camera.add(cor_view.reset_camera)
+                with VCol(cols=6):
+                    with vtk.VtkRemoteView(render_windows[2]) as ax_view:
+                        ViewGutter(2)
+                        ctrl.view_update.add(ax_view.update)
+                        ctrl.view_reset_camera.add(ax_view.reset_camera)
+
 
 with SinglePageWithDrawerLayout(
     server,
@@ -255,26 +464,14 @@ with SinglePageWithDrawerLayout(
                         block=True,
                         color="primary",
                     )
-        with VContainer(v_else=True, fluid=True, classes="fill-height pa-0"):
-            with VRow(style="height:50%", no_gutters=True):
-                with VCol(cols=6):
-                    sag_view = vtk.VtkRemoteView(render_windows[0])
-                    ctrl.view_update.add(sag_view.update)
-                    ctrl.view_reset_camera.add(sag_view.reset_camera)
-                with VCol(cols=6):
-                    threed_view = vtk.VtkRemoteView(render_windows[3])
-                    ctrl.view_update.add(threed_view.update)
-                    ctrl.view_reset_camera.add(threed_view.reset_camera)
 
-            with VRow(style="height:50%", no_gutters=True):
-                with VCol(cols=6):
-                    cor_view = vtk.VtkRemoteView(render_windows[1])
-                    ctrl.view_update.add(cor_view.update)
-                    ctrl.view_reset_camera.add(cor_view.reset_camera)
-                with VCol(cols=6):
-                    ax_view = vtk.VtkRemoteView(render_windows[2])
-                    ctrl.view_update.add(ax_view.update)
-                    ctrl.view_reset_camera.add(ax_view.reset_camera)
+        with html.Div(
+            v_else=True,
+            fluid=True,
+            classes="fill-height d-flex flex-row flex-grow-1"
+        ):
+            ToolsStrip()
+            QuadView(v_if=("quad_view",))
 
     with layout.drawer:
         gwc.GirderFileManager(
@@ -293,16 +490,6 @@ with SinglePageWithDrawerLayout(
             action_keys=("action_keys",),
             value=("detailed",)
         )
-
-        with VContainer(v_if=("displayed.length > 0",)):
-            VBtn(
-                "Clear view",
-                large=True,
-                bottom=True,
-                loading=("file_loading_busy",),
-                click=remove_volume,
-                style="margin-right: 20px"
-            )
 
 
 if __name__ == "__main__":

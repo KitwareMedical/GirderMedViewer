@@ -46,7 +46,9 @@ class ResliceImageViewerCallback(object):
             self.renderers[i].Render()
 
 
-def render_slices(image_data, renderers, render_windows, interactors):
+def render_slices(
+        image_data, renderers, render_windows, interactors, obliques=True
+):
     viewers = []
     viewer_callback = ResliceImageViewerCallback(viewers)
     for axis in range(3):
@@ -54,11 +56,12 @@ def render_slices(image_data, renderers, render_windows, interactors):
         viewers[axis].SetRenderer(renderers[axis])
         viewers[axis].SetRenderWindow(render_windows[axis])
         viewers[axis].SetupInteractor(interactors[axis])
+        render_windows[axis].reslice_image = viewers[axis]
 
         viewers[axis].SetInputData(image_data)
 
         # Set the reslice mode and axis
-        viewers[axis].SetResliceModeToAxisAligned()
+        # viewers[axis].SetResliceModeToOblique()
         viewers[axis].SetSliceOrientation(axis)  # 0=X, 1=Y, 2=Z
 
         viewers[axis].SetThickMode(0)
@@ -67,6 +70,7 @@ def render_slices(image_data, renderers, render_windows, interactors):
         cursor_rep = vtkResliceCursorLineRepresentation.SafeDownCast(
             viewers[axis].GetResliceCursorWidget().GetRepresentation()
         )
+        render_windows[axis].cursor_rep = cursor_rep
 
         # vtkResliceImageViewer instance share share the same lookup table
         viewers[axis].SetLookupTable(viewers[0].GetLookupTable())
@@ -130,6 +134,13 @@ def render_slices(image_data, renderers, render_windows, interactors):
           'SliceChangedEvent', viewer_callback
         )
 
+        if not obliques:
+            for i in range(3):
+                cursor_rep.GetResliceCursorActor() \
+                    .GetCenterlineProperty(i) \
+                    .SetOpacity(0.0)
+            viewers[axis].GetResliceCursorWidget().ProcessEventsOff()
+
         # Reset camera and render.
         viewers[axis].GetRenderer().ResetCameraScreenSpace(0.8)
         viewers[axis].Render()
@@ -161,6 +172,7 @@ def render_3D(image_data, renderer, render_window):
     volume.SetProperty(volume_property)
 
     renderer.AddVolume(volume)
+    render_window.reslice_image = None
 
     renderer.ResetCameraScreenSpace(0.8)
     render_window.Render()
@@ -179,6 +191,7 @@ def create_rendering_pipeline(n_views):
 
         renderer.ResetCamera()
         render_window.Render()
+        interactor.Render()
 
         renderers.append(renderer)
         render_windows.append(render_window)
