@@ -1,10 +1,13 @@
 import asyncio
-from configparser import ConfigParser
-from girder_client import GirderClient
 from math import floor
 import os
-from tempfile import TemporaryDirectory
 from time import time
+from urllib.parse import urljoin
+
+from configparser import ConfigParser
+from girder_client import GirderClient
+
+from tempfile import TemporaryDirectory
 from trame_server.utils.asynchronous import create_task
 from trame.app import get_server
 from trame.ui.vuetify import SinglePageWithDrawerLayout
@@ -51,10 +54,11 @@ state.update({
 # Girder configuration
 # -----------------------------------------------------------------------------
 
-api_url = os.path.join(
-    config.get("girder", "url").strip("/"),
-    config.get("girder", "api_root").strip("/")
+api_url = urljoin(
+    config.get("girder", "url"),
+    config.get("girder", "api_root")
 )
+
 CLIENT = GirderClient(apiUrl=api_url)
 provider = gwc.GirderProvider(value=api_url, trame_server=server)
 ctrl.provider_logout = provider.logout
