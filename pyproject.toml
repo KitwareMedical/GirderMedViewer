@@ -1,0 +1,101 @@
+[project]
+name = "girdermedviewer"
+version = "1.0.0"
+description = "Browser and Viewer of Girder database"
+authors = [
+    {name = "Kitware Europe"},
+]
+dependencies = [
+    "trame>=3.7.1",
+    "trame-vuetify",
+    "trame-vtk",
+]
+requires-python = ">=3.9"
+readme = "README.rst"
+license = {text = "Apache Software License"}
+keywords = ["Python", "Interactive", "Web", "Application", "Framework"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.optional-dependencies]
+app = [
+    "pywebview",
+]
+jupyter = [
+    "jupyterlab",
+]
+dev = [
+    "pre-commit",
+    "ruff",
+    "pytest",
+]
+
+[project.scripts]
+girdermedviewer = "girdermedviewer.app:main"
+
+[build-system]
+requires = ['setuptools', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+girdermedviewer = [
+    "**/*.js",
+    "**/*.css",
+]
+[tool.semantic_release]
+version_variables = [
+    "girdermedviewer/__init__.py:__version__",
+]
+version_toml = [
+    "pyproject.toml:project.version",
+]
+build_command = """
+  python -m venv .venv
+  source .venv/bin/activate
+  pip install -U pip build
+  python -m build .
+"""
+
+[semantic_release.publish]
+dist_glob_patterns = ["dist/*"]
+upload_to_vcs_release = true
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "W", "F"]
+ignore = []
+fixable = ["ALL"]
+unfixable = []
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120
+
+[lint.pydocstyle]
+convention = "google"
