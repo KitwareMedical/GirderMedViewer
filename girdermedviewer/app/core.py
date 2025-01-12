@@ -1,3 +1,4 @@
+import ast
 import os
 from urllib.parse import urljoin
 from configparser import ConfigParser
@@ -25,18 +26,8 @@ class MyTrameApp:
         self.server = get_server(server, client_type="vue2")
         if self.server.hot_reload:
             self.server.controller.on_server_reload.add(self._build_ui)
-        # project_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-        current_working_directory = os.getcwd()
 
-        self.config = ConfigParser()
-        config_file_path = os.path.join(current_working_directory, "app.cfg")
-        self.config.read(config_file_path)
-
-        self.state.api_url = urljoin(
-            self.config.get("girder", "url"),
-            self.config.get("girder", "api_root")
-        )
-        print(f'>>>>>>>>>>>> api_url {self.state.api_url}')
+        self.load_config()
 
         self.provider = gwc.GirderProvider(value=self.state.api_url, trame_server=self.server)
         self.ctrl.provider_logout = self.provider.logout
@@ -67,6 +58,29 @@ class MyTrameApp:
     def ctrl(self):
         return self.server.controller
 
+    def load_config(self, config_file_path=None):
+        """
+        Load the configuration file app.cfg if any and set the state variables accordingly.
+        If provided, app.cfg must at least contain girder/url and girder/api_root.
+        """
+        if config_file_path is None:
+            current_working_directory = os.getcwd()
+            config_file_path = os.path.join(current_working_directory, "app.cfg")
+
+        if os.path.exists(config_file_path) is False:
+            return
+
+        config = ConfigParser()
+        config.read(config_file_path)
+
+        self.state.api_url = urljoin(
+            config.get("girder", "url"),
+            config.get("girder", "api_root")
+        )
+        self.state.default_location = ast.literal_eval(
+            config.get("girder", "default_location", fallback="{}"))
+        self.state.app_name = config.get("ui", "name", fallback="Girder Medical Viewer")
+
     @controller.set("reset_resolution")
     def reset_resolution(self):
         self.state.resolution = 6
@@ -82,7 +96,7 @@ class MyTrameApp:
                 width="25%"
             ) as layout:
             self.provider.register_layout(layout)
-            layout.title.set_text(self.config.get("ui", "name"))
+            layout.title.set_text(self.state.app_name)
             layout.toolbar.height = 75
 
             with layout.toolbar:

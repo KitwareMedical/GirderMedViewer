@@ -47,7 +47,7 @@ def set_user(user, **kwargs):
     if user:
         state.first_name = user.get("firstName", "")
         state.last_name = user.get("lastName", "")
-        state.location = user
+        state.location = state.default_location or user
         state.display_authentication = False
         state.main_drawer = True
         girder_client.setToken(state.token)
