@@ -41,7 +41,7 @@ class MyTrameApp:
         self.state.user = None
         self.state.file_loading_busy = False
         self.state.quad_view = True
-        self.state.clicked = []
+        self.state.selected = []
         self.state.displayed = []
         self.state.detailed = []
         self.state.last_clicked = 0
@@ -154,7 +154,7 @@ class MyTrameApp:
             with layout.drawer:
                 gwc.GirderFileManager(
                     v_if=("user",),
-                    v_model=("clicked",),
+                    v_model=("selected",),
                     location=("location",),
                     update_location=(update_location, "[$event]"),
                     rowclick=(

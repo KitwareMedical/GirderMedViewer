@@ -67,11 +67,11 @@ def on_location_changed(location, **kwargs):
         location_id = location.get("_id", "")
         if location_id:
             if state.displayed:
-                state.clicked = [
+                state.selected = [
                     item for item in state.displayed
                     if item["folderId"] == location_id
                 ]
-            state.detailed = state.clicked if state.clicked else [location]
+            state.detailed = state.selected if state.selected else [location]
         else:
             state.detailed = []
 
@@ -87,7 +87,7 @@ def remove_volume():
     # ctrl.view_update()
 
     state.displayed = []
-    state.clicked = []
+    state.selected = []
     state.detailed = (
         [state.location] if state.location and
         state.location.get("_id", "") else []
@@ -165,6 +165,9 @@ def load_files(item):
 
 
 def update_location(new_location):
+    """
+    Called each time the user browse through the GirderFileManager.
+    """
     state.location = new_location
 
 
@@ -177,7 +180,7 @@ def handle_rowclick_on_file_manager(row):
                 state.last_clicked = time()
                 state.displayed = [row]
                 state.detailed = [row]
-                state.clicked = [row]
+                state.selected = [row]
                 create_load_task(row)
             else:
                 remove_volume()
