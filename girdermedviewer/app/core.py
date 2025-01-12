@@ -41,9 +41,9 @@ class MyTrameApp:
         self.state.user = None
         self.state.file_loading_busy = False
         self.state.quad_view = True
-        self.state.selected = []
-        self.state.displayed = []
-        self.state.detailed = []
+        self.state.selected = [] # FIXME: explain the role of this variable
+        self.state.displayed = [] # FIXME: explain the role of this variable
+        self.state.detailed = [] # FIXME: explain the role of this variable
         self.state.last_clicked = 0
         self.state.action_keys = [{"for": []}]
 

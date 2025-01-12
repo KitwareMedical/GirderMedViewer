@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 from time import time
+from collections import defaultdict
+
 
 from tempfile import TemporaryDirectory
 from trame_server.utils.asynchronous import create_task
@@ -12,9 +14,12 @@ from trame.widgets import gwc, html, vtk
 from trame.widgets.vuetify2 import (VContainer, VRow, VCol, VTooltip, Template,
                                     VBtn, VCard, VIcon)
 from typing import Callable, Optional
-from .vtk_utils import create_rendering_pipeline, render_slice, render_3D, load_file
-from vtk import (
-    vtkResliceCursorLineRepresentation,
+from .vtk_utils import (
+    create_rendering_pipeline,
+    load_file,
+    render_slice,
+    render_3D,
+    set_oblique_visibility
 )
 
 from girder_client import GirderClient
@@ -31,11 +36,9 @@ state, ctrl = server.state, server.controller
 # Viewer layout
 # -----------------------------------------------------------------------------
 
-quad_view = None
+file_selector = None
 
 girder_client = GirderClient(apiUrl=state.api_url)
-
-
 
 class GirderFileSelector(gwc.GirderFileManager):
     def __init__(self, quad_view, **kwargs):
@@ -45,26 +48,30 @@ class GirderFileSelector(gwc.GirderFileManager):
             location=("location",),
             update_location=(self.update_location, "[$event]"),
             rowclick=(
-                self.handle_rowclick_on_file_manager,
+                self.toggle_item,
                 "[$event]"
             ),
             **kwargs
         )
         self.quad_view = quad_view
+        # FIXME do not use global variable
+        global file_selector
+        file_selector = self
 
-    def handle_rowclick_on_file_manager(self, row):
-        if row.get('_modelType') == 'item':
-            # Ignore double click on item
-            if time() - state.last_clicked > 1:
-                if not state.displayed or state.displayed[0]["_id"] != row["_id"]:
-                    self.quad_view.remove_volume()
-                    state.last_clicked = time()
-                    state.displayed = [row]
-                    state.detailed = [row]
-                    state.selected = [row]
-                    self.create_load_task(row)
-                else:
-                    self.quad_view.remove_volume()
+    def toggle_item(self, item):
+        if item.get('_modelType') != 'item':
+            return
+        # Ignore double click on item
+        clicked_time = time()
+        if clicked_time - state.last_clicked < 1:
+            return
+        state.last_clicked = clicked_time
+        is_selected = item in state.selected
+        logger.debug(f"Toggle item {item} selected={is_selected}")
+        if is_selected:
+            self.unselect_volume(item)
+        else:
+            self.select_volume(item)
     
     def update_location(self, new_location):
         """
@@ -73,21 +80,73 @@ class GirderFileSelector(gwc.GirderFileManager):
         logger.debug(f"Updating location to {new_location}")
         state.location = new_location
 
+    def unselect_volume(self, item):
+        state.displayed = [i for i in state.displayed if i != item]
+        state.selected = [i for i in state.selected if i != item]
+        state.detailed = [i for i in state.detailed if i != item]
+        if len(state.detailed) == 0:
+            # Make location the detailed item by default
+            state.detailed = (
+                [state.location] if state.location and
+                state.location.get("_id", "") else []
+            )
+        self.quad_view.remove_data(item["_id"])
+
+    def unselect_volumes(self):
+        while len(state.selected):
+            self.unselect_volume(state.selected[0])
+
+    def select_volume(self, item):
+        # only 1 volume at a time for now
+        self.unselect_volumes()
+
+        state.displayed = state.displayed + [item]
+        state.selected = state.selected + [item]
+        state.detailed = [item]
+
+        self.create_load_task(item)
+
     def create_load_task(self, item):
         logger.debug(f"Creating load task for {item}")
         state.file_loading_busy = True
         state.flush()
 
         async def load():
-            logger.debug(f"Wait and load")
             await asyncio.sleep(1)
             try:
-                quad_view.load_files(item)
+                self.load_item(item)
             finally:
                 state.file_loading_busy = False
                 state.flush()
 
         create_task(load())
+
+    def load_item(self, item):
+        logger.debug(f"Loading files {item}")
+        with TemporaryDirectory() as tmp_dir:
+            file_list = []
+            logger.debug(f"Listing files")
+            for file in girder_client.listFile(item["_id"]):
+                file_path = os.path.join(tmp_dir, file["name"])
+                logger.debug(f"Downloading {file_path}")
+                girder_client.downloadFile(
+                    file["_id"],
+                    file_path
+                )
+                logger.debug(f"Downloaded {file_path}")
+                file_list.append(file_path)
+
+            if len(file_list) == 0:
+                raise Exception(
+                    "No file to load. Please check the selected item."
+                )
+            if len(file_list) > 1:
+                raise Exception(
+                    "You are trying to load more than one file. \
+                    If so, please load a compressed archive."
+                )
+            
+            self.quad_view.load_files(file_list[0], item["_id"])
 
     @state.change("location")
     def on_location_changed(location, **kwargs):
@@ -122,7 +181,7 @@ class GirderFileSelector(gwc.GirderFileManager):
             state.main_drawer = True
             girder_client.setToken(state.token)
         else:
-            quad_view.remove_volume()
+            file_selector.unselect_volumes()
             state.first_name = None
             state.last_name = None
             state.location = None
@@ -172,6 +231,7 @@ class ToolsStrip(html.Div):
         self.quad_view = quad_view
 
         with self:
+            # FIXME use a unique button
             with html.Div(v_if=("display_obliques",),):
                 Button(
                     tooltip="Hide obliques",
@@ -279,12 +339,27 @@ class VtkView(vtk.VtkRemoteView):
         self.renderer = renderers[0]
         self.render_window = render_windows[0]
         self.interactor = interactors[0]
+        self.data = defaultdict(list)
 
-    def remove_volume(self):
-        self.renderer.RemoveAllViewProps()
-        self.renderer.ResetCameraClippingRange()
-        self.render_window.Render()
-        self.interactor.Render()
+    def register_data(self, data_id, data):
+        # Associate data (typically an actor) to data_id so that it can be
+        # removed when data_id is unregistered.
+        self.data[data_id].append(data)
+
+    def unregister_data(self, data_id, no_render=False):
+        for data in self.data[data_id]:
+            if data.IsA("vtkVolume"):
+                self.renderer.RemoveVolume(data)
+            elif data.IsA("vtkActor"):
+                self.renderer.RemoveActor(data)
+            elif data.IsA("vtkImageViewer2"):
+                data.SetupInteractor(None)
+                # FIXME: check for leak
+                # data.SetRenderer(None)
+                # data.SetRenderWindow(None)
+        self.data.pop(data_id)
+        if not no_render:
+            self.update()
 
 
 class SliceView(VtkView):
@@ -292,36 +367,25 @@ class SliceView(VtkView):
     def __init__(self, axis, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
-        self.reslice_image_viewers = []
         self._build_ui()
     
-    def add_volume(self, image_data):
+    def add_volume(self, image_data, data_id=None):
         reslice_image_viewer = render_slice(
+            data_id,
             image_data,
             self.renderer,
             self.axis,
             obliques=state.display_obliques
         )
-        self.reslice_image_viewers.append(reslice_image_viewer)
+        self.register_data(data_id, reslice_image_viewer)
+        self.update()
 
-    def get_reslice_cursor_actor(self):
-        return self.get_reslice_cursor_representation().GetResliceCursorActor()
-
-    def get_reslice_cursor_representation(self):
-        return vtkResliceCursorLineRepresentation.SafeDownCast(
-            self.get_reslice_cursor_widget().GetRepresentation())
-
-    def get_reslice_cursor_widget(self):
-        return self.reslice_image_viewers[0].GetResliceCursorWidget()
-
+    # FIXME: react to display_obliques change
     def set_obliques_visibility(self, visible):
-        for axis in range(3):
-            self.get_reslice_cursor_actor.GetCenterlineProperty(axis) \
-                .SetOpacity(1.0 if visible else 0.0)
-        self.get_reslice_cursor_widget.SetProcessEvents(visible)
-        # self.renderer.ResetCameraClippingRange()
-        # self.render_window.Render()
-        self.interactor.Render()
+        for reslice_image_viewers in self.data.values():
+            for reslice_image_viewer in reslice_image_viewers:
+                set_oblique_visibility(reslice_image_viewer, visible)
+        self.update()
 
     def _build_ui(self):
         with self:
@@ -335,11 +399,14 @@ class ThreeDView(VtkView):
         super().__init__(**kwargs)
         self._build_ui()
     
-    def add_volume(self, image_data):
-        render_3D(
+    def add_volume(self, image_data, data_id=None):
+        volume = render_3D(
             image_data,
             self.renderer
         )
+        self.register_data(data_id, volume)
+        self.update()
+
     def _build_ui(self):
         with self:
             ViewGutter(self)
@@ -358,50 +425,17 @@ class QuadView(VContainer):
         self.views = []
         self._build_ui()
 
-        global quad_view
-        quad_view = self
-
-    # FIXME split VTK from Girder
-    def remove_volume(self):
+    def remove_data(self, data_id=None):
         for view in self.views:
-            view.remove_volume()
+            view.unregister_data(data_id)
+        ctrl.view_update()
 
-        # FIXME
-        # ctrl.view_update()
-
-        state.displayed = []
-        state.selected = []
-        state.detailed = (
-            [state.location] if state.location and
-            state.location.get("_id", "") else []
-        )
-
-    # FIXME split VTK from Girder
-    def load_files(self, item):
-        logger.debug(f"Loading files {item}")
-        with TemporaryDirectory() as tmp_dir:
-            file_list = []
-            logger.debug(f"Listing files")
-            for file in girder_client.listFile(item["_id"]):
-                file_path = os.path.join(tmp_dir, file["name"])
-                logger.debug(f"Downloading {file_path}")
-                girder_client.downloadFile(
-                    file["_id"],
-                    file_path
-                )
-                logger.debug(f"Downloaded {file_path}")
-                file_list.append(file_path)
-
-            if len(file_list) > 1:
-                raise Exception(
-                    "You are trying to load more than one file. \
-                    If so, please load a compressed archive."
-                )
-
-            image_data = load_file(file_list[0])
+    def load_files(self, file_path, data_id=None):
+        logger.debug(f"Loading file {file_path}")
+        image_data = load_file(file_path)
 
         for view in self.views:
-            view.add_volume(image_data)
+            view.add_volume(image_data, data_id)
 
         ctrl.view_update()
 
