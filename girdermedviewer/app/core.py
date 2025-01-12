@@ -10,7 +10,7 @@ from trame.ui.vuetify import SinglePageWithDrawerLayout
 
 from trame.widgets.vuetify2 import (VContainer, VRow, VCol, VBtn, VCard, VIcon)
 
-from .components import QuadView, ToolsStrip, update_location, handle_rowclick_on_file_manager
+from .components import QuadView, ToolsStrip, GirderFileSelector
 
 from trame.widgets import vuetify, vtk
 #from trame.widgets import vuetify3, vtk
@@ -47,6 +47,7 @@ class MyTrameApp:
         self.state.last_clicked = 0
         self.state.action_keys = [{"for": []}]
 
+        self.quad_view = None
         self.ui = self._build_ui()
 
 
@@ -148,20 +149,13 @@ class MyTrameApp:
                     fluid=True,
                     classes="fill-height d-flex flex-row flex-grow-1"
                 ):
-                    ToolsStrip()
-                    QuadView(v_if=("quad_view",))
+                    ts = ToolsStrip()
+                    qd = QuadView(v_if=("quad_view",))
+                    self.quad_view = qd
+                    ts.set_quad_view(qd)
 
             with layout.drawer:
-                gwc.GirderFileManager(
-                    v_if=("user",),
-                    v_model=("selected",),
-                    location=("location",),
-                    update_location=(update_location, "[$event]"),
-                    rowclick=(
-                        handle_rowclick_on_file_manager,
-                        "[$event]"
-                    ),
-                )
+                GirderFileSelector(self.quad_view)
 
                 gwc.GirderDataDetails(
                     v_if=("detailed.length > 0",),
