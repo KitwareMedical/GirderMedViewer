@@ -1,6 +1,8 @@
 import logging
 import math
+import os
 import sys
+import xml.etree.ElementTree as ET
 
 from vtkmodules.all import (
     vtkCommand,
@@ -8,7 +10,6 @@ from vtkmodules.all import (
     vtkRenderWindow,
     vtkRenderWindowInteractor,
     vtkResliceImageViewer,
-    vtkInteractorStyleImage,
     vtkWidgetEvent
 )
 from vtk import (
@@ -378,18 +379,11 @@ def render_volume_in_3D(image_data, renderer):
     volume_property.ShadeOn()
     volume_property.SetInterpolationTypeToLinear()
 
-    color_function = vtkColorTransferFunction()
-    color_function.AddRGBPoint(0, 0.0, 0.0, 0.0)  # Black
-    color_function.AddRGBPoint(100, 1.0, 0.5, 0.3)  # Orange
-    color_function.AddRGBPoint(255, 1.0, 1.0, 1.0)  # White
+    slicer_presets = os.path.join(os.path.dirname(__file__), "slicer_presets.xml")
 
-    opacity_function = vtkPiecewiseFunction()
-    opacity_function.AddPoint(0, 0.0)  # Transparent
-    opacity_function.AddPoint(100, 0.5)  # Semi-transparent
-    opacity_function.AddPoint(255, 1.0)  # Opaque
-
-    volume_property.SetColor(color_function)
-    volume_property.SetScalarOpacity(opacity_function)
+    parser = PresetParser(slicer_presets)
+    preset = parser.get_preset_by_name("CT-Cardiac3")
+    parser.apply_slicer_preset(preset, volume_property, image_data.GetScalarRange())
 
     volume = vtkVolume()
     volume.SetMapper(volume_mapper)
@@ -496,3 +490,83 @@ def load_mesh(file_path):
         return transform_filter.GetOutput()
 
     raise Exception("File format is not handled for {}".format(file_path))
+
+
+class PresetParser:
+    def __init__(self, presets_file_path):
+        self.presets = PresetParser.parse_slicer_presets(presets_file_path)
+
+    def get_presets(self):
+        return self.presets
+
+    def get_preset_names(self):
+        return [preset.get("name") for preset in self.presets]
+
+    def get_preset_by_name(self, name):
+        preset = next((p for p in self.presets if p['name'] == name), None)
+        return preset
+
+    @staticmethod
+    def parse_slicer_presets(presets_file_path):
+        tree = ET.parse(presets_file_path)
+        root = tree.getroot()
+
+        presets = []
+        for vp in root.findall("VolumeProperty"):
+            preset = {}
+            for attr, value in vp.attrib.items():
+                preset[attr] = value
+
+            presets.append(preset)
+
+        return presets
+
+    @staticmethod
+    def array_to_color_transfer_function(string_of_numbers):
+        xrgbs = list(map(float, string_of_numbers.split()))
+        number_of_expected_values = xrgbs.pop(0)
+        assert number_of_expected_values == len(xrgbs)
+        color_transfer_function = vtkColorTransferFunction()
+        for i in range(0, len(xrgbs), 4):
+            x, r, g, b = xrgbs[i:i + 4]
+            color_transfer_function.AddRGBPoint(x, r, g, b)
+        return color_transfer_function
+
+    @staticmethod
+    def array_to_opacity_function(string_of_numbers):
+        opacities = list(map(float, string_of_numbers.split()))
+        number_of_expected_values = opacities.pop(0)
+        assert number_of_expected_values == len(opacities)
+        opacity_function = vtkPiecewiseFunction()
+        for i in range(0, len(opacities), 2):
+            x, o = opacities[i:i + 2]
+            opacity_function.AddPoint(x, o)
+        return opacity_function
+
+    @staticmethod
+    def apply_slicer_preset(preset, volume_property, range=None):
+        """
+        :param range color and opacity range. Optional.
+        :type range list[float, float] | tuple[float, float] | None
+        """
+        color_transfer_function = PresetParser.array_to_color_transfer_function(
+            preset.get("colorTransfer"))
+        opacity_function = PresetParser.array_to_opacity_function(
+            preset.get("scalarOpacity"))
+        if range is not None:
+            color_transfer_function.SetRange(range[0], range[1])
+            # opacity_function.SetRange(range[0], range[1])
+        volume_property.SetColor(color_transfer_function)
+        volume_property.SetScalarOpacity(opacity_function)
+        if "ambient" in preset:
+            volume_property.SetAmbient(float(preset.get("ambient")))
+        if "diffuse" in preset:
+            volume_property.SetDiffuse(float(preset.get("diffuse")))
+        if "specular" in preset:
+            volume_property.SetSpecular(float(preset.get("specular")))
+        if "specularPower" in preset:
+            volume_property.SetSpecularPower(float(preset.get("specularPower")))
+        if "shade" in preset:
+            volume_property.SetShade(int(preset.get("shade")))
+        if "interpolation" in preset:
+            volume_property.SetInterpolationType(int(preset.get("interpolation")))
