@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -32,9 +31,7 @@ from .utils import (
     set_window_level
 )
 
-logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class ToolsStrip(html.Div):

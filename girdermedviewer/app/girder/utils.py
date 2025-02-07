@@ -1,13 +1,11 @@
 import os
-import sys
 from contextlib import contextmanager
 from enum import Enum
 from tempfile import TemporaryDirectory
 
 import logging
-logging.basicConfig(stream=sys.stdout)
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class CacheMode(Enum):
@@ -49,14 +47,13 @@ class FileDownloader:
         """
         :param forced_cache can be used to override the cache mode for a specific file
         """
-        file_path = os.path.join(self.temp_dir_path, file['_id'], file["name"])
+        file_path = os.path.join(self.temp_dir_path, file["_id"], file["name"])
         if not os.path.exists(file_path):
-            logger.debug(f"Downloading {file_path}")
+            logger.info(f"Download {file['name']} to {file_path}")
             self.girder_client.downloadFile(
                 file["_id"],
                 file_path
             )
-            logger.debug(f"Downloaded {file_path}")
         try:
             yield file_path
         finally:

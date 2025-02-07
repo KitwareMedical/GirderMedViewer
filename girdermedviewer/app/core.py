@@ -2,7 +2,8 @@ import ast
 import os
 from urllib.parse import urljoin
 from configparser import ConfigParser
-
+import logging
+import sys
 from trame.app import get_server
 from trame.decorators import TrameApp, change, controller
 from trame.widgets import gwc, html
@@ -22,6 +23,7 @@ class MyTrameApp:
         self.server = get_server(server, client_type="vue2")
 
         self.load_config()
+        self.configure_logs()
 
         self.provider = gwc.GirderProvider(value=self.state.api_url, trame_server=self.server)
         self.ctrl.provider_logout = self.provider.logout
@@ -74,6 +76,14 @@ class MyTrameApp:
 
         self.state.temp_dir = config.get("download", "directory", fallback=None)
         self.state.cache_mode = config.get("download", "cache_mode", fallback=None)
+
+        self.log_level = config.get("logging", "log_level", fallback="INFO")
+
+    def configure_logs(self):
+        logging.basicConfig(stream=sys.stdout)
+        # Silence dependencies logs and keep only the application ones
+        logging.getLogger().setLevel(logging.WARNING)
+        logging.getLogger("girdermedviewer.app").setLevel(self.log_level)
 
     @change("user")
     def set_user(self, user, **kwargs):
