@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import sys
 import traceback
 from time import time
 
@@ -11,9 +10,7 @@ from .utils import FileDownloader, CacheMode
 from ..utils import Button
 from girder_client import GirderClient
 
-logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class GirderDrawer(VContainer):
@@ -137,11 +134,10 @@ class GirderFileSelector(gwc.GirderFileManager):
         create_task(load())
 
     def load_item(self, item):
-        logger.debug(f"Loading files {item}")
+        logger.debug(f"Loading item {item}")
         try:
-            logger.debug("Listing files")
             files = list(self.file_downloader.get_item_files(item))
-            logger.debug(f"Files {files}")
+            logger.debug(f"Files to load: {files}")
             if len(files) != 1:
                 raise Exception(
                     "No file to load. Please check the selected item."

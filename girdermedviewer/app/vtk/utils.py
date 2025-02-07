@@ -1,6 +1,5 @@
 import logging
 import math
-import sys
 
 from vtkmodules.all import (
     vtkCommand,
@@ -37,9 +36,8 @@ from vtk import (
     vtkVolumeProperty,
 )
 
-logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+
 
 # FIXME do not use global variable
 # dict[axis:vtkResliceImageViewer]
@@ -446,7 +444,7 @@ def create_rendering_pipeline():
 
 def load_volume(file_path):
     """Read a file and return a vtkImageData object"""
-    logger.debug(f"Loading volume {file_path}")
+    logger.info(f"Loading volume {file_path}")
     if file_path.endswith((".nii", ".nii.gz")):
         reader = vtkNIFTIImageReader()
         reader.SetFileName(file_path)
@@ -474,7 +472,7 @@ def load_volume(file_path):
 
 def load_mesh(file_path):
     """Read a file and return a vtkPolyData object"""
-    logger.debug(f"Loading mesh {file_path}")
+    logger.info(f"Loading mesh {file_path}")
     if file_path.endswith(".stl"):
         reader = vtkSTLReader()
         reader.SetFileName(file_path)
