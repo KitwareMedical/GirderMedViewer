@@ -33,6 +33,8 @@ class MyTrameApp:
         self.state.obliques_visibility = True
         self.state.main_drawer = False
         self.state.user = None
+        self.state.position = None
+        self.state.normals = None
         self.state.file_loading_busy = False
         self.state.displayed = []  # Items loaded and visible in the viewer
         self.state.detailed = []  # Items for which detailed information is displayed

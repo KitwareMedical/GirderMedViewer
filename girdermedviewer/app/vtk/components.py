@@ -1,12 +1,10 @@
 import logging
-
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-
-from trame.app import get_server
 from trame.widgets import html, vtk, client
-from trame.widgets.vuetify2 import (VContainer, VCheckbox, VSlider)
+from trame.widgets.vuetify2 import (VContainer, VCheckbox, VSlider, VMenu, VCard, VRow, VCol,
+                                    VCardText, VTextField)
 from ..utils import debounce, Button
 from .utils import (
     create_rendering_pipeline,
@@ -34,6 +32,53 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 
+class PositionSetter(VMenu):
+    def __init__(self, **kwargs):
+        super().__init__(
+            v_model=("position_dialog", False),
+            close_on_content_click=False,
+            close_on_click=False,
+            max_width=300,
+            **kwargs,
+        )
+        client.Style(".v-text-field__prefix {font-weight: 700 !important} "
+                     ".v-text-field__details {display: none !important} "
+                     ".v-text-field {padding-top: 0px; margin-top: 0px; !important} ")
+        self._build_ui()
+
+    def _build_ui(self):
+        Button(
+            tooltip=("{{ position_dialog ? 'Hide position dialog' : 'Show position dialog' }}",),
+            icon="mdi-target",
+            click=self.toggle_position_dialog,
+            disabled=("displayed.length === 0 || file_loading_busy || !position",)
+        )
+        with self, VCard():
+            with VCardText():
+                with VRow(align="center", justify="space-between"):
+                    with VCol(
+                        v_for=("(field, index) in \
+                                [{ prefix: 'X', color: 'red' }, \
+                                { prefix: 'Y', color: 'green' }, \
+                                { prefix: 'Z', color: 'blue' }]",)
+                    ):
+                        VTextField(
+                            value=("parseFloat(position[index]).toFixed(2)",),
+                            change=(self.set_position, "[$event, index]"),
+                            prefix=("field.prefix",),
+                            color=("field.color",),
+                            type="number",
+                        )
+
+    def toggle_position_dialog(self):
+        self.state.position_dialog = not self.state.position_dialog
+
+    def set_position(self, value, index):
+        old_position = list(self.state.position)
+        old_position[int(index)] = float(value)
+        self.state.position = tuple(old_position)
+
+
 class ToolsStrip(html.Div):
     def __init__(self, **kwargs):
         super().__init__(
@@ -57,6 +102,8 @@ class ToolsStrip(html.Div):
                 click=self.ctrl.reset,
                 disabled=("displayed.length === 0 || file_loading_busy",)
             )
+
+            PositionSetter(v_if=("position",))
 
 
 @dataclass
@@ -346,9 +393,10 @@ class SliceView(VtkView):
         self.flush()
 
     def on_cursor_changed(self, position, normals, **kwargs):
-        set_reslice_center(self.get_reslice_image_viewer(), position)
-        set_reslice_normal(self.get_reslice_image_viewer(), normals[self.orientation.value], self.orientation.value)
-        self.update()
+        if position is not None and normals is not None:
+            set_reslice_center(self.get_reslice_image_viewer(), position)
+            set_reslice_normal(self.get_reslice_image_viewer(), normals[self.orientation.value], self.orientation.value)
+            self.update()
 
     def get_slice_range(self):
         reslice_image_viewer = self.get_reslice_image_viewer()
