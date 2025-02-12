@@ -72,6 +72,7 @@ class MyTrameApp:
         )
         self.state.default_location = ast.literal_eval(
             config.get("girder", "default_location", fallback="{}"))
+        self.state.assetstore_dir = config.get("girder", "assetstore", fallback=None)
         self.state.app_name = config.get("ui", "name", fallback="Girder Medical Viewer")
 
         self.state.temp_dir = config.get("download", "directory", fallback=None)

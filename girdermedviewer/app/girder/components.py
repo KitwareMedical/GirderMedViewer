@@ -6,7 +6,7 @@ from time import time
 from trame_server.utils.asynchronous import create_task
 from trame.widgets import gwc
 from trame.widgets.vuetify2 import (VContainer, VRow, VCol,)
-from .utils import FileDownloader, CacheMode
+from .utils import FileFetcher, CacheMode
 from ..utils import Button
 from girder_client import GirderClient
 
@@ -72,7 +72,12 @@ class GirderFileSelector(gwc.GirderFileManager):
         self.quad_view = quad_view
         girder_client = GirderClient(apiUrl=self.state.api_url)
         cache_mode = CacheMode(self.state.cache_mode) if self.state.cache_mode else CacheMode.No
-        self.file_downloader = FileDownloader(girder_client, self.state.temp_dir, cache_mode)
+        self.file_fetcher = FileFetcher(
+            girder_client,
+            self.state.assetstore_dir,
+            self.state.temp_dir,
+            cache_mode
+        )
         # FIXME do not use global variable
         global file_selector
         file_selector = self
@@ -136,7 +141,7 @@ class GirderFileSelector(gwc.GirderFileManager):
     def load_item(self, item):
         logger.debug(f"Loading item {item}")
         try:
-            files = list(self.file_downloader.get_item_files(item))
+            files = list(self.file_fetcher.get_item_files(item))
             logger.debug(f"Files to load: {files}")
             if len(files) != 1:
                 raise Exception(
@@ -145,7 +150,7 @@ class GirderFileSelector(gwc.GirderFileManager):
                     "You are trying to load more than one file. \
                     If so, please load a compressed archive."
                 )
-            with self.file_downloader.download_file(files[0]) as file_path:
+            with self.file_fetcher.fetch_file(files[0]) as file_path:
                 self.quad_view.load_files(file_path, item["_id"])
         except Exception:
             logger.error(f"Error loading file {item['_id']}: {traceback.format_exc()}")
@@ -153,10 +158,10 @@ class GirderFileSelector(gwc.GirderFileManager):
 
     def set_api_url(self, api_url, **kwargs):
         logger.debug(f"Setting api_url to {api_url}")
-        self.file_downloader.girder_client = GirderClient(apiUrl=api_url)
+        self.file_fetcher.girder_client = GirderClient(apiUrl=api_url)
 
     def set_token(self, token):
-        self.file_downloader.girder_client.setToken(token)
+        self.file_fetcher.girder_client.setToken(token)
 
     def on_location_changed(self, **kwargs):
         logger.debug(f"Location/Displayed changed to {self.state.location}/{self.state.displayed}")
