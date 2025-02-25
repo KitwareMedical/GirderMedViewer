@@ -11,18 +11,33 @@ Browser and Viewer of Girder database
 Installing
 ----------
 
-Install the application
+Install the application:
 
 .. code-block:: console
 
-    pip install -e ".[dev]"
+    pip install -e .
 
+If you want DICOM file support, you also need to install the "DICOM" dependencies:
+
+.. code-block:: console
+
+    pip install -e ".[dicom]"
 
 Run the application
 
 .. code-block:: console
 
     girdermedviewer
+
+Contributing
+------------
+
+Install the development dependencies;
+
+.. code-block:: console
+
+    pip install -e ".[dev]"
+
 
 Features
 --------

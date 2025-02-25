@@ -40,6 +40,9 @@ dev = [
     "ruff",
     "pytest",
 ]
+dicom = [
+    "dicom-exporter==1.0.0",
+]
 
 [project.scripts]
 girdermedviewer = "girdermedviewer.app:main"

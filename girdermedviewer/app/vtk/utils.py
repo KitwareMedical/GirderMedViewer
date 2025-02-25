@@ -2,6 +2,8 @@ import logging
 import math
 import os
 import xml.etree.ElementTree as ET
+from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 from vtkmodules.all import (
     vtkCommand,
@@ -139,7 +141,8 @@ def get_reslice_window_level(reslice_image_viewer):
 
 
 def set_reslice_opacity(reslice_image_viewer, opacity):
-    logger.warning("not implemented")
+    if opacity != 1:
+        logger.warning("not implemented")
     return False
     # reslice_representation = get_reslice_cursor_representation(reslice_image_viewer)
     # if reslice_representation is None:
@@ -517,7 +520,25 @@ def create_rendering_pipeline():
 
 
 def supported_volume_extensions():
-    return (".nii", ".nii.gz", ".nrrd", ".mha")
+    return (".nii", ".nii.gz", ".nrrd", ".mha", ".zip")
+
+
+def find_subfolder_with_most_files(directory):
+    """
+    Convenient function to search the subfolder with the most files.
+    The returned subfolder can the input directory.
+    """
+    max_files = 0
+    folder_with_max_files = None
+
+    # Walk through the directory
+    for subdir, dirs, files in os.walk(directory):
+        num_files = len(files)
+        if num_files > max_files:
+            max_files = num_files
+            folder_with_max_files = subdir
+
+    return folder_with_max_files
 
 
 def load_volume(file_path):
@@ -556,6 +577,15 @@ def load_volume(file_path):
         reader.SetFileName(file_path)
         reader.Update()
         return reader.GetOutput()
+
+    if file_path.endswith(".zip"):
+        from dicomexporter import exporter  # pip install dicom-exporter
+        with TemporaryDirectory() as temp_dir:
+            with ZipFile(file_path, 'r') as zip_ref:
+                zip_ref.extractall(temp_dir)
+                folder = find_subfolder_with_most_files(temp_dir)
+                image_data, _ = exporter.readDICOMVolume(folder)
+                return image_data
 
     raise Exception("File format is not handled for {}".format(file_path))
 
