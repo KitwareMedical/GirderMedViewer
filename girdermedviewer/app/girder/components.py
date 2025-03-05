@@ -117,7 +117,6 @@ class GirderFileSelector(gwc.GirderFileManager):
     def unselect_item(self, item):
         self.state.selected.pop(item["_id"])
         self.state.dirty("selected")
-        self.ctrl.remove_data(item["_id"]) #TODO Handle this with SceneObject
 
     def unselect_items(self):
         while len(self.state.selected) > 0:

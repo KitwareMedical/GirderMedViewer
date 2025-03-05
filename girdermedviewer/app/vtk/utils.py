@@ -149,7 +149,7 @@ def get_reslice_window_level(reslice_image_viewer):
 
 def set_reslice_opacity(reslice_image_viewer, opacity):
     if opacity != 1:
-        logger.warning("not implemented")
+        logger.warning("Primary volume opacity change not implemented")
     return False
     # reslice_representation = get_reslice_cursor_representation(reslice_image_viewer)
     # if reslice_representation is None:

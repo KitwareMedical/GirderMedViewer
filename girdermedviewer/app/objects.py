@@ -30,11 +30,19 @@ class Scene:
 
     @change("selected")
     def on_selected_changed(self, selected, **kwargs):
+        # Add new items
         for item_id in selected.keys():
             object = self.get_object(item_id)
             if object is None:
                 object = SceneObject(self.server, item_id, None, self.views)
                 self.objects.append(object)
+
+        # Remove deleted items
+        for obj in self.objects[:]:
+            if obj.id not in selected.keys():
+                self.objects.remove(obj)
+                obj.__del__()
+                del obj
 
     @controller.set("load_file")
     def load_file(self, file_path, data_id=None):
@@ -93,8 +101,11 @@ class SceneObject:
         """Must be reimplemted to clear data"""
         # remove self from all views
         self.set_views([])
-        self.data = None
+         # clear state and prevent change listener to react
+        self.state[self.id] = None
+        self.state.clean(self.id)
         self.id = None
+        self.data = None
         self.file_path = None
 
     @property
@@ -186,7 +197,6 @@ class Volume(SceneObject):
             if len(self.state.presets) else None)
         self.preset_range = scalar_range
 
-        self._on_change()
         super().load(file_path)
 
     def _add_to_view(self, view):
@@ -197,9 +207,10 @@ class Volume(SceneObject):
         self.state.dirty(self.id)
 
     def _on_change(self, *_, **kwargs):
-        self._on_opacity_change(_, **kwargs)
-        self._on_window_level_change(_, **kwargs)
-        self._on_preset_change(_, **kwargs)
+        if self.id is not None and self.state[self.id]["loaded"]:
+            self._on_opacity_change(_, **kwargs)
+            self._on_window_level_change(_, **kwargs)
+            self._on_preset_change(_, **kwargs)
 
     def _on_opacity_change(self, *_, **kwargs):
         for view in self.twod_views:
@@ -289,12 +300,12 @@ class Mesh(SceneObject):
     def load(self, file_path):
         self.data = load_mesh(file_path)
         self.color = get_random_color()
-        self._on_change()
         super().load(file_path)
 
     def _on_change(self, *_, **kwargs):
-        self._on_opacity_change(_, **kwargs)
-        self._on_color_change(_, **kwargs)
+        if self.id is not None and self.state[self.id]["loaded"]:
+            self._on_opacity_change(_, **kwargs)
+            self._on_color_change(_, **kwargs)
 
     def _on_opacity_change(self, *_, **kwargs):
         for view in self.views:
