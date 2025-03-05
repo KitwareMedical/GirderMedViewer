@@ -30,19 +30,11 @@ class Scene:
 
     @change("selected")
     def on_selected_changed(self, selected, **kwargs):
-        # Add new items
         for item_id in selected.keys():
             object = self.get_object(item_id)
             if object is None:
                 object = SceneObject(self.server, item_id, None, self.views)
                 self.objects.append(object)
-
-        # Remove deleted items
-        # for obj in self.objects:
-        #     if obj.id not in selected.keys():
-        #         self.objects.remove(obj)
-        #         obj.reset()
-        #         del obj
 
     @controller.set("load_file")
     def load_file(self, file_path, data_id=None):

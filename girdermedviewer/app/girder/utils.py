@@ -39,15 +39,18 @@ class FileFetcher:
         ```
         """
         self.assetstore_dir_path = assetstore_dir
-        self.temp_dir_path = temp_dir
         self.girder_client = girder_client
         self.cache = cache_mode
 
-        if self.temp_dir_path is None:
+        if temp_dir is None:
             if cache_mode == CacheMode.Permanent:
                 raise Exception("A directory must be provided if cache mode is Permanent")
-            self.temporary_directory = TemporaryDirectory()
-            self.temp_dir_path = self.temporary_directory.name
+        else:
+            if not os.path.exists(temp_dir):
+                os.mkdir(temp_dir)
+
+        self.temporary_directory = TemporaryDirectory(dir=temp_dir)
+        self.temp_dir_path = self.temporary_directory.name
 
         if (
             self.assetstore_dir_path is not None and
@@ -113,4 +116,4 @@ class FileFetcher:
             if os.path.exists(file_path):
                 os.remove(file_path)
         else:
-            self.temp_dir_path.cleanup()
+            self.temporary_directory.cleanup()
