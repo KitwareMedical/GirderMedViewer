@@ -10,6 +10,7 @@ from .utils import (
     create_rendering_pipeline,
     get_number_of_slices,
     get_position_from_slice_index,
+    get_presets,
     get_reslice_center,
     get_reslice_normals,
     get_reslice_window_level,
@@ -62,13 +63,13 @@ class PositionDialog(VMenu):
         with self:
             with Template(v_slot_activator="{ on: menu }"):
                 Button(
-                    tooltip=("{{ position_dialog ? 'Hide position dialog' : 'Show position dialog' }}",),
-                    icon="mdi-target",
-                    disabled=("selected.length === 0",),
-                    v_on="menu",
+                    tooltip="{{ position_dialog ? 'Hide position dialog' : 'Show position dialog' }}",
+                    icon_value="mdi-target",
                     icon_color=("position_dialog ? 'primary' : 'black'",),
+                    disabled=("Object.keys(selected).length === 0",),
+                    v_on="menu",
                 )
-            with VCard(v_if=("position && selected.length > 0",)), VCardText():
+            with VCard(v_if=("position && Object.keys(selected).length > 0",)), VCardText():
                 with VRow(align="center", justify="space-between"):
                     with VCol(
                         v_for=("(field, index) in \
@@ -97,21 +98,22 @@ class ToolsStrip(html.Div):
             classes="bg-grey-darken-4 d-flex flex-column align-center",
             **kwargs,
         )
+        self.state.obliques_visibility = True
         client.Style(".v-input--selection-controls__input {margin-right: 0px!important}")
 
         with self:
             Button(
-                tooltip=("{{ obliques_visibility ? 'Hide obliques' : 'Show obliques' }}",),
-                icon=("{{ obliques_visibility ? 'mdi-eye-remove-outline' : 'mdi-eye-outline' }}",),
+                tooltip="{{ obliques_visibility ? 'Hide obliques' : 'Show obliques' }}",
+                icon_value="{{ obliques_visibility ? 'mdi-eye-remove-outline' : 'mdi-eye-outline' }}",
                 click="obliques_visibility = !obliques_visibility",
-                disabled=("selected.length === 0",),
+                disabled=("Object.keys(selected).length === 0",),
             )
 
             Button(
                 tooltip="Reset views",
-                icon="mdi-camera-flip-outline",
+                icon_value="mdi-camera-flip-outline",
                 click=self.ctrl.reset,
-                disabled=("selected.length === 0",)
+                disabled=("Object.keys(selected).length === 0",)
             )
 
             PositionDialog()
@@ -138,19 +140,19 @@ class ViewGutter(html.Div):
                 "background-color: transparent;"
                 "height: 100%;"
             ),
-            v_if=("selected.length > 0",),
+            v_if=("Object.keys(selected).length > 0",),
             **kwargs
         )
         assert view.id is not None
         self.view = view
         with self:
             with html.Div(
-                v_if=("selected.length > 0",),
+                v_if=("Object.keys(selected).length > 0",),
                 classes="gutter-content d-flex flex-column fill-height pa-2"
             ):
                 Button(
-                    tooltip=("{{ fullscreen==null ? 'Extend to fullscreen' : 'Exit fullscreen' }}",),
-                    icon=("{{ fullscreen==null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit' }}",),
+                    tooltip="{{ fullscreen==null ? 'Extend to fullscreen' : 'Exit fullscreen' }}",
+                    icon_value="{{ fullscreen==null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit' }}",
                     icon_color="white",
                     click=self.toggle_fullscreen,
                 )
@@ -242,13 +244,6 @@ class VtkView(vtk.VtkRemoteView):
                 self.data[data_id].remove(data)
         if len(self.data[data_id]) == 0:
             self.data.pop(data_id)
-        if not no_render:
-            self.update()
-
-    def unregister_all_data(self, no_render=False):
-        data_ids = list(self.data.keys())
-        for data_id in data_ids:
-            self.unregister_data(data_id, True)
         if not no_render:
             self.update()
 
@@ -594,9 +589,9 @@ class QuadView(VContainer):
         )
         self.views = []
         self.state.fullscreen = None
+        self.state.presets = get_presets()
         self._build_ui()
         self.ctrl.reset = self.reset
-        self.ctrl.clear = self.clear
         self.ctrl.remove_data = self.remove_data
 
     @property
@@ -610,11 +605,6 @@ class QuadView(VContainer):
     def remove_data(self, data_id=None):
         for view in self.views:
             view.unregister_data(data_id)
-        self.ctrl.view_update()
-
-    def clear(self):
-        for view in self.views:
-            view.unregister_all_data()
         self.ctrl.view_update()
 
     def reset(self):

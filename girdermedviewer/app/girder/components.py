@@ -2,11 +2,13 @@ import asyncio
 import logging
 import traceback
 from time import time
-from trame.decorators import TrameApp, change
+from trame.decorators import TrameApp, change, trigger
 from trame_server.utils.asynchronous import create_task
 from trame.widgets import gwc, client
+from trame.widgets.html import Label
 from trame.widgets.vuetify2 import (
     VCard,
+    VCardText,
     VCol,
     VColorPicker,
     VContainer,
@@ -15,14 +17,17 @@ from trame.widgets.vuetify2 import (
     VExpansionPanelContent,
     VExpansionPanelHeader,
     VExpansionPanels,
+    VItem,
+    VItemGroup,
     VList,
     VListItem,
     VRangeSlider,
     VRow,
     VSelect,
     VSlider,
-    VSubheader,
     VTextField,
+    VWindow,
+    VWindowItem,
 )
 from .utils import FileFetcher, CacheMode, format_date
 from ..utils import Button
@@ -42,7 +47,7 @@ class GirderDrawer(VContainer):
     def _build_ui(self):
         with self:
             with VRow(
-                style="height:100%",
+                classes="fill-height ma-0",
                 align_content="start",
                 justify="center",
                 dense=True
@@ -50,10 +55,11 @@ class GirderDrawer(VContainer):
                 with VCol(cols=12):
                     GirderFileSelector()
 
-                with VCol(v_if=("selected.length > 0",), cols=12):
+                with VCol(v_if=("Object.keys(selected).length > 0",), cols=12):
                     GirderItemList()
 
 
+@TrameApp()
 class GirderFileSelector(gwc.GirderFileManager):
     def __init__(self, **kwargs):
         super().__init__(
@@ -68,6 +74,9 @@ class GirderFileSelector(gwc.GirderFileManager):
             **kwargs
         )
         self.state.selected_in_location = []
+        self.state.selected = {}
+        self.state.last_clicked = 0
+        self.state.action_keys = [{"for": []}]
         girder_client = GirderClient(apiUrl=self.state.api_url)
         cache_mode = CacheMode(self.state.cache_mode) if self.state.cache_mode else CacheMode.No
         self.file_fetcher = FileFetcher(
@@ -76,9 +85,7 @@ class GirderFileSelector(gwc.GirderFileManager):
             self.state.temp_dir,
             cache_mode
         )
-        # FIXME do not use global variable
-        global file_selector
-        file_selector = self
+        self.tasks = {}
 
         self.state.change("location", "selected")(self.on_location_changed)
         self.state.change("api_url")(self.set_api_url)
@@ -92,11 +99,9 @@ class GirderFileSelector(gwc.GirderFileManager):
         if clicked_time - self.state.last_clicked < 1:
             return
         self.state.last_clicked = clicked_time
-        is_selected = item["_id"] in [i["_id"] for i in self.state.selected]
+        is_selected = item["_id"] in self.state.selected.keys()
         logger.debug(f"Toggle item {item} selected={is_selected}")
-        if is_selected:
-            self.unselect_item(item)
-        else:
+        if not is_selected:
             self.select_item(item)
 
     def update_location(self, new_location):
@@ -106,13 +111,18 @@ class GirderFileSelector(gwc.GirderFileManager):
         logger.debug(f"Updating location to {new_location}")
         self.state.location = new_location
 
+    @trigger("unselect_item")
     def unselect_item(self, item):
-        self.state.selected = [i for i in self.state.selected if i["_id"] != item["_id"]]
-        self.ctrl.remove_data(item["_id"])
+        self.state.selected.pop(item["_id"])
+        self.state.dirty("selected")
+        self.ctrl.remove_data(item["_id"]) #TODO Handle this with SceneObject
 
     def unselect_items(self):
-        while len(self.state.selected) > 0:
-            self.unselect_item(self.state.selected[0])
+        while len(self.state.selected.values()) > 0:
+            self.unselect_item(list(self.state.selected.values())[0])
+        #TODO Handle this with SceneObject
+        # self.state.selected.clear()
+        # self.state.dirty("selected")
 
     def select_item(self, item):
         assert item.get('_modelType') == 'item', "Only item can be selected"
@@ -120,9 +130,9 @@ class GirderFileSelector(gwc.GirderFileManager):
         item["humanUpdated"] = format_date(item["updated"], self.state.date_format)
         item["parentMeta"] = self.file_fetcher.get_item_inherited_metadata(item)
         item["loading"] = False
-        item["loaded"] = False
 
-        self.state.selected = self.state.selected + [item]
+        self.state.selected[item["_id"]] = item
+        self.state.dirty("selected")
 
         self.create_load_task(item)
 
@@ -135,16 +145,26 @@ class GirderFileSelector(gwc.GirderFileManager):
         async def load():
             await asyncio.sleep(1)
             try:
-                self.load_item(item)
-                item["loaded"] = True
+                await self.load_item(item)
             finally:
                 item["loading"] = False
                 self.state.dirty("selected")
                 self.state.flush()
+                self.tasks.pop(item["_id"], None)
 
-        create_task(load())
+        self.tasks[item["_id"]] = create_task(load())
 
-    def load_item(self, item):
+    @trigger("cancel_load_task")
+    def cancel_load_task(self, item):
+        logger.debug(f"Cancelling load task for {item}")
+        task = self.tasks.get(item["_id"])
+        if task and not task.done():
+            task.cancel()
+            self.tasks.pop(item["_id"], None)
+            self.unselect_item(item)
+            logger.info(f"Cancelled task for {item}")
+
+    async def load_item(self, item):
         logger.debug(f"Loading item {item}")
         try:
             files = list(self.file_fetcher.get_item_files(item))
@@ -156,7 +176,7 @@ class GirderFileSelector(gwc.GirderFileManager):
                     "You are trying to load more than one file. \
                     If so, please load a compressed archive."
                 )
-            with self.file_fetcher.fetch_file(files[0]) as file_path:
+            async with self.file_fetcher.fetch_file(files[0]) as file_path:
                 self.ctrl.load_file(file_path, item["_id"])
         except Exception:
             logger.error(f"Error loading file {item['_id']}: {traceback.format_exc()}")
@@ -172,7 +192,7 @@ class GirderFileSelector(gwc.GirderFileManager):
     def on_location_changed(self, **kwargs):
         logger.debug(f"Location/Selected changed to {self.state.location}/{self.state.selected}")
         location_id = self.state.location.get("_id", "") if self.state.location else ""
-        self.state.selected_in_location = [item for item in self.state.selected
+        self.state.selected_in_location = [item for item in self.state.selected.values()
                                            if item["folderId"] == location_id]
 
     def set_user(self, user, **kwargs):
@@ -192,32 +212,30 @@ class GirderItemList(VCard):
         super().__init__(
             **kwargs
         )
-        client.Style(".v-expansion-panel-content__wrap { padding: 0 !important; };"
-                     ".list-item {}")
+        client.Style(
+            ".v-expansion-panel-content__wrap { padding: 0 !important }"
+            ".v-expansion-panel--active>.v-expansion-panel-header,"
+            ".v-expansion-panel-header { height: 64px !important }"
+            ".v-messages { display: none }"
+            ".v-list--dense .v-list-item, .v-list-item--dense { min-height: 30px !important; padding: 4px 0px }")
         self._build_ui()
 
     def _build_ui(self):
         with self:
             with VExpansionPanels(accordion=True, focusable=True, multiple=True):
                 with client.Getter(
-                    v_for="(item, i) in selected",
-                    key="item._id",
-                    name=("`${item._id}`",),
+                    v_for="(item, item_id) in selected",
+                    key="item_id",
+                    name=("`${item_id}`",),
                     key_name="data_id",
                     value_name="object",
                     update_nested_name="update_object",
                 ):
                     GirderItemCard(
                         item="item",
-                        key_name="object",
                         value_name="object",
-                        update_name="update_object")
-            with VCol(cols="auto"):
-                Button(
-                    tooltip="Clear all",
-                    icon="mdi-delete",
-                    click=self.clear_views,
-                )
+                        update_name="update_object",
+                    )
 
     @change("selected")
     def on_new_selection(self, **kwargs):
@@ -225,56 +243,74 @@ class GirderItemList(VCard):
         self.clear()
         self._build_ui()
 
-    def clear_views(self):
-        self.ctrl.clear()
-        self.state.selected = []
-
 
 class GirderItemCard(VExpansionPanel):
-    def __init__(self, item, key_name, value_name, update_name, **kwargs):
+    def __init__(self, item, value_name, update_name, **kwargs):
         super().__init__(**kwargs)
         self.item = item
-        self.key_name = key_name
         self.value_name = value_name
         self.update_name = update_name
         self._build_ui()
 
     def _build_ui(self):
         with self:
-            with VExpansionPanelHeader(hide_actions=(f"!{self.item}.loaded",)):
+            with VExpansionPanelHeader(hide_actions=(f"{self.item}.loading",)):
                 with VRow(align="center", justify="space-between", dense=True):
                     VCol("{{ " + self.item + ".name }}")
-                    with VCol(classes="d-flex justify-end",):
+                    with VCol(v_if=(f"{self.item}.loading",), classes="d-flex justify-end",):
                         Button(
-                            tooltip="Delete item",
-                            icon="mdi-delete",
-                            loading=(f"{self.item}.loading",),
-                            disabled=(f"{self.item}.loading",),
-                            click_native_stop=(self.delete_item, f"[{self.item}._id]"),
+                            tooltip="Cancel download",
+                            text=True,
+                            loading=True,
+                            click_native_stop=f"trigger('cancel_load_task', [{self.item}])",
                             __events=[("click_native_stop", "click.native.stop")]
                         )
 
-            with VExpansionPanelContent(v_if=(f"{self.item}.loaded",)):
-                ItemSettings(
-                    item=self.item,
-                    key_name=self.key_name,
-                    value_name=self.value_name,
-                    update_name=self.update_name
-                )
-                ItemInfo(item=self.item)
-                ItemMetadata(item=self.item)
+            with VExpansionPanelContent(v_if=(f"!{self.item}.loading",)):
+                with VRow(
+                    justify="center",
+                    classes="ma-1"
+                ), VItemGroup(
+                    v_model=(f"{self.item}.window",),
+                    mandatory=True,
+                ):
+                    with VItem(
+                        v_for="(card, n) in ['settings', 'info', 'metadata']",
+                        v_slot="{ active }",
+                        __properties=[("v_slot", "v-slot")],
+                    ):
+                        Button(
+                            input_value="active",
+                            text_value="{{ card }}",
+                            text=True,
+                            color=("active ? 'primary' : 'grey'",),
+                            click=(self.toggle_window, f"[n, {self.item}._id]"),
+                        )
 
-    def delete_item(self, item_id):
-        # redundant with GirdeFileSelector unselect_item
-        self.state.selected = [i for i in self.state.selected if i["_id"] != item_id]
-        self.ctrl.remove_data(item_id)
+                with VWindow(
+                    v_model=(f"{self.item}.window",),
+                ):
+                    with VWindowItem():
+                        ItemSettings(
+                            item=self.item,
+                            value_name=self.value_name,
+                            update_name=self.update_name
+                        )
+                    with VWindowItem():
+                        ItemInfo(item=self.item)
+                    with VWindowItem():
+                        ItemMetadata(item=self.item)
+
+    def toggle_window(self, window_id, item_id):
+        if item_id in self.state.selected.keys():
+            self.state.selected[item_id]["window"] = window_id
+            self.state.dirty("selected")
 
 
 class ItemSettings(VCard):
-    def __init__(self, item, key_name, value_name, update_name, **kwargs):
+    def __init__(self, item, value_name, update_name, **kwargs):
         super().__init__(**kwargs)
         self.item = item
-        self.key_name = key_name
         self.value_name = value_name
         self.update_name = update_name
         self._build_ui()
@@ -286,21 +322,8 @@ class ItemSettings(VCard):
         return self.update_name + "('" + prop + "', $event)"
 
     def _build_ui(self):
-        with self:
+        with self, VCardText():
             with VList(dense=True, classes="pa-0"):
-                with VRow(no_gutters=True,
-                          v_if=self.get("opacity", "!= -1")):
-                    with VCol(cols=10):
-                        with VListItem():
-                            VSlider(
-                                label='Opacity',
-                                value=self.get("opacity"),
-                                input=self.set("opacity"),
-                                min=0,
-                                max=1,
-                                step=0.05,
-                                thumb_label=True,
-                            )
                 with VRow(
                     v_if=self.get("preset"),
                     align="center",
@@ -338,7 +361,7 @@ class ItemSettings(VCard):
                 with VRow(
                     v_if=self.get("window_level_min_max"),
                     align="center",
-                    no_gutters=True
+                    no_gutters=True,
                 ):
                     with VCol(cols=12):
                         with VListItem():
@@ -354,12 +377,29 @@ class ItemSettings(VCard):
                             )
 
                 with VRow(
+                    v_if=self.get("opacity", "!= -1"),
+                    align="center",
+                    no_gutters=True,
+                ):
+                    with VCol(cols=12):
+                        with VListItem():
+                            VSlider(
+                                label='Opacity',
+                                value=self.get("opacity"),
+                                input=self.set("opacity"),
+                                min=0,
+                                max=1,
+                                step=0.05,
+                                thumb_label=True,
+                            )
+
+                with VRow(
                     v_if=self.get("color"),
                     align="center",
-                    no_gutters=True
+                    no_gutters=True,
                 ):
                     with VCol(cols=2):
-                        VSubheader("Color", classes="subtitle-1 font-weight-bold pl-4")
+                        Label("Color", classes="v-label theme--light")
                     with VCol(cols=10):
                         with VListItem():
                             VColorPicker(
@@ -367,6 +407,16 @@ class ItemSettings(VCard):
                                 input=self.set("color"),
                                 hide_inputs=True,
                             )
+
+                with VRow(
+                    align="center",
+                    no_gutters=True,
+                ), VCol(classes="d-flex justify-end pa-1",):
+                    Button(
+                        text_value="Delete",
+                        color="error",
+                        click=f"trigger('unselect_item', [{self.item}])"
+                    )
 
 
 class ItemInfo(VCard):
@@ -376,8 +426,7 @@ class ItemInfo(VCard):
         self._build_ui()
 
     def _build_ui(self):
-        with self:
-            VSubheader("Info", classes="subtitle-1 font-weight-bold")
+        with self, VCardText():
             with VList(dense=True, classes="pa-0", subheader=True):
                 VListItem(
                     "Size: {{ " + self.item + ".humanSize}}",
@@ -400,12 +449,11 @@ class ItemMetadata(VCard):
         self._build_ui()
 
     def _build_ui(self):
-        with self:
-            VSubheader("Metadata", classes="subtitle-1 font-weight-bold pl-4")
+        with self, VCardText():
             with VList(dense=True, classes="pa-0", subheader=True):
-                with VRow(no_gutters=True), VCol(
+                with VRow(dense=True), VCol(
                     cols=6,
-                    v_for=f"(value, key) in {self.item}.meta"
+                    v_for=f"(value, key) in {self.item}.meta",
                 ):
                     with VListItem(classes="fill-height py-1 body-2"):
                         with VRow(align="center", justify="space-between", no_gutters=True):
@@ -423,7 +471,7 @@ class ItemMetadata(VCard):
                     v_if=(f"Object.keys({self.item}.parentMeta).length > 0 && \
                           Object.keys({self.item}.meta).length > 0"))
 
-                with VRow(no_gutters=True), VCol(
+                with VRow(dense=True), VCol(
                     cols=6,
                     v_for=f"(value, key) in {self.item}.parentMeta",
                 ):

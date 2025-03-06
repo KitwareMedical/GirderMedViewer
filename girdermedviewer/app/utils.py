@@ -3,49 +3,61 @@ import requests
 from functools import wraps
 from math import floor
 from trame.widgets.html import Span
-from trame.widgets.vuetify2 import (VTooltip, Template, VBtn, VIcon)
-from typing import Callable, Optional
+from trame.widgets.vuetify2 import (Template, VBtn, VIcon, VProgressCircular, VTooltip)
+from typing import Callable, Optional, Union
 
 
 class Button():
     def __init__(
         self,
         *,
-        tooltip: str = None,
-        text: str = None,
-        text_color: str = "black",
-        icon: str = None,
-        icon_color: str = "black",
+        tooltip: Optional[str] = None,
+        text_value: Optional[str] = None,
+        text_color: Optional[str] = None,
+        icon_value: Optional[str] = None,
+        icon_color: Optional[str] = None,
+        loading: Optional[Union[bool, tuple]] = None,
+        loading_color: Optional[str] = None,
         click: Optional[Callable] = None,
-        size: int = 40,
-        v_on: str = None,
+        size: Optional[int] = 40,
+        v_on: Optional[str] = None,
         **kwargs,
     ) -> None:
-
+        if not "rounded" in kwargs:
+            kwargs["rounded"] = True
+        if not "text" in kwargs:
+            kwargs["text"] = text_value is None and icon_value is not None
         with VTooltip(
             tooltip,
             v_if=kwargs.get("v_if", True),
-            right=text is None,
-            bottom=text is not None,
-            transition="slide-x-transition" if text is None else "slide-y-transition",
+            right=text_value is None,
+            bottom=text_value is not None,
+            transition="slide-x-transition" if text_value is None else "slide-y-transition",
             disabled=tooltip is None,
         ):
             with Template(v_slot_activator="{ on : tooltip }"):
                 with VBtn(
-                    text=text is None and icon is not None,
-                    rounded=text is None,
-                    height=None if text is not None else size,
-                    width=None if text is not None else size,
-                    min_height=None if text is not None else size,
-                    min_width=None if text is not None else size,
+                    height=None if text_value is not None else size,
+                    width=None if text_value is not None else size,
+                    min_height=None if text_value is not None else size,
+                    min_width=None if text_value is not None else size,
                     click=click,
                     v_on="tooltip" if v_on is None else "{ ...tooltip, ..." + v_on + " }",
                     **kwargs,
                 ):
-                    if text is not None:
-                        Span(text, style=f"color:{text_color}")
-                    if icon is not None:
-                        VIcon(icon, size=floor(0.6 * size), color=icon_color)
+                    if text_value is not None:
+                        Span(text_value, style=f"color:{text_color}")
+                    if icon_value is not None:
+                        VIcon(icon_value, size=floor(0.6 * size), color=icon_color)
+                    if loading is not None:
+                        # the button stays clickable while loading
+                        VProgressCircular(
+                            v_if=loading,
+                            size=floor(0.6 * size),
+                            indeterminate=True,
+                            color=loading_color,
+                            width=3
+                        )
 
 def is_valid_url(url):
     """
