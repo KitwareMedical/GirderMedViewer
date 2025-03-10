@@ -1,4 +1,5 @@
-from contextlib import contextmanager
+from asyncio import to_thread
+from contextlib import asynccontextmanager
 from datetime import datetime
 from enum import Enum
 import logging
@@ -39,14 +40,19 @@ class FileFetcher:
         ```
         """
         self.assetstore_dir_path = assetstore_dir
-        self.temp_dir_path = temp_dir
         self.girder_client = girder_client
         self.cache = cache_mode
 
-        if self.temp_dir_path is None:
-            if cache_mode == CacheMode.Permanent:
+        if cache_mode == CacheMode.Permanent:
+            if temp_dir is None:
                 raise Exception("A directory must be provided if cache mode is Permanent")
-            self.temporary_directory = TemporaryDirectory()
+            if not os.path.exists(temp_dir):
+                os.mkdir(temp_dir)
+            self.temporary_directory = None
+            self.temp_dir_path = temp_dir
+
+        else:
+            self.temporary_directory = TemporaryDirectory(dir=temp_dir)
             self.temp_dir_path = self.temporary_directory.name
 
         if (
@@ -78,8 +84,8 @@ class FileFetcher:
             metadata.update(parent_folder["meta"])
         return metadata
 
-    @contextmanager
-    def fetch_file(self, file):
+    @asynccontextmanager
+    async def fetch_file(self, file):
         """
         First check if `file` does not already exist in assetstore.
         Then check if it does not already exist in cache.
@@ -97,7 +103,7 @@ class FileFetcher:
         if file_path is None:
             file_path = os.path.join(self.temp_dir_path, file['_id'], file["name"])
             if not os.path.exists(file_path):
-                self._download_file(file, file_path)
+                await to_thread(self._download_file, file, file_path)
 
         try:
             yield file_path
@@ -112,5 +118,5 @@ class FileFetcher:
         ):
             if os.path.exists(file_path):
                 os.remove(file_path)
-        else:
-            self.temp_dir_path.cleanup()
+        elif self.temporary_directory is not None:
+            self.temporary_directory.cleanup()

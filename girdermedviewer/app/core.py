@@ -11,7 +11,6 @@ from trame.ui.vuetify import SinglePageWithDrawerLayout
 from trame.widgets.vuetify2 import (VTextField, VContainer, VCard, VDialog, VRow, VSpacer)
 from .girder.components import GirderDrawer
 from .vtk.components import QuadView, ToolsStrip
-from .vtk.utils import get_presets
 
 from .objects import Scene
 from .utils import Button, is_valid_url
@@ -32,13 +31,8 @@ class MyTrameApp:
 
         self.state.trame__title = "GirderMedViewer"
         self.state.girder_connected = False
-        self.state.obliques_visibility = True
         self.state.main_drawer = False
         self.state.user = None
-        self.state.presets = get_presets()
-        self.state.selected = []  # Items loaded and visible in the viewer
-        self.state.last_clicked = 0
-        self.state.action_keys = [{"for": []}]
 
         self._build_ui()
         if self.server.hot_reload:
@@ -167,15 +161,15 @@ class MyTrameApp:
                 Button(
                     v_if=("user",),
                     tooltip="Log out",
-                    text="{{ user_name }}",
-                    icon="mdi-logout",
+                    text_value="{{ user_name }}",
+                    icon_value="mdi-logout",
                     large=True,
                     click=self.ctrl.provider_logout,
                 )
                 Button(
                     v_if=("!user",),
-                    text="Login",
-                    icon="mdi-login",
+                    text_value="Login",
+                    icon_value="mdi-login",
                     large=True,
                     click="display_login_dialog = !display_login_dialog",
                     disabled=("!girder_connected",),
