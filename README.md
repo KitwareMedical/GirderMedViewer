@@ -1,5 +1,7 @@
 # GirderMedViewer
 
+<img width="1575" height="811" alt="vtk_girder_med_viewer" src="https://github.com/user-attachments/assets/62ecb8a5-8812-4208-a2d3-d95c4caf401e" />
+
 ## Create environment and install dependencies
 ```
 python -m venv env
