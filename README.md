@@ -1,12 +1,20 @@
 # GirderMedViewer
 
+GirderMedViewer is a medical visualization tool built with VTK and trame, integrated with a Girder database via the [Girder Web Components](https://github.com/Kitware/trame-gwc).
+
+Its goal is to enable users to visualize medical data stored in Girder directly, without requiring local downloads.
+One can access any publicly available Girder instance by entering its URL (e.g. https://data.kitware.com/).
+
 <img width="1575" height="811" alt="vtk_girder_med_viewer" src="https://github.com/user-attachments/assets/62ecb8a5-8812-4208-a2d3-d95c4caf401e" />
 
 ## Create environment and install dependencies
 ```
-python -m venv env
-source env/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
+
+# Optional: to support loading dicom archives
+pip install -e ".[dicom]"
 ```
 
 ## Setup configuration
@@ -19,9 +27,19 @@ To configure the application, create an `app.cfg` file based on the provided [ap
 
 By default, a standard Girder configuration is expected, but you can specify additional settings for predefined URLs if needed.
 
+## Girder
+To use the application, you need access to at least one Girder instance.
+You can either create an account on [https://data.kitware.com/](https://data.kitware.com/) (the default server in the configuration file) or use your own Girder instance.
+If you prefer to deploy your own Girder server, you can follow [these instructions](https://girder.readthedocs.io/en/latest/) or run it locally with the following commands:
+```
+pip install girder
+girder build
+girder serve
+```
+
 ## Run trame application
 ```
-girdermedviewer
+girdermedviewer-cli
 ```
 You can add ```--server``` to your command line to prevent your browser from opening and ```--port``` to specifiy the port the server should listen to, default is 8080.
 
