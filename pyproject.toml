@@ -7,14 +7,15 @@ authors = [
 ]
 dependencies = [
     "girder-client==3.2.6",
-    "trame>=3.8.0",
+    "setuptools<81",
+    "trame==3.8.0",
     "trame-gwc==0.1.0",
     "trame-server==3.4.0",
     "trame-vuetify==2.7.1",
     "trame-vtk==2.8.15",
     "vtk==9.4.1"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.rst"
 license = {text = "Apache Software License"}
 keywords = ["Python", "Interactive", "Web", "Application", "Framework"]
@@ -46,7 +47,7 @@ dicom = [
 ]
 
 [project.scripts]
-girdermedviewer = "girdermedviewer.app:main"
+girdermedviewer-cli = "girdermedviewer.app:main"
 
 [build-system]
 requires = ['setuptools', 'wheel']
