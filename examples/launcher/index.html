@@ -1,45 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>POST Request on Page Load</title>
-</head>
-<body>
-
+  </head>
+  <body>
     <h1>POST Request Sent Automatically</h1>
 
     <script>
-        // Function to send POST request
-        function sendPostRequest() {
-            const url = 'gmv/'; // Replace with your server's URL
+      // Function to send POST request
+      function sendPostRequest() {
+        const url = "gmv/"; // Replace with your server's URL
 
-            const data = { application: 'girdermedviewer' }; // Data to send with the POST request
+        const data = { application: "girdermedviewer" }; // Data to send with the POST request
 
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.sessionURL) {
-                    // window.open(data.sessionURL, '_blank'); // Open the URL from the "url" key
-                    window.location.href = data.sessionURL
-                } else {
-                    console.error('URL key not found in the response');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.sessionURL) {
+              // window.open(data.sessionURL, '_blank'); // Open the URL from the "url" key
+              window.location.href = data.sessionURL;
+            } else {
+              console.error("URL key not found in the response");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
 
-        // Trigger POST request when the page loads
-        window.onload = sendPostRequest;
+      // Trigger POST request when the page loads
+      window.onload = sendPostRequest;
     </script>
-
-</body>
+  </body>
 </html>

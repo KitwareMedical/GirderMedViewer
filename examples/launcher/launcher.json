@@ -1,31 +1,36 @@
 {
-    "configuration": {
-        "host" : "localhost",
-        "port" : 9999,
-        "endpoint": "gmv",
-        "content": "examples/launcher",           // Optional: Directory shared over HTTP
-        "proxy_file" : "./proxy-mapping.txt",     // Proxy-Mapping file for Apache
-        "sessionURL" : "http://${host}:${port}/index.html", // ws url used by the client to connect to the started process
-        "timeout" : 25,                           // Wait time in second after process start
-        "log_dir" : "./logs",                     // Directory for log files
-        "fields" : ["file", "host", "port"],      // List of fields that should be send back to client
-                                                  // include "secret" if you provide it as an --authKey to the app
-        "sanitize": {}                            // Check information coming from the client
-    },
+  "configuration": {
+    "host": "localhost",
+    "port": 9999,
+    "endpoint": "gmv",
+    "content": "examples/launcher", // Optional: Directory shared over HTTP
+    "proxy_file": "./proxy-mapping.txt", // Proxy-Mapping file for Apache
+    "sessionURL": "http://${host}:${port}/index.html", // ws url used by the client to connect to the started process
+    "timeout": 25, // Wait time in second after process start
+    "log_dir": "./logs", // Directory for log files
+    "fields": ["file", "host", "port"], // List of fields that should be send back to client
+    // include "secret" if you provide it as an --authKey to the app
+    "sanitize": {} // Check information coming from the client
+  },
 
-    "sessionData" : { "key": "value" },      // Dictionary of values interesting to the client
-    "resources" : [ { "host" : "localhost", "port_range" : [9001, 9003] } ],
+  "sessionData": { "key": "value" }, // Dictionary of values interesting to the client
+  "resources": [{ "host": "localhost", "port_range": [9001, 9003] }],
 
-    "properties" : {
-        "python" : "C://Work//trame//GirderMedViewer//env//Scripts//python.exe"
-    },
+  "properties": {
+    "python": "C://Work//trame//GirderMedViewer//env//Scripts//python.exe"
+  },
 
-
-    "apps" : {
-        "girdermedviewer" : {
-            "cmd" : [
-                "${python}", "-m", "girdermedviewer.app", "--port", "$port", "--server" ],
-            "ready_line" : "App running at"
-        }
+  "apps": {
+    "girdermedviewer": {
+      "cmd": [
+        "${python}",
+        "-m",
+        "girdermedviewer.app",
+        "--port",
+        "$port",
+        "--server"
+      ],
+      "ready_line": "App running at"
     }
+  }
 }
