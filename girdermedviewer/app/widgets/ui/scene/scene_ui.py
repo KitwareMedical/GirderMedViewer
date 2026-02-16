@@ -150,7 +150,8 @@ class SceneObjectUI(v3.VExpansionPanel):
                             obj=self.obj,
                             disabled=self._is_disabled(),
                             has_opacity=f"!{self._is_primary_volume()}",
-                            threed_presets=f"{self.scene}.volume_presets",
+                            color_presets=f"{self.scene}.color_presets",
+                            volume_presets=f"{self.scene}.volume_presets",
                         )
 
                     with v3.VWindowItem(value="info", v_if=(f"{self.obj}.info",)):

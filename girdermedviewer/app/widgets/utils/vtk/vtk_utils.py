@@ -436,11 +436,12 @@ def set_mesh_opacity(actor, opacity):
     return True
 
 
-def set_mesh_color(actor, color):
-    # oldColor = [0, 0, 0]
-    oldColor = actor.GetProperty().GetColor()
-    if oldColor == color:
+def set_mesh_solid_color(actor, color):
+    old_scalar_visibilty = actor.GetMapper().GetScalarVisibility()
+    old_color = actor.GetProperty().GetColor()
+    if old_color == color and not old_scalar_visibilty:
         return False
+    actor.GetMapper().SetScalarVisibility(False)
     actor.GetProperty().SetColor(color)
     return True
 

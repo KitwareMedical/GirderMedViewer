@@ -11,22 +11,24 @@ from ....utils import (
     VolumeLayer,
     load_volume,
 )
-from .scene_object_logic import SceneObjectLogic
+from .scene_object_logic import SceneObjectLogic, ThreeDColor, TwoDColor
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_VOLUME_PRESET_NAME = "CT-Cardiac3"
 
-
-class VolumePreset(StateDataModel):
-    name = Sync(str, DEFAULT_VOLUME_PRESET_NAME)
-    vr_shift = Sync(list[float], list)
+class NormalColor(StateDataModel):
+    show_arrows = Sync(bool, False)
+    arrow_length = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
+    arrow_width = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
 class VolumeDisplay(StateDataModel):
-    scalar_range = Sync(list[float], list)
-    window_level = Sync(list[float], list)
-    threed_preset = Sync(VolumePreset, has_dataclass=True)
+    scalar_range = Sync(list[float])
+    window_level = Sync(list[float])
+    number_of_components = Sync(int)
+    threed_color = Sync(ThreeDColor, has_dataclass=True)
+    twod_color = Sync(TwoDColor, has_dataclass=True)
+    normal_color = Sync(NormalColor, has_dataclass=True)
     opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
@@ -39,7 +41,9 @@ class VolumeObjectLogic(SceneObjectLogic):
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
-            threed_preset=VolumePreset(self.server),
+            threed_color=ThreeDColor(self.server),
+            twod_color=TwoDColor(self.server),
+            normal_color=NormalColor(self.server),
         )
         self.scene_object.display = self.display._id
 
@@ -49,12 +53,13 @@ class VolumeObjectLogic(SceneObjectLogic):
 
             # Init window level
             self.display.scalar_range = self.volume_range
+            self.display.number_of_components = self.object_data.GetPointData().GetScalars().GetNumberOfComponents()
 
             # Init window level
             self.display.window_level = self.volume_range
 
             # Init 3D preset range
-            self.display.threed_preset.vr_shift = self.volume_range
+            self.display.threed_color.vr_shift = self.volume_range
 
     def load_object_data(self, file_path: str) -> None:
         self.object_data = load_volume(file_path)

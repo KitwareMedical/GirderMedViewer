@@ -51,6 +51,19 @@ class ThreeDView(VtkView):
         volume = self.get_data(data_id)
         if volume is None:
             return
-        modified = self.volume_preset_parser.apply_preset(preset, volume.GetProperty(), range)
+        modified = self.volume_preset_parser.apply_preset(volume.GetProperty(), preset, range)
+        if modified:
+            self.update()
+
+    def set_volume_normal_color(
+        self,
+        data_id: str,
+        _show_arrows: bool,
+        _arrow_length: bool,
+        _arrow_width: bool,
+    ):
+        logger.debug(f"set_volume_normal_color({data_id})")
+        modified = False
+        # TODO Julien
         if modified:
             self.update()

@@ -1,18 +1,82 @@
+import json
 import logging
 import xml.etree.ElementTree as ET
 from abc import abstractmethod
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from trame.assets.local import LocalFileManager
-from trame_dataclass.v2 import StateDataModel, Sync
+from trame_dataclass.v2 import FieldEncoder, ServerOnly, StateDataModel, Sync
 from vtk import (
+    vtkActor,
     vtkColorTransferFunction,
     vtkPiecewiseFunction,
 )
+from vtkmodules.vtkCommonCore import vtkDataArray
 
 from .resources import resources_path
 
 logger = logging.getLogger(__name__)
+
+
+class MeshColoringMode(Enum):
+    SOLID = 0
+    ARRAY = 1
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class VolumeColoringMode(Enum):
+    PRESET = 0
+    NORMALS = 1
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class DataArrayType(Enum):
+    POINT = "point"
+    CELL = "cell"
+    UNDEFINED = None
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class DataArray(StateDataModel):
+    title = Sync(str)
+    data = ServerOnly(vtkDataArray | None, None)
+    type = Sync(
+        DataArrayType,
+        DataArrayType.UNDEFINED,
+        convert=FieldEncoder(DataArrayType.encoder, DataArrayType.decoder),
+    )
+    array_min_max = Sync(list[float])
+    number_of_components = Sync(int, 0)
+    coloring_mode = Sync(MeshColoringMode, convert=FieldEncoder(MeshColoringMode.encoder, MeshColoringMode.decoder))
+    props = Sync(dict[str, str | int])
+
+    def __init__(self, server, **kwargs):
+        super().__init__(server, **kwargs)
+        self.coloring_mode = MeshColoringMode.SOLID if self.number_of_components == 0 else MeshColoringMode.ARRAY
+        self.props = {"number_of_components": self.number_of_components}
 
 
 class Preset(StateDataModel):
@@ -21,7 +85,7 @@ class Preset(StateDataModel):
 
 
 class PresetParser:
-    def __init__(self, presets_file: Path, icons_folder: Path):
+    def __init__(self, presets_file: Path, icons_folder: Path | None):
         self.presets = self.parse_slicer_presets(presets_file)
         self.icons_folder = icons_folder
 
@@ -47,6 +111,59 @@ class PresetParser:
     @abstractmethod
     def parse_slicer_presets(self, presets_file_path: Path):
         pass
+
+
+class ColorPresetParser(PresetParser):
+    def __init__(self, presets_file: Path, icons_folder: Path):
+        super().__init__(presets_file, icons_folder)
+
+    def _array_to_function(self, xrgbs, klass, add_method):
+        transfer_function = klass()
+        for point in xrgbs:
+            scalar, r, g, b = point
+            getattr(transfer_function, add_method)(scalar, r, g, b)
+
+        return transfer_function
+
+    def parse_slicer_presets(self, presets_file_path: Path) -> list[dict[str, str]]:
+        with presets_file_path.open("r") as f:
+            data = json.load(f)
+        return data["colormaps"]
+
+    def apply_preset_to_volume(self, volume_property, preset, is_inverted):
+        # TODO Julien: invert
+        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
+        lut = volume_property.GetLookupTable()
+        number_of_values = lut.GetNumberOfTableValues()
+        for i in range(number_of_values):
+            x = i / (number_of_values - 1)
+            x = 1.0 - x if is_inverted else x
+            r, g, b = color_transfer_function.GetColor(x)
+            lut.SetTableValue(i, r, g, b, 1.0)
+        return True
+
+    def apply_preset_to_mesh(self, actor: vtkActor, data_array_obj: DataArray, preset, preset_range, _is_inverted):
+        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
+        mapper = actor.GetMapper()
+
+        mapper.SelectColorArray(data_array_obj.title)
+        mapper.SetColorModeToMapScalars()
+        mapper.SetLookupTable(color_transfer_function)
+        mapper.SetScalarVisibility(True)
+
+        if not data_array_obj.data:
+            logger.info(f"Array {data_array_obj.title} not found.")
+            return False
+
+        min_val = max(data_array_obj.array_min_max[0], preset_range[0])
+        max_val = min(data_array_obj.array_min_max[1], preset_range[1])
+
+        mapper.SetScalarRange(min_val, max_val)
+        mapper.SetUseLookupTableScalarRange(True)
+
+        # TODO handle is_inverted
+
+        return True
 
 
 class VolumePresetParser(PresetParser):
@@ -154,7 +271,7 @@ class VolumePresetParser(PresetParser):
         return presets
 
     def apply_preset(
-        self, preset: dict[str, str], volume_property, range: list[float, float] | tuple[float, float] | None = None
+        self, volume_property, preset: dict[str, str], range: list[float, float] | tuple[float, float] | None = None
     ):
         if self._has_preset(preset, volume_property, range):
             return False
@@ -181,3 +298,9 @@ def get_volume_preset_parser() -> VolumePresetParser:
     presets_file = resources_path() / "3d_presets.xml"
     presets_icons_folder = resources_path() / "presets_icons" / "3d"
     return VolumePresetParser(presets_file, presets_icons_folder)
+
+
+def get_color_preset_parser() -> ColorPresetParser:
+    presets_file = resources_path() / "2d_presets.json"
+    presets_icons_folder = resources_path() / "presets_icons" / "2d"
+    return ColorPresetParser(presets_file, presets_icons_folder)

@@ -226,6 +226,36 @@ class SliceView(VtkView):
             level = (window_level_min_max[0] + window_level_min_max[1]) / 2
             self.set_volume_window_level(data_id, (window, level))
 
+    def set_volume_scalar_color_preset(self, data_id: str, preset_name: str, is_inverted: bool):
+        if self.color_preset_parser is None:
+            return
+        logger.debug(f"set_volume_scalar_color_preset({data_id}):{' Inverse' if is_inverted else ''} {preset_name}")
+        preset = self.color_preset_parser.get_preset_by_name(preset_name)
+        if preset is None:
+            return
+
+        modified = False
+        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
+        if reslice_image_viewer is not None or preset is None:
+            modified = self.color_preset_parser.apply_preset_to_volume(reslice_image_viewer, preset,  is_inverted)
+        for slice in self.get_image_slices(data_id):
+            modified = self.color_preset_parser.apply_preset_to_volume(slice.GetProperty(), preset, is_inverted)
+        if modified:
+            self.update()
+
+    def set_volume_normal_color(
+        self,
+        data_id: str,
+        _show_arrows: bool,
+        _arrow_length: bool,
+        _arrow_width: bool,
+    ):
+        logger.debug(f"set_volume_normal_color({data_id})")
+        modified = False
+        # TODO Julien
+        if modified:
+            self.update()
+
     def on_window_leveling(self, *_args):
         window_level_value = get_reslice_window_level(self.get_reslice_image_viewer())
         self.window_level_changed(window_level_value)

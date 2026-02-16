@@ -47,17 +47,42 @@ class VolumeDisplayHandler:
 
         return _update_opacity
 
-    def update_threed_preset(self, volume_id: str) -> Callable:
+    def update_threed_coloring(self, volume_id: str) -> Callable:
         @debounce(0.05)
-        def _update_threed_preset(volume_preset_name: str, volume_preset_vr_shift: list[float]) -> None:
+        def _update_threed_coloring(threed_preset_name: str, threed_preset_vr_shift: list[float]) -> None:
             for view in self.threed_views:
                 view.set_volume_preset(
                     volume_id,
-                    volume_preset_name,
-                    volume_preset_vr_shift,
+                    threed_preset_name,
+                    threed_preset_vr_shift,
                 )
 
-        return _update_threed_preset
+        return _update_threed_coloring
+
+    def update_twod_coloring(self, volume_id: str) -> Callable:
+        @debounce(0.05)
+        def _update_twod_coloring(twod_preset_name: str, twod_preset_is_inverted: bool) -> None:
+            for view in self.twod_views:
+                view.set_volume_scalar_color_preset(
+                    volume_id,
+                    twod_preset_name,
+                    twod_preset_is_inverted,
+                )
+
+        return _update_twod_coloring
+
+    def update_normal_coloring(self, volume_id: str) -> Callable:
+        @debounce(0.05)
+        def _update_normal_coloring(show_arrows: bool, arrow_length: float, arrow_width: float) -> None:
+            for view in self.twod_views:
+                view.set_volume_normal_color(
+                    volume_id,
+                    show_arrows,
+                    arrow_length,
+                    arrow_width,
+                )
+
+        return _update_normal_coloring
 
     def update_window_level(self, volume_id: str) -> Callable:
         @debounce(0.05)
@@ -119,9 +144,11 @@ class VolumeHandler(ObjectHandler):
     def _connect_volume_to_display_handler(self, volume_logic: VolumeObjectLogic):
         volume_logic.display.watch(("opacity",), self.display_handler.update_opacity(volume_logic._id))
         volume_logic.display.watch(("window_level",), self.display_handler.update_window_level(volume_logic._id))
-        volume_logic.display.threed_preset.watch(
-            ("name", "vr_shift"), self.display_handler.update_threed_preset(volume_logic._id)
+        volume_logic.display.threed_color.watch(
+            ("name", "vr_shift"), self.display_handler.update_threed_coloring(volume_logic._id)
         )
+        volume_logic.display.twod_color.watch(("name", "is_inverted"), self.display_handler.update_twod_coloring(volume_logic._id))
+        volume_logic.display.normal_color.watch(("show_arrows", "arrow_length", "arrow_width"), self.display_handler.update_normal_coloring)
         volume_logic.scene_object.watch(
             ("is_visible",), self.display_handler.update_threed_visibility(volume_logic._id)
         )
