@@ -7,14 +7,23 @@ from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ...utils import Button, Text
+from ...utils import Button, GirderItem, Text
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class GirderBrowserState:
-    selected_in_location: list[dict[str, str]] = field(default_factory=list)
+    """
+    selected_items: list of all the Girder items selected
+    selected_items_in_location: list of all the Girder items selected in the current folder
+    default_location: default folder to open when connecting to Girder
+    location: current folder
+    """
+
+    selected_items: list[GirderItem] = field(default_factory=list)
+    selected_items_in_location: list[GirderItem] = field(default_factory=list)
+    default_location: dict[str, str] | None = None
     location: dict[str, str] | None = None
     is_browser_dialog_visible: bool = False
 
@@ -41,7 +50,7 @@ class GirderBrowserUI(Button):
                 gwc.GirderFileManager(
                     classes="girder-browser",
                     v_if=(self._typed_state.name.location,),
-                    selected=(self._typed_state.name.selected_in_location,),
+                    selected=(self._typed_state.name.selected_items_in_location,),
                     location=(self._typed_state.name.location,),
                     update_location=(self.location_updated, "[$event]"),
                     row_click=(self.row_clicked, "[$event]"),

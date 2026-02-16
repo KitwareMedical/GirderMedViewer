@@ -25,7 +25,6 @@ class Button(VBtn):
         text_transform: str | tuple[Any] | None = None,
         tooltip: str | tuple[Any] | None = None,
         tooltip_location: str = "right",
-        # loading: bool = False,
         **kwargs,
     ) -> None:
         icon = kwargs.pop("icon", None)
@@ -38,7 +37,6 @@ class Button(VBtn):
             kwargs["variant"] = kwargs.get("variant", "tonal")
         elif icon:
             kwargs["icon"] = True
-            kwargs["size"] = kwargs.get("size", "small")
             kwargs["variant"] = kwargs.get("variant", "text")
         else:
             kwargs["rounded"] = True
@@ -72,6 +70,8 @@ class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
             ".connection-form { display: flex } "
+            ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px;} "
+            ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px;} "
             ".position-selector .v-text-field__prefix {font-weight: 700 !important} "
             ".position-selector .v-input__details {display: none !important} "
             ".position-selector .v-input__control { width: 120px; } "
@@ -86,9 +86,8 @@ class GlobalStyle(Style):
             ".metadata-content { display: flex; flex-direction: row; justify-content: space-between; "
             "align-items: center; gap:8px; }"
             ".metadata-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
-            ".quad-view { display: 'grid'; 'grid-template-columns': fullscreen == null ? '1fr 1fr' : 'none'; "
-            "gap: '2px'; width: '100%'; height: '100%'; position: 'relative'; }"
-            ".tools-strip {display: flex; flex-direction: column; align-items: center; width: 50px;"
-            ".view-gutter {position: absolute;  top: 0; left: 0; background-color: transparent; height: 100%;"
+            ".quad-view { display: 'grid'; gap: '2px'; width: '100%'; height: '100%'; position: 'relative'; }"
+            ".tools-strip { display: flex; flex-direction: column; align-items: center; width: 50px; }"
+            ".view-gutter { position: absolute;  top: 0; left: 0; background-color: transparent; height: 100%; }"
             ".view-gutter-content { display: flex; flex-direction: column; height: 100%; padding: 8px; }"
         )

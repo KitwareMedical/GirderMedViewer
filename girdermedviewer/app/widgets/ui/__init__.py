@@ -4,8 +4,9 @@ from .girder import (
     GirderBrowserUI,
     GirderConnectionState,
     GirderConnectionUI,
-    GirderItemsUI,
 )
+from .scene import SceneUI
+from .vtk.components import QuadView, SliceView, ThreeDView, VtkView
 
 __all__ = [
     "AppLayout",
@@ -15,5 +16,9 @@ __all__ = [
     "GirderBrowserUI",
     "GirderConnectionState",
     "GirderConnectionUI",
-    "GirderItemsUI",
+    "QuadView",
+    "SceneUI",
+    "SliceView",
+    "ThreeDView",
+    "VtkView",
 ]

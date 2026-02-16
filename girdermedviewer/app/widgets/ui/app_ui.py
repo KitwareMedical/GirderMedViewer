@@ -7,7 +7,8 @@ from trame_server import Server
 from trame_server.utils.typed_state import TypedState
 
 from ..utils import AppConfig, GlobalStyle
-from .girder import GirderBrowserUI, GirderConnectionUI, GirderItemsUI
+from .girder import GirderBrowserUI, GirderConnectionUI
+from .scene import SceneUI
 from .vtk.components import QuadView, ToolsStrip
 
 
@@ -65,7 +66,7 @@ class AppUI:
                 self.quad_view = QuadView()
 
             with self.layout.drawer:
-                self.girder_items_ui = GirderItemsUI()
+                self.scene_ui = SceneUI()
 
     @property
     def data(self) -> AppState:
