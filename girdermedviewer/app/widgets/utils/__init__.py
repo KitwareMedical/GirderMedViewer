@@ -4,6 +4,8 @@ from .girder_utils import (
     CacheMode,
     FileFetcher,
     GirderConfig,
+    GirderItem,
+    GirderLocation,
     are_same_paths,
     format_date,
 )
@@ -49,6 +51,8 @@ __all__ = [
     "CacheMode",
     "FileFetcher",
     "GirderConfig",
+    "GirderItem",
+    "GirderLocation",
     "GlobalStyle",
     "PresetParser",
     "Text",

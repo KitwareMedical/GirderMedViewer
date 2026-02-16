@@ -29,10 +29,14 @@ class GirderConnectionLogic(BaseLogic[GirderConnectionState]):
         self._girder_config = GirderConfig()
         self._init_girder(default_url)
 
-        self.bind_changes({(self.name.girder_api_root,): self._connect_girder})
+        self.bind_changes(
+            {
+                (self.name.girder_api_root,): self._on_girder_api_root_changed,
+                (self.name.girder_url,): self._on_girder_url_changed,
+            }
+        )
 
     def set_ui(self, connection_ui: GirderConnectionUI) -> None:
-        connection_ui.girder_url_changed.connect(self._set_girder_url)
         connection_ui.log_out_clicked.connect(self._logout)
 
     def _init_girder(self, girder_url) -> None:
@@ -42,7 +46,7 @@ class GirderConnectionLogic(BaseLogic[GirderConnectionState]):
     def _load_girder(self) -> None:
         if self.data.girder_url:
             girder_config: GirderConfig = self._girder_configs.get(
-                self.data.girder_url, GirderConfig(url=self.data.girder_url)
+                self.data.girder_url.strip("/"), GirderConfig(url=self.data.girder_url)
             )
             valid_url, self.data.girder_url_error = is_valid_url(girder_config.api_url)
             if valid_url:
@@ -51,20 +55,24 @@ class GirderConnectionLogic(BaseLogic[GirderConnectionState]):
 
     def _connect_girder(self, girder_api_root: str | None) -> None:
         self.provider.connect(girder_api_root)
-        self.data.is_girder_connected = True
         self.girder_connected(self._girder_config)
 
     def _disconnect_girder(self) -> None:
         self._logout()
         self.provider.disconnect()
-        self.data.is_girder_connected = False
+        self._girder_config = GirderConfig()
         self.girder_connected(None)
 
-    def _set_girder_url(self) -> None:
-        if self.data.is_girder_connected:
+    def _on_girder_api_root_changed(self, api_root: str | None) -> None:
+        if api_root is None:
             self._disconnect_girder()
+        else:
+            self._connect_girder(api_root)
 
-        if self.data.girder_url:
+    def _on_girder_url_changed(self, girder_url: str | None) -> None:
+        self.data.girder_api_root = None
+
+        if girder_url:
             self._load_girder()
         else:
             self.data.girder_url_error = "URL required"

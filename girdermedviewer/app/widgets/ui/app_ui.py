@@ -7,14 +7,15 @@ from trame_server import Server
 from trame_server.utils.typed_state import TypedState
 
 from ..utils import AppConfig, GlobalStyle
-from .girder import GirderBrowserUI, GirderConnectionUI
+from .girder import GirderBrowserUI, GirderConnectionUI, GirderItemsUI
 from .vtk.components import QuadView, ToolsStrip
 
 
 @dataclass
 class AppState:
-    is_drawer_visible: bool = False
-    is_viewer_visible: bool = False
+    is_drawer_visible: bool = True
+    is_viewer_disabled: bool = True
+    is_browser_dialog_visible: bool = False
 
 
 class AppLayout(VAppLayout):
@@ -35,14 +36,12 @@ class AppLayout(VAppLayout):
             self.drawer = v3.VNavigationDrawer(
                 v_model=(self.typed_state.name.is_drawer_visible,),
                 permanent=True,
-                width=600,
+                width=500,
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
             )
 
-            self.viewer = v3.VMain(
-                v_if=(self.typed_state.name.is_viewer_visible,), classes="d-flex flex-row flex-grow-1"
-            )
+            self.viewer = v3.VMain(classes="d-flex flex-row flex-grow-1")
 
 
 class AppUI:
@@ -54,16 +53,19 @@ class AppUI:
             self.provider.register_layout(self.layout)
             GlobalStyle()
             with self.layout.app_bar:
+                with v3.Template(v_slot_prepend=True):
+                    self.girder_browser_ui = GirderBrowserUI()
+
                 v3.VAppBarTitle(app_config.app_name, style="flex: 0 1 auto;")
                 v3.VSpacer()
                 self.girder_connection_ui = GirderConnectionUI()
 
             with self.layout.viewer:
-                ToolsStrip()
+                ToolsStrip(disabled=self.name.is_viewer_disabled)
                 self.quad_view = QuadView()
 
             with self.layout.drawer:
-                self.girder_browser_ui = GirderBrowserUI()
+                self.girder_items_ui = GirderItemsUI()
 
     @property
     def data(self) -> AppState:

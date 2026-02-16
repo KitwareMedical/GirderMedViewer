@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from trame_server import Server
+from undo_stack import Signal
 
 from girdermedviewer.app.widgets.utils.app_utils import debounce
 
@@ -230,6 +231,8 @@ class MeshObject(SceneObject):
 
 
 class SceneLogic(BaseLogic[SceneState]):
+    objects_changed = Signal(list[str])
+
     def __init__(self, server: Server) -> None:
         super().__init__(server, SceneState)
         self.scene_objects: dict[str, VolumeObject | MeshObject] = {}
@@ -268,6 +271,8 @@ class SceneLogic(BaseLogic[SceneState]):
         if self.primary_volume_id is None:
             self._set_primary_volume()
 
+        self.objects_changed(list(self.scene_objects.keys()))
+
     def remove_scene_object(self, object_id: str) -> None:
         scene_object = self.scene_objects.get(object_id)
 
@@ -278,6 +283,8 @@ class SceneLogic(BaseLogic[SceneState]):
 
         if object_id == self.primary_volume_id:
             self._set_primary_volume()
+
+        self.objects_changed(list(self.scene_objects.keys()))
 
     def update_object_property(self, prop: str, prop_value: Any, object_id: str) -> None:
         scene_object = self.scene_objects.get(object_id)

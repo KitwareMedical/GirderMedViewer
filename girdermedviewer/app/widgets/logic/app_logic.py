@@ -23,7 +23,7 @@ class AppLogic(BaseLogic[AppState]):
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
 
-        self._girder_logic.user_connected.connect(self._on_user_connected)
+        self._scene_logic.objects_changed.connect(self._on_scene_changed)
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
@@ -59,6 +59,5 @@ class AppLogic(BaseLogic[AppState]):
         logging.getLogger().setLevel(logging.WARNING)
         logging.getLogger(__package__).setLevel(self.app_config.log_level)
 
-    def _on_user_connected(self, is_user_connected: bool):
-        self.data.is_drawer_visible = is_user_connected
-        self.data.is_viewer_visible = is_user_connected
+    def _on_scene_changed(self, loaded_objects: list[str]):
+        self.data.is_viewer_disabled = len(loaded_objects) == 0
