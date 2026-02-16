@@ -12,7 +12,7 @@ from ....utils import (
     debounce,
     load_volume,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic
+from .scene_object_logic import ColorPreset, SceneObject, SceneObjectLogic
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ class VolumeDisplay(StateDataModel):
     scalar_range = Sync(list[float], list)
     window_level = Sync(list[float], list)
     threed_preset = Sync(VolumePreset, has_dataclass=True)
+    twod_preset = Sync(ColorPreset, has_dataclass=True)
     opacity = Sync(float, 1.0)
 
 
@@ -38,6 +39,7 @@ class VolumeObjectLogic(SceneObjectLogic):
         self.display = VolumeDisplay(
             self.server,
             threed_preset=VolumePreset(self.server),
+            twod_preset=ColorPreset(self.server),
         )
         self.scene_object.display = self.display._id
 
@@ -46,6 +48,7 @@ class VolumeObjectLogic(SceneObjectLogic):
         self.display.watch(("opacity",), self._update_opacity)
         self.display.watch(("window_level",), self._update_window_level)
         self.display.threed_preset.watch(("name", "vr_shift"), self._update_threed_preset)
+        self.display.twod_preset.watch(("name", "is_inverted"), self._update_twod_preset)
 
     @debounce(0.05)
     def _update_opacity(self, opacity: float) -> None:
@@ -67,6 +70,15 @@ class VolumeObjectLogic(SceneObjectLogic):
                 self.scene_object._id,
                 volume_preset_name,
                 volume_preset_vr_shift,
+            )
+
+    @debounce(0.05)
+    def _update_twod_preset(self, twod_preset_name: str, twod_preset_is_inverted: bool) -> None:
+        for view in self.twod_views:
+            view.set_volume_scalar_color_preset(
+                self.scene_object._id,
+                twod_preset_name,
+                twod_preset_is_inverted,
             )
 
     def load(self, file_path: str) -> None:

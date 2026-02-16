@@ -1,3 +1,4 @@
+import json
 import logging
 import xml.etree.ElementTree as ET
 from abc import abstractmethod
@@ -6,6 +7,7 @@ from pathlib import Path
 from trame.assets.local import LocalFileManager
 from trame_dataclass.v2 import StateDataModel, Sync
 from vtk import (
+    vtkActor,
     vtkColorTransferFunction,
     vtkPiecewiseFunction,
 )
@@ -47,6 +49,79 @@ class PresetParser:
     @abstractmethod
     def parse_slicer_presets(self, presets_file_path: Path):
         pass
+
+
+class ColorPresetParser(PresetParser):
+    def __init__(self, presets_file: Path, icons_folder: Path):
+        super().__init__(presets_file, icons_folder)
+
+    def _array_to_function(self, xrgbs, klass, add_method):
+        transfer_function = klass()
+        for point in xrgbs:
+            scalar, r, g, b = point
+            getattr(transfer_function, add_method)(scalar, r, g, b)
+
+        return transfer_function
+
+    def parse_slicer_presets(self, presets_file_path: Path) -> list[dict[str, str]]:
+        with presets_file_path.open("r") as f:
+            data = json.load(f)
+        return data["colormaps"]
+
+    def apply_preset_to_volume(self, preset, object_property, is_inverted):
+        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
+        lut = object_property.GetLookupTable()
+        number_of_values = lut.GetNumberOfTableValues()
+        for i in range(number_of_values):
+            x = i / (number_of_values - 1)
+            x = 1.0 - x if is_inverted else x
+            r, g, b = color_transfer_function.GetColor(x)
+            lut.SetTableValue(i, r, g, b, 1.0)
+        return True
+
+    def apply_preset_to_mesh_scalars(self, preset, actor: vtkActor):
+        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
+        mapper = actor.GetMapper()
+        polydata = mapper.GetInput()
+        point_scalars = polydata.GetPointData().GetScalars()
+        cell_scalars = polydata.GetCellData().GetScalars()
+
+        if not point_scalars and not cell_scalars:
+            return False
+
+        mapper.SetScalarVisibility(True)
+        mapper.SetScalarModeToUsePointData()
+
+        mapper.SetLookupTable(color_transfer_function)
+        if point_scalars:
+            mapper.SetScalarRange(**point_scalars.GetRange())
+        else:
+            mapper.SetScalarRange(**cell_scalars.GetRange())
+
+        mapper.Modified()
+        return True
+
+    def apply_preset_to_mesh_vectors(self, preset, actor: vtkActor):
+        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
+        mapper = actor.GetMapper()
+        polydata = mapper.GetInput()
+        point_scalars = polydata.GetPointData().GetScalars()
+        cell_scalars = polydata.GetCellData().GetScalars()
+
+        if not point_scalars and not cell_scalars:
+            return False
+
+        mapper.SetScalarVisibility(True)
+        mapper.SetScalarModeToUsePointData()
+
+        mapper.SetLookupTable(color_transfer_function)
+        if point_scalars:
+            mapper.SetScalarRange(**point_scalars.GetRange())
+        else:
+            mapper.SetScalarRange(**cell_scalars.GetRange())
+
+        mapper.Modified()
+        return True
 
 
 class VolumePresetParser(PresetParser):
@@ -181,3 +256,9 @@ def get_volume_preset_parser() -> VolumePresetParser:
     presets_file = resources_path() / "3d_presets.xml"
     presets_icons_folder = resources_path() / "presets_icons" / "3d"
     return VolumePresetParser(presets_file, presets_icons_folder)
+
+
+def get_color_preset_parser() -> ColorPresetParser:
+    presets_file = resources_path() / "2d_presets.json"
+    presets_icons_folder = resources_path() / "presets_icons" / "2d"
+    return ColorPresetParser(presets_file, presets_icons_folder)

@@ -11,10 +11,12 @@ from .girder_utils import (
 )
 from .scene_utils import SceneObjectType
 from .vtk import (
+    ColorPresetParser,
     Preset,
     PresetParser,
     VolumePresetParser,
     create_rendering_pipeline,
+    get_color_preset_parser,
     get_number_of_slices,
     get_position_from_slice_index,
     get_random_color,
@@ -52,6 +54,7 @@ __all__ = [
     "AppState",
     "Button",
     "CacheMode",
+    "ColorPresetParser",
     "FileFetchError",
     "FileFetcher",
     "GirderConfig",
@@ -66,6 +69,7 @@ __all__ = [
     "create_rendering_pipeline",
     "debounce",
     "format_date",
+    "get_color_preset_parser",
     "get_number_of_slices",
     "get_position_from_slice_index",
     "get_random_color",

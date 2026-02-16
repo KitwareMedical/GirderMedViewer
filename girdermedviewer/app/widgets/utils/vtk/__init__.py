@@ -1,7 +1,10 @@
+
 from .preset_utils import (
+    ColorPresetParser,
     Preset,
     PresetParser,
     VolumePresetParser,
+    get_color_preset_parser,
     get_volume_preset_parser,
 )
 from .vtk_utils import (
@@ -42,6 +45,7 @@ __all__ = [
     "PresetParser",
     "VolumePresetParser",
     "create_rendering_pipeline",
+    "get_color_preset_parser",
     "get_number_of_slices",
     "get_position_from_slice_index",
     "get_random_color",

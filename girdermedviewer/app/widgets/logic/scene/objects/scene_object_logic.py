@@ -19,6 +19,12 @@ from ...base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_COLOR_PRESET_NAME = "Grayscale"
+
+class ColorPreset(StateDataModel):
+    name = Sync(str, DEFAULT_COLOR_PRESET_NAME)
+    is_inverted = Sync(bool, False)
+
 
 class SceneObjectInfo(StateDataModel):
     created = Sync(str)

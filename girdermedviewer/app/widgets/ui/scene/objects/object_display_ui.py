@@ -5,11 +5,12 @@ from ....utils import Button, SceneObjectType, Text
 
 
 class VolumeDisplayUI(html.Div):
-    def __init__(self, obj_display: str, threed_presets: str, **kwargs):
+    def __init__(self, obj_display: str, twod_presets: str, threed_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
+        self.twod_presets = twod_presets
         self.threed_presets = threed_presets
         self._build_ui()
 
@@ -23,10 +24,23 @@ class VolumeDisplayUI(html.Div):
                 ),
             )
 
+            Text("Preset 2D", classes="text-subtitle-2 pt-2")
+            with (
+                PresetSelector(
+                    items=(self.twod_presets,),
+                    v_model=(f"{self.display}.twod_preset.name"),
+                ),
+                v3.Template(v_slot_append=True),
+            ):
+                v3.VCheckbox(
+                    v_model=(f"{self.display}.twod_preset.is_inverted",),
+                    label="Invert",
+                    hide_details=True,
+                )
+
             Text("Volume Rendering Shift", classes="text-subtitle-2 pt-2")
             PropertyRangeSlider(
-                range_min_max=f"{self.display}.scalar_range",
-                v_model=(f"{self.display}.threed_preset.vr_shift",),
+                range_min_max=f"{self.display}.scalar_range", v_model=(f"{self.display}.threed_preset.vr_shift",)
             )
 
             Text("Window / level", classes="text-subtitle-2 pt-2")
@@ -49,12 +63,12 @@ class VolumeDisplayUI(html.Div):
 
 
 class MeshDisplayUI(html.Div):
-    def __init__(self, obj_display: str, **kwargs):
+    def __init__(self, obj_display: str, color_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
-
+        self.color_presets = color_presets
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -66,6 +80,22 @@ class MeshDisplayUI(html.Div):
                 modes=("['rgb']",),
                 style="width: 100%",
             )
+
+            Text("Color by scalar", classes="text-subtitle-2 pt-2")
+            with (
+                v3.VSelect(
+                    items=(self.color_presets,),
+                    v_model=(f"{self.display}.scalar_preset.name"),
+                    variant="solo-filled",
+                    flat=True,
+                ),
+                v3.Template(v_slot_append=True),
+            ):
+                v3.VCheckbox(
+                    v_model=(f"{self.display}.scalar_preset.is_inverted",),
+                    label="Invert",
+                    hide_details=True,
+                )
 
             Text("Opacity", classes="text-subtitle-2 pt-2")
             OpacitySlider(v_model=(f"{self.display}.opacity",))
@@ -104,23 +134,26 @@ class PropertyRangeSlider(v3.VRangeSlider):
 
 
 class SceneObjectDisplayUI(html.Div):
-    def __init__(self, obj_display: str, obj_type: str, threed_presets: str, **kwargs):
+    def __init__(self, obj_display: str, obj_type: str, color_preset: str, volume_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
         self.type = obj_type
-        self.threed_presets = threed_presets
+        self.color_preset = color_preset
+        self.volume_presets = volume_presets
         self._build_ui()
 
     def _build_ui(self) -> None:
         with self:
             VolumeDisplayUI(
                 obj_display=self.display,
-                threed_presets=self.threed_presets,
+                twod_presets=self.color_preset,
+                threed_presets=self.volume_presets,
                 v_if=(f"{self.type} == '{SceneObjectType.VOLUME.value}'",),
             )
             MeshDisplayUI(
                 obj_display=self.display,
+                color_presets=self.color_preset,
                 v_if=(f"{self.type} == '{SceneObjectType.MESH.value}'",),
             )

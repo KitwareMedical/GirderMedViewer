@@ -13,15 +13,14 @@ from ....utils import (
     get_random_color,
     load_mesh,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic
+from .scene_object_logic import ColorPreset, SceneObject, SceneObjectLogic
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_VOLUME_PRESET_NAME = "CT-Cardiac3"
 
 
 class MeshDisplay(StateDataModel):
     color = Sync(str)
+    scalar_preset = Sync(ColorPreset, has_dataclass=True)
     opacity = Sync(float, 1.0)
 
 
@@ -32,11 +31,13 @@ class MeshObjectLogic(SceneObjectLogic):
         self.display = MeshDisplay(
             self.server,
             color=get_random_color(),
+            scalar_preset=ColorPreset(self.server)
         )
         self.scene_object.display = self.display._id
 
         self.display.watch(("opacity",), self._update_opacity)
         self.display.watch(("color",), self._update_color)
+        self.display.scalar_preset.watch(("name", "is_inverted"), self._update_scalar_preset)
 
     @debounce(0.05)
     def _update_opacity(self, opacity: float) -> None:
@@ -49,6 +50,11 @@ class MeshObjectLogic(SceneObjectLogic):
         color_tuple = tuple(float(int(hex[i : i + 2], 16)) / 255.0 for i in (0, 2, 4))
         for view in self.views:
             view.set_mesh_color(self.scene_object._id, color_tuple)
+
+    @debounce(0.05)
+    def _update_scalar_preset(self, color_preset_name: str, color_preset_is_inverted: bool) -> None:
+        for view in self.views:
+            view.set_mesh_scalar_color_preset(self.scene_object._id, color_preset_name, color_preset_is_inverted)
 
     def load(self, file_path: str) -> None:
         self.object_data = load_mesh(file_path)

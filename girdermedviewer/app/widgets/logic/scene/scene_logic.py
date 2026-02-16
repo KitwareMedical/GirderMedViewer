@@ -14,6 +14,7 @@ from ...ui import (
 from ...utils import (
     Preset,
     PresetParser,
+    get_color_preset_parser,
     get_volume_preset_parser,
     supported_mesh_extensions,
     supported_volume_extensions,
@@ -36,6 +37,7 @@ class SceneGUI(StateDataModel):
 
 class Scene(StateDataModel):
     volume_presets = Sync(list[Preset], list, has_dataclass=True)
+    color_presets = Sync(list[Preset], list, has_dataclass=True)
     objects = Sync(list[SceneObject], list, has_dataclass=True)
     gui = Sync(SceneGUI, has_dataclass=True)
 
@@ -70,7 +72,10 @@ class SceneLogic(BaseLogic[None]):
         self.volume_preset_parser = get_volume_preset_parser()
         self.scene.volume_presets = self._get_presets_from_preset_parser(self.volume_preset_parser)
 
-    def _create_scene_object_logic(self, file_path: str, scene_object: SceneObject) -> SceneObjectLogic:
+        self.color_preset_parser = get_color_preset_parser()
+        self.scene.color_presets = self._get_presets_from_preset_parser(self.color_preset_parser)
+
+    def _create_scene_object_logic(self, file_path: str, scene_object: SceneObject) -> MeshObjectLogic | VolumeObjectLogic:
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if file_path.endswith(supported_mesh_extensions()):
@@ -141,9 +146,11 @@ class SceneLogic(BaseLogic[None]):
         self.views = ui.views
         for view in self.views:
             if isinstance(view, SliceView):
+                view.set_color_preset_parser(self.color_preset_parser)
                 # Connect window leveling for all slice views
                 view.window_level_changed.connect(self._on_window_level_changed_in_view)
             if isinstance(view, ThreeDView):
+                view.set_color_preset_parser(self.color_preset_parser)
                 view.set_volume_preset_parser(self.volume_preset_parser)
 
     def clear_scene(self):
