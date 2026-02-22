@@ -1,6 +1,6 @@
 [project]
 name = "girdermedviewer"
-version = "1.0.0"
+version = "2.0.0"
 description = "Browser and Viewer of Girder database"
 authors = [
     {name = "Kitware Europe"},
