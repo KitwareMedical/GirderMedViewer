@@ -1,11 +1,10 @@
-from girder.plugin import GirderPlugin
-from girder.models.file import File
 from girder.constants import AccessType
+from girder.models.file import File
+from girder.plugin import GirderPlugin
 
 
 class MedViewerPlugin(GirderPlugin):
-
     DISPLAY_NAME = "GirderMedViewer Plugin"
 
-    def load(self, info):
+    def load(self, _info):
         File().exposeFields(level=AccessType.READ, fields="path")

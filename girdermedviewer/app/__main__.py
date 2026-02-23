@@ -1,8 +1,8 @@
-from .core import MyTrameApp
+from girdermedviewer.app.core import MedViewerApp
 
 
 def main(server=None, **kwargs):
-    app = MyTrameApp(server)
+    app = MedViewerApp(server)
     app.server.start(**kwargs)
 
 
