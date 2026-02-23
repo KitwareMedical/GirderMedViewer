@@ -71,13 +71,14 @@ class Button(VBtn):
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
+            ".connection-form { display: flex } "
             ".position-selector .v-text-field__prefix {font-weight: 700 !important} "
             ".position-selector .v-input__details {display: none !important} "
             ".position-selector .v-input__control { width: 120px; } "
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important }"
             ".item-card .v-expansion-panel--active>.v-expansion-panel-title,.v-expansion-panel-title { "
             "height: 64px !important }"
-            ".girder-browser { padding: 8px; overflow: hidden; height: 100%; display: flex; "
+            ".girder-browser { width: 100% }; "
             "flex-direction: column; }"
             ".file-manager { overflow: auto; max-height: 50%}"
             ".metadata-list { display: flex; flex-wrap: wrap; }"

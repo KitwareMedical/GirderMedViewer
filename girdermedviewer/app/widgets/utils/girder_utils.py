@@ -26,6 +26,20 @@ def format_date(date_str, format):
 
 
 @dataclass
+class GirderLocation:
+    _id: str | None = None
+    _modelType: str | None = None
+
+
+@dataclass
+class GirderItem:
+    _id: str
+    created: str
+    updated: str
+    meta: dict[str, str | int]
+
+
+@dataclass
 class GirderConfig:
     url: str | None = None
     api_root: str = "/api/v1"

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class GirderLogic(BaseLogic[None]):
     girder_connected = Signal(bool)
-    user_connected = Signal(bool)
+    item_selection_changed = Signal(list[Any])
 
     def __init__(self, server: Server, scene: SceneLogic, app_config: AppConfig) -> None:
         super().__init__(server, None)
@@ -35,13 +35,17 @@ class GirderLogic(BaseLogic[None]):
 
         self.connection_logic.girder_connected.connect(self._update_config)
         self.connection_logic.user_connected.connect(self._update_user)
+
+        # Update scene
         self.browser_logic.item_loaded.connect(scene.add_scene_object)
         self.browser_logic.item_unselected.connect(scene.remove_scene_object)
         self.browser_logic.item_setting_changed.connect(scene.update_object_property)
 
+        self.state.change("selected")(self._on_selection_changed)
+
     def set_ui(self, ui: AppUI) -> None:
         self.connection_logic.set_ui(ui.girder_connection_ui)
-        self.browser_logic.set_ui(ui.girder_browser_ui)
+        self.browser_logic.set_ui(ui.girder_browser_ui, ui.girder_items_ui)
 
     def _load_girder_config(self, app_config: AppConfig) -> None:
         if app_config.default_url is not None:
@@ -55,6 +59,8 @@ class GirderLogic(BaseLogic[None]):
         self.browser_logic.update_girder_config(self.config)
         self.girder_connected(self.config.url is not None)
 
+    def _on_selection_changed(self, selected: list[Any], **_kwargs):
+        self.item_selection_changed(selected)
+
     def _update_user(self, user: dict[str, Any] | None, token: str | None) -> None:
         self.browser_logic.update_girder_user(user, token if token else "")
-        self.user_connected(user is not None)

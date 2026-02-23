@@ -42,50 +42,41 @@ from ...utils import (
 logger = logging.getLogger(__name__)
 
 
-class PositionDialog(v3.VMenu):
+class PositionDialog(Button):
     def __init__(self, **kwargs):
-        super().__init__(
-            v_model=("position_dialog", False),
-            close_on_content_click=False,
-            persistent=True,
-            transition="slide-x-transition",
-            **kwargs,
-        )
+        super().__init__(**kwargs)
         self.state.position = None
         self.state.normals = None
         self._build_ui()
 
     def _build_ui(self):
-        with self:
-            with v3.Template(v_slot_activator="{ props }"):
-                Button(
-                    v_bind="props",
-                    disabled=("Object.keys(selected).length === 0",),
-                    color=("position_dialog ? 'primary' : 'undefined'",),
-                    icon="mdi-target",
-                    tooltip=("position_dialog ? 'Hide position dialog' : 'Show position dialog'",),
-                    variant="text",
-                    size="default",
-                )
-            with (
-                v3.VCard(v_if=("position && Object.keys(selected).length > 0",)),
-                v3.VCardText(classes="d-flex justify-space-between align-center"),
-            ):
-                v3.VTextField(
-                    v_for=(
-                        "(field, index) in \
-                        [{ prefix: 'X', color: 'red' }, \
-                        { prefix: 'Y', color: 'green' }, \
-                        { prefix: 'Z', color: 'blue' }]",
-                    ),
-                    classes="mx-1 position-selector",
-                    model_value=("parseFloat(position[index]).toFixed(2)",),
-                    update_modelValue=(self.set_position, "[$event, index]"),
-                    prefix=("field.prefix",),
-                    color=("field.color",),
-                    type="number",
-                    density="compact",
-                )
+        with (
+            self,
+            v3.VDialog(
+                v_model=("position_dialog", False),
+                activator="parent",
+                close_on_content_click=False,
+                persistent=True,
+                transition="slide-x-transition",
+            ),
+            v3.VCard(v_if=("position && Object.keys(selected).length > 0",)),
+            v3.VCardText(classes="d-flex justify-space-between align-center"),
+        ):
+            v3.VTextField(
+                v_for=(
+                    "(field, index) in \
+                    [{ prefix: 'X', color: 'red' }, \
+                    { prefix: 'Y', color: 'green' }, \
+                    { prefix: 'Z', color: 'blue' }]",
+                ),
+                classes="mx-1 position-selector",
+                model_value=("parseFloat(position[index]).toFixed(2)",),
+                update_modelValue=(self.set_position, "[$event, index]"),
+                prefix=("field.prefix",),
+                color=("field.color",),
+                type="number",
+                density="compact",
+            )
 
     def set_position(self, value, index):
         if value:
@@ -95,7 +86,7 @@ class PositionDialog(v3.VMenu):
 
 
 class ToolsStrip(html.Div):
-    def __init__(self, **kwargs):
+    def __init__(self, disabled: str, **kwargs):
         super().__init__(
             classes="tools-strip",
             **kwargs,
@@ -105,8 +96,8 @@ class ToolsStrip(html.Div):
         with self:
             Button(
                 click="obliques_visibility = !obliques_visibility",
-                disabled=("Object.keys(selected).length === 0",),
-                color=("obliques_visibility ? 'primary' : 'undefined'",),
+                disabled=(disabled,),
+                color=(f"obliques_visibility && !{disabled} ? 'primary' : 'undefined'",),
                 icon="mdi-cube-scan",
                 tooltip=("obliques_visibility ? 'Hide obliques' : 'Show obliques'",),
                 variant="text",
@@ -115,14 +106,21 @@ class ToolsStrip(html.Div):
 
             Button(
                 click=self.ctrl.reset,
-                disabled=("Object.keys(selected).length === 0",),
+                disabled=(disabled,),
                 icon="mdi-camera-flip-outline",
                 tooltip="Reset views",
                 variant="text",
                 size="default",
             )
 
-            PositionDialog()
+            PositionDialog(
+                disabled=(disabled,),
+                color=(f"position_dialog && !{disabled} ? 'primary' : 'undefined'",),
+                icon="mdi-target",
+                tooltip=("position_dialog ? 'Hide position dialog' : 'Show position dialog'",),
+                variant="text",
+                size="default",
+            )
 
 
 @dataclass

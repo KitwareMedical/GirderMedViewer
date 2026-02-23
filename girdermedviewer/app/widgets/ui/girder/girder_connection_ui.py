@@ -11,7 +11,6 @@ from ...utils import Button
 
 @dataclass
 class GirderConnectionState:
-    is_girder_connected: bool = False
     is_login_dialog_visible: bool = False
     girder_url: str | None = None
     girder_api_root: str | None = None
@@ -21,7 +20,6 @@ class GirderConnectionState:
 
 
 class GirderConnectionUI(AbstractElement):
-    girder_url_changed = Signal()
     log_out_clicked = Signal()
 
     def __init__(self):
@@ -31,17 +29,16 @@ class GirderConnectionUI(AbstractElement):
         self._build_ui()
 
     def _build_ui(self):
-        with v3.VForm(submit_prevent=self.girder_url_changed, __events=[("submit_prevent", "submit.prevent")]):
-            v3.VTextField(
-                v_model=(self._typed_state.name.girder_url,),
-                clearable=True,
-                click_clear=f"{self._typed_state.name.girder_url} = null;",
-                density="compact",
-                disabled=(self._typed_state.name.girder_user_name,),
-                error_messages=(self._typed_state.name.girder_url_error,),
-                placeholder="Enter a Girder URL",
-                style="width: 500px;",
-            )
+        v3.VTextField(
+            v_model=(self._typed_state.name.girder_url,),
+            clearable=True,
+            click_clear=f"{self._typed_state.name.girder_url} = null;",
+            density="compact",
+            disabled=(self._typed_state.name.girder_user_name,),
+            error_messages=(self._typed_state.name.girder_url_error,),
+            placeholder="Enter a Girder URL",
+            style="width: 300px;",
+        )
         v3.VSpacer()
         Button(
             v_if=(self._typed_state.name.girder_user_name,),
@@ -53,8 +50,8 @@ class GirderConnectionUI(AbstractElement):
         )
         with (
             Button(
-                v_if=(f"!{self._typed_state.name.girder_user_name} && !{self._typed_state.name.girder_url_error}",),
-                text="Login",
+                v_if=(f"!{self._typed_state.name.girder_user_name} && {self._typed_state.name.girder_api_root}",),
+                text="Log In",
                 size="large",
                 variant="tonal",
             ),

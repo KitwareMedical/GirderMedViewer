@@ -9,14 +9,14 @@ from trame_server import Server
 from trame_server.utils.asynchronous import create_task
 from undo_stack import Signal
 
-from ...ui import GirderBrowserUI
+from ...ui import GirderBrowserState, GirderBrowserUI, GirderItemsUI
 from ...utils import CacheMode, FileFetcher, GirderConfig, format_date
 from ..base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
 
 
-class GirderBrowserLogic(BaseLogic[None]):
+class GirderBrowserLogic(BaseLogic[GirderBrowserState]):
     item_loaded = Signal(str, str)
     item_unselected = Signal(str)
     item_setting_changed = Signal(str, Any, str)
@@ -29,7 +29,7 @@ class GirderBrowserLogic(BaseLogic[None]):
         temp_directory: str | None,
         date_format: str | None,
     ) -> None:
-        super().__init__(server, None)
+        super().__init__(server, GirderBrowserState)
 
         self._girder_config = girder_config
         self._date_format = date_format
@@ -38,22 +38,20 @@ class GirderBrowserLogic(BaseLogic[None]):
         self._temp_directory = temp_directory
 
         # TODO: typed-state this
-        self.state.location = None
         self.state.selected = {}
-        self.state.selected_in_location = []
-        self.state.clean("location", "selected", "selected_in_location")
-
-        self.state.change("location", "selected")(self._update_selected_in_location)
+        self.state.clean("selected")
+        self.state.change("selected")(self._update_selected_in_location)
 
         self.update_girder_config(girder_config)
 
         self.tasks = {}
 
-    def set_ui(self, ui: GirderBrowserUI) -> None:
-        ui.row_clicked.connect(self._click_item)
-        ui.item_deleted.connect(self._unselect_item)
-        ui.download_canceled.connect(self._cancel_load_task)
-        ui.setting_changed.connect(self.item_setting_changed)
+    def set_ui(self, browser_ui: GirderBrowserUI, items_ui: GirderItemsUI) -> None:
+        browser_ui.row_clicked.connect(self._click_item)
+        browser_ui.location_updated.connect(self._update_location)
+        items_ui.item_deleted.connect(self._unselect_item)
+        items_ui.download_canceled.connect(self._cancel_load_task)
+        items_ui.setting_changed.connect(self.item_setting_changed)
 
     def _unselect_item(self, item) -> None:
         self.state.selected.pop(item["_id"])
@@ -77,7 +75,7 @@ class GirderBrowserLogic(BaseLogic[None]):
 
         self._create_load_task(item)
 
-    def _click_item(self, item) -> None:
+    def _click_item(self, item: dict[str, Any]) -> None:
         if item.get("_modelType") != "item":
             return
         # Ignore double click on item
@@ -142,19 +140,32 @@ class GirderBrowserLogic(BaseLogic[None]):
             GirderClient(apiUrl=girder_config.api_url), girder_config.assetstore, self._temp_directory, self._cache_mode
         )
 
+    def _update_location(self, location: dict[str, Any] | None) -> None:
+        if location is None:
+            self.data.location = None
+
+        location_id = location.get("_id")
+        location_type = location.get("_modelType")
+        if location_id and location_type:
+            logger.debug(f"Location changed to {location}")
+            self._typed_state.data.location = {"_id": location_id, "_modelType": location_type}
+            self._update_selected_in_location(self.state.selected)
+
+    def _update_selected_in_location(self, selected: dict[str, dict[str, Any]], **_kwargs) -> None:
+        logger.debug(f"Selected changed to {selected}")
+        location_id = self.data.location.get("_id") if self.data.location else None
+        self.data.selected_in_location = [
+            {"_id": item.get("_id")} for item in selected.values() if item["folderId"] == location_id
+        ]
+
     def update_girder_user(self, user, token) -> None:
         logger.debug(f"Setting user to {user}")
         if user:
-            if not self.state.location:
-                self.state.location = self._girder_config.default_location or user
+            if self.data.location is None:
+                self._update_location(self._girder_config.default_location or user)
+            self.data.is_browser_dialog_visible = True
         else:
             self._unselect_items()
-            self.state.location = None
-        self.state.dirty("location")
-        self.state.flush()
-        self.file_fetcher.girder_client.setToken(token)
+            self._update_location(self._girder_config.default_location or user)
 
-    def _update_selected_in_location(self, selected, location, **_kwargs) -> None:
-        logger.debug(f"Location/Selected changed to {location}/{selected}")
-        location_id = self.state.location.get("_id", "") if location else ""
-        self.state.selected_in_location = [item for item in selected.values() if item["folderId"] == location_id]
+        self.file_fetcher.girder_client.setToken(token)
