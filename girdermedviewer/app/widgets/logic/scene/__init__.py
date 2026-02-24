@@ -1,4 +1,4 @@
-from .objects import (
+from .objects.scene_object_logic import (
     SceneObject,
     SceneObjectInfo,
     SceneObjectMetadata,

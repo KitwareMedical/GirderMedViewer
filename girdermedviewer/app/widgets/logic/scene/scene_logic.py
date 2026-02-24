@@ -20,13 +20,9 @@ from ...utils import (
     supported_volume_extensions,
 )
 from ..base_logic import BaseLogic
-from .objects import (
-    MeshObjectLogic,
-    SceneObject,
-    SceneObjectGUI,
-    SceneObjectLogic,
-    VolumeObjectLogic,
-)
+from .objects.mesh_object_logic import MeshObjectLogic
+from .objects.scene_object_logic import SceneObject, SceneObjectGUI, SceneObjectLogic
+from .objects.volume_object_logic import VolumeObjectLogic
 
 logger = logging.getLogger(__name__)
 

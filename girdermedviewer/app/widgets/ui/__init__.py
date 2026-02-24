@@ -12,7 +12,6 @@ __all__ = [
     "AppLayout",
     "AppState",
     "AppUI",
-    "ColorPreset",
     "GirderBrowserState",
     "GirderBrowserUI",
     "GirderConnectionState",

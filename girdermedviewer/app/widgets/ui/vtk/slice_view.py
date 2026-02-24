@@ -233,6 +233,19 @@ class SliceView(VtkView):
         if modified:
             self.update()
 
+    def set_volume_normal_color(
+        self,
+        data_id: str,
+        _show_arrows: bool,
+        _arrow_length: bool,
+        _arrow_width: bool,
+    ):
+        logger.debug(f"set_volume_normal_color({data_id})")
+        modified = False
+        # TODO Julien
+        if modified:
+            self.update()
+
     def on_window_leveling(self, *_args):
         window_level_value = get_reslice_window_level(self.get_reslice_image_viewer())
         self.window_level_changed(window_level_value)

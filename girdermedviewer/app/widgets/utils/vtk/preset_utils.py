@@ -2,19 +2,81 @@ import json
 import logging
 import xml.etree.ElementTree as ET
 from abc import abstractmethod
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 from trame.assets.local import LocalFileManager
-from trame_dataclass.v2 import StateDataModel, Sync
+from trame_dataclass.v2 import FieldEncoder, ServerOnly, StateDataModel, Sync
 from vtk import (
     vtkActor,
     vtkColorTransferFunction,
     vtkPiecewiseFunction,
 )
+from vtkmodules.vtkCommonCore import vtkDataArray
 
 from .resources import resources_path
 
 logger = logging.getLogger(__name__)
+
+
+class MeshColoringMode(Enum):
+    SOLID = 0
+    ARRAY = 1
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class VolumeColoringMode(Enum):
+    PRESET = 0
+    NORMALS = 1
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class DataArrayType(Enum):
+    POINT = "point"
+    CELL = "cell"
+    UNDEFINED = None
+
+    @staticmethod
+    def encoder(object: Enum):
+        return object.value
+
+    @classmethod
+    def decoder(cls, value: Any):
+        return cls(value)
+
+
+class DataArray(StateDataModel):
+    title = Sync(str)
+    data = ServerOnly(vtkDataArray | None, None)
+    type = Sync(
+        DataArrayType,
+        DataArrayType.UNDEFINED,
+        convert=FieldEncoder(DataArrayType.encoder, DataArrayType.decoder),
+    )
+    array_min_max = Sync(list[float])
+    number_of_components = Sync(int, 0)
+    coloring_mode = Sync(MeshColoringMode, convert=FieldEncoder(MeshColoringMode.encoder, MeshColoringMode.decoder))
+    props = Sync(dict[str, str | int])
+
+    def __init__(self, server, **kwargs):
+        super().__init__(server, **kwargs)
+        self.coloring_mode = MeshColoringMode.SOLID if self.number_of_components == 0 else MeshColoringMode.ARRAY
+        self.props = {"number_of_components": self.number_of_components}
 
 
 class Preset(StateDataModel):
@@ -23,7 +85,7 @@ class Preset(StateDataModel):
 
 
 class PresetParser:
-    def __init__(self, presets_file: Path, icons_folder: Path):
+    def __init__(self, presets_file: Path, icons_folder: Path | None):
         self.presets = self.parse_slicer_presets(presets_file)
         self.icons_folder = icons_folder
 
@@ -68,9 +130,10 @@ class ColorPresetParser(PresetParser):
             data = json.load(f)
         return data["colormaps"]
 
-    def apply_preset_to_volume(self, preset, object_property, is_inverted):
+    def apply_preset_to_volume(self, volume_property, preset, is_inverted):
+        # TODO Julien: invert
         color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
-        lut = object_property.GetLookupTable()
+        lut = volume_property.GetLookupTable()
         number_of_values = lut.GetNumberOfTableValues()
         for i in range(number_of_values):
             x = i / (number_of_values - 1)
@@ -79,48 +142,27 @@ class ColorPresetParser(PresetParser):
             lut.SetTableValue(i, r, g, b, 1.0)
         return True
 
-    def apply_preset_to_mesh_scalars(self, preset, actor: vtkActor):
+    def apply_preset_to_mesh(self, actor: vtkActor, data_array_obj: DataArray, preset, preset_range, _is_inverted):
         color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
         mapper = actor.GetMapper()
-        polydata = mapper.GetInput()
-        point_scalars = polydata.GetPointData().GetScalars()
-        cell_scalars = polydata.GetCellData().GetScalars()
 
-        if not point_scalars and not cell_scalars:
+        mapper.SelectColorArray(data_array_obj.title)
+        mapper.SetColorModeToMapScalars()
+        mapper.SetLookupTable(color_transfer_function)
+        mapper.SetScalarVisibility(True)
+
+        if not data_array_obj.data:
+            logger.info(f"Array {data_array_obj.title} not found.")
             return False
 
-        mapper.SetScalarVisibility(True)
-        mapper.SetScalarModeToUsePointData()
+        min_val = max(data_array_obj.array_min_max[0], preset_range[0])
+        max_val = min(data_array_obj.array_min_max[1], preset_range[1])
 
-        mapper.SetLookupTable(color_transfer_function)
-        if point_scalars:
-            mapper.SetScalarRange(**point_scalars.GetRange())
-        else:
-            mapper.SetScalarRange(**cell_scalars.GetRange())
+        mapper.SetScalarRange(min_val, max_val)
+        mapper.SetUseLookupTableScalarRange(True)
 
-        mapper.Modified()
-        return True
+        # TODO handle is_inverted
 
-    def apply_preset_to_mesh_vectors(self, preset, actor: vtkActor):
-        color_transfer_function = self._array_to_function(preset.get("points"), vtkColorTransferFunction, "AddRGBPoint")
-        mapper = actor.GetMapper()
-        polydata = mapper.GetInput()
-        point_scalars = polydata.GetPointData().GetScalars()
-        cell_scalars = polydata.GetCellData().GetScalars()
-
-        if not point_scalars and not cell_scalars:
-            return False
-
-        mapper.SetScalarVisibility(True)
-        mapper.SetScalarModeToUsePointData()
-
-        mapper.SetLookupTable(color_transfer_function)
-        if point_scalars:
-            mapper.SetScalarRange(**point_scalars.GetRange())
-        else:
-            mapper.SetScalarRange(**cell_scalars.GetRange())
-
-        mapper.Modified()
         return True
 
 
@@ -229,7 +271,7 @@ class VolumePresetParser(PresetParser):
         return presets
 
     def apply_preset(
-        self, preset: dict[str, str], volume_property, range: list[float, float] | tuple[float, float] | None = None
+        self, volume_property, preset: dict[str, str], range: list[float, float] | tuple[float, float] | None = None
     ):
         if self._has_preset(preset, volume_property, range):
             return False

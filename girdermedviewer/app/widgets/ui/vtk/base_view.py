@@ -11,12 +11,13 @@ from trame_server.utils.typed_state import TypedState
 from ...utils import (
     Button,
     ColorPresetParser,
+    DataArray,
     VolumePresetParser,
     create_rendering_pipeline,
     debounce,
     remove_prop,
-    set_mesh_color,
     set_mesh_opacity,
+    set_mesh_solid_color,
 )
 
 logger = logging.getLogger(__name__)
@@ -122,24 +123,30 @@ class VtkView(vtk.VtkRemoteView):
         if modified is not False:
             self.update()
 
-    def set_mesh_color(self, data_id, color):
+    def set_mesh_solid_color(self, data_id, color):
         modified = False
         for actor in self.get_actors(data_id):
-            modified = set_mesh_color(actor, color) or modified
+            modified = set_mesh_solid_color(actor, color) or modified
         if modified is not False:
             self.update()
 
-    def set_mesh_scalar_color_preset(self, data_id: str, preset_name: str, is_inverted: bool):
+    def set_mesh_array_color(
+        self, data_id: str, array_obj: DataArray, preset_name: str, is_inverted: bool, preset_range: list[float]
+    ):
         if self.color_preset_parser is None:
             return
-        logger.debug(f"set_mesh_scalar_color_preset({data_id}):{' Inverse' if is_inverted else ''} {preset_name}")
+
+        logger.debug(f"set_mesh_array_color({data_id}): {preset_name}")
         preset = self.color_preset_parser.get_preset_by_name(preset_name)
         if preset is None:
             return
 
         modified = False
         for actor in self.get_actors(data_id):
-            modified = self.color_preset_parser.apply_preset_to_mesh_scalars(preset, actor) or modified
+            modified = (
+                self.color_preset_parser.apply_preset_to_mesh(actor, array_obj, preset, preset_range, is_inverted)
+                or modified
+            )
         if modified is not False:
             self.update()
 

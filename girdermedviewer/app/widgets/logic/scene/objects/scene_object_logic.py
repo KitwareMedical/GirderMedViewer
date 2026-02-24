@@ -19,10 +19,17 @@ from ...base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_COLOR_PRESET_NAME = "Grayscale"
+DEFAULT_THREED_PRESET_NAME = "CT-Cardiac3"
+DEFAULT_TWOD_PRESET_NAME = "Grayscale"
 
-class ColorPreset(StateDataModel):
-    name = Sync(str, DEFAULT_COLOR_PRESET_NAME)
+
+class ThreeDColor(StateDataModel):
+    name = Sync(str, DEFAULT_THREED_PRESET_NAME)
+    vr_shift = Sync(list[float], list)
+
+
+class TwoDColor(StateDataModel):
+    name = Sync(str, DEFAULT_TWOD_PRESET_NAME)
     is_inverted = Sync(bool, False)
 
 
