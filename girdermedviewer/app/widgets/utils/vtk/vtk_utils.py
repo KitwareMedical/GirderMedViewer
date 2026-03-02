@@ -11,6 +11,7 @@ from vtk import (
     vtkBox,
     vtkColorSeries,
     vtkCutter,
+    vtkImageGaussianSmooth,
     vtkImageReslice,
     vtkImageResliceMapper,
     vtkImageSlice,
@@ -518,6 +519,14 @@ def find_subfolder_with_most_files(directory):
             folder_with_max_files = subdir
 
     return folder_with_max_files
+
+
+def create_gaussian_filter(original_image):
+    gaussian_smooth = vtkImageGaussianSmooth()
+    gaussian_smooth.SetInputData(original_image)
+    gaussian_smooth.Update()
+
+    return gaussian_smooth
 
 
 def load_volume(file_path):

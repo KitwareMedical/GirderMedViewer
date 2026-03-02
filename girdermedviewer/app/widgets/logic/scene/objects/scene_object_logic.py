@@ -14,7 +14,7 @@ from ....ui import (
     ThreeDView,
     VtkView,
 )
-from ....utils import SceneObjectType
+from ....utils import FilterType, SceneObjectType
 from ...base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,12 @@ class SceneObject(StateDataModel):
     info = Sync(SceneObjectInfo, has_dataclass=True)
     metadata = Sync(SceneObjectMetadata, has_dataclass=True)
     display = Sync(str)
+    filter_type = Sync(
+        FilterType,
+        FilterType.UNDEFINED,
+        convert=FieldEncoder(FilterType.encoder, FilterType.decoder),
+    )
+    filter_prop_id = Sync(str)
 
 
 class SceneObjectLogic(BaseLogic[None]):

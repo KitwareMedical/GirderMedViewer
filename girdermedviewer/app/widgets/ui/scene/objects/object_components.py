@@ -35,7 +35,20 @@ class PropertyRangeSlider(v3.VRangeSlider):
         super().__init__(
             min=(f"{range_min_max}[0]",),
             max=(f"{range_min_max}[1]",),
-            step=kwargs.pop("step", 1e-6),
+            step=kwargs.pop("step", 1e-3),
             hide_details=True,
+            thumb_size=16,
+            track_size=2,
+            **kwargs,
+        )
+
+
+class PropertySlider(v3.VSlider):
+    def __init__(self, **kwargs):
+        super().__init__(
+            step=kwargs.pop("step", 1e-3),
+            hide_details=True,
+            thumb_size=16,
+            track_size=2,
             **kwargs,
         )

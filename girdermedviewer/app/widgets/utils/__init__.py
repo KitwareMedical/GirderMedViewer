@@ -9,7 +9,7 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import SceneObjectType
+from .scene_utils import FilterType, SceneObjectType
 from .vtk.preset_utils import (
     ColorPresetParser,
     DataArray,
@@ -23,6 +23,7 @@ from .vtk.preset_utils import (
     get_volume_preset_parser,
 )
 from .vtk.vtk_utils import (
+    create_gaussian_filter,
     create_rendering_pipeline,
     get_number_of_slices,
     get_position_from_slice_index,
@@ -65,6 +66,7 @@ __all__ = [
     "DataArrayType",
     "FileFetchError",
     "FileFetcher",
+    "FilterType",
     "GirderConfig",
     "GirderItem",
     "GlobalStyle",
@@ -76,6 +78,7 @@ __all__ = [
     "VolumeColoringMode",
     "VolumePresetParser",
     "are_same_paths",
+    "create_gaussian_filter",
     "create_rendering_pipeline",
     "debounce",
     "format_date",

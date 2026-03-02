@@ -1,12 +1,12 @@
 from trame.widgets import html
-from trame.widgets import vuetify3 as v3
 
 from ....utils import Text
+from .object_components import PropertySlider
 
 
-class OpacitySlider(v3.VSlider):
+class OpacitySlider(PropertySlider):
     def __init__(self, **kwargs):
-        super().__init__(min=0.001, max=0.999, step=1e-3, hide_details=True, **kwargs)
+        super().__init__(min=0, max=1, step=0.1, **kwargs)
 
 
 class ObjectDisplayOpacityUI(html.Div):

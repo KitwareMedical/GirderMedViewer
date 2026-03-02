@@ -3,16 +3,15 @@ import logging
 from trame_dataclass.v2 import (
     StateDataModel,
     Sync,
+    TypeValidation,
 )
-from trame_server import Server
 
-from ....ui import VtkView
 from ....utils import (
     SceneObjectType,
     debounce,
     load_volume,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic, ThreeDColor, TwoDColor
+from .scene_object_logic import SceneObjectLogic, ThreeDColor, TwoDColor
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +29,12 @@ class VolumeDisplay(StateDataModel):
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
-    opacity = Sync(float, 1.0)
+    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
 class VolumeObjectLogic(SceneObjectLogic):
-    def __init__(self, server: Server, scene_object: SceneObject, views: list[VtkView]) -> None:
-        super().__init__(server, scene_object, views)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
@@ -93,8 +92,7 @@ class VolumeObjectLogic(SceneObjectLogic):
                 arrow_width,
             )
 
-    def load(self, file_path: str) -> None:
-        self.object_data = load_volume(file_path)
+    def _load(self) -> None:
         if self.object_data is not None:
             self.volume_range = list(self.object_data.GetScalarRange())
 
@@ -108,10 +106,14 @@ class VolumeObjectLogic(SceneObjectLogic):
             # Init 3D preset range
             self.display.threed_color.vr_shift = self.volume_range
 
-            # TODO provide self.scene_object.mesh_display to views to load proper configuration
+            # TODO provide self.display to views to load proper configuration
             self.load_to_view()
 
             self.scene_object.gui.loading = False
+
+    def load(self, file_path: str) -> None:
+        self.object_data = load_volume(file_path)
+        self._load()
 
     def window_level_changed_in_view(self, window_level_in_view: list[float]) -> None:
         window_level_value = [

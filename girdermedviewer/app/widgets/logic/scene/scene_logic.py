@@ -12,6 +12,7 @@ from ...ui import (
     VtkView,
 )
 from ...utils import (
+    FilterType,
     Preset,
     PresetParser,
     get_color_preset_parser,
@@ -20,6 +21,7 @@ from ...utils import (
     supported_volume_extensions,
 )
 from ..base_logic import BaseLogic
+from .filters import FILTER_MAP
 from .objects.mesh_object_logic import MeshObjectLogic
 from .objects.scene_object_logic import SceneObject, SceneObjectGUI, SceneObjectLogic
 from .objects.volume_object_logic import VolumeObjectLogic
@@ -50,7 +52,7 @@ class SceneLogic(BaseLogic[None]):
 
         self.scene = Scene(self.server, gui=SceneGUI(self.server, gui=SceneGUI(self.server)))
         self.state.scene_id = self.scene._id
-        self.scene_object_logics: dict[str, VolumeObjectLogic | MeshObjectLogic] = {}
+        self.scene_object_logics: dict[str, SceneObjectLogic] = {}
         self._init_presets()
 
         self.primary_volumes: list[str] = []
@@ -71,7 +73,7 @@ class SceneLogic(BaseLogic[None]):
         self.color_preset_parser = get_color_preset_parser()
         self.scene.color_presets = self._get_presets_from_preset_parser(self.color_preset_parser)
 
-    def _create_scene_object_logic(self, file_path: str, scene_object: SceneObject) -> MeshObjectLogic | VolumeObjectLogic:
+    def _create_scene_object_logic(self, file_path: str, scene_object: SceneObject) -> SceneObjectLogic:
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if file_path.endswith(supported_mesh_extensions()):
@@ -96,6 +98,28 @@ class SceneLogic(BaseLogic[None]):
             if scene_object_logic and isinstance(scene_object_logic, VolumeObjectLogic):
                 scene_object_logic.window_level_changed_in_view(window_level)
 
+    def _create_filter_object_logic(self, scene_object_id: str, filter_type: FilterType) -> None:
+        filter_object_logic_type = FILTER_MAP.get(filter_type)
+        if filter_object_logic_type is None:
+            logger.info(f"No logic associated to filter type: {filter_type.value}")
+            return
+
+        parent_object_logic = self.scene_object_logics.get(scene_object_id)
+        parent_object = parent_object_logic.scene_object
+        if parent_object_logic is not None:
+            filter_object = SceneObject(
+                self.server, name=f"{parent_object.name}_{filter_type.value}", filter_type=filter_type
+            )
+            self.add_scene_object(filter_object)
+
+            filter_object_logic = filter_object_logic_type(
+                original_logic=parent_object_logic,
+                server=self.server,
+                scene_object=filter_object,
+                views=self.views,
+            )
+            self.scene_object_logics[filter_object._id] = filter_object_logic
+
     def add_scene_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)
         self.scene.objects = [*self.scene.objects, scene_object]
@@ -105,9 +129,7 @@ class SceneLogic(BaseLogic[None]):
         # Check that object has been created
         scene_object = next((obj for obj in self.scene.objects if obj.database_id == scene_object_db_id), None)
         if scene_object is not None:
-            scene_object_logic: MeshObjectLogic | VolumeObjectLogic = self._create_scene_object_logic(
-                file_path, scene_object
-            )
+            scene_object_logic = self._create_scene_object_logic(file_path, scene_object)
             self.scene_object_logics[scene_object._id] = scene_object_logic
             scene_object_logic.load(file_path)
 
@@ -129,13 +151,17 @@ class SceneLogic(BaseLogic[None]):
         if scene_object_logic is not None:
             scene_object_logic.set_views([])
             self.scene_object_logics.pop(scene_object_id)
+
         self.object_unloaded(scene_object_id, len(self.scene.objects) > 0)
 
     def remove_scene_object(self, scene_object_id: str) -> None:
         scene_object_logic = self.scene_object_logics.get(scene_object_id)
-        if scene_object_logic is not None:
-            self.scene.objects = [obj for obj in self.scene.objects if obj._id != scene_object_id]
-            self.unload_scene_object(scene_object_id)
+        if scene_object_logic is None:
+            return
+        self.scene.objects = [obj for obj in self.scene.objects if obj._id != scene_object_id]
+        self.unload_scene_object(scene_object_id)
+
+        if scene_object_logic.scene_object.database_id is not None:
             self.object_removed(scene_object_logic.scene_object.database_id)
 
     def set_view_ui(self, ui: ViewUI) -> None:
@@ -157,3 +183,4 @@ class SceneLogic(BaseLogic[None]):
     def set_ui(self, ui: SceneUI):
         ui.delete_clicked.connect(self.remove_scene_object)
         ui.load_canceled.connect(self._cancel_load)
+        ui.filter_clicked.connect(self._create_filter_object_logic)

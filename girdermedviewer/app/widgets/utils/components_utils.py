@@ -77,6 +77,7 @@ class GlobalStyle(Style):
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em;}"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px;} "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px;} "
+            ".v-window { overflow: unset; } "
             ".position-selector .v-text-field__prefix {font-weight: 700 !important} "
             ".position-selector .v-input__details {display: none !important} "
             ".position-selector .v-input__control { width: 120px; } "

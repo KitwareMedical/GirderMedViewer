@@ -1,9 +1,7 @@
 import logging
 
 from trame_dataclass.v2 import StateDataModel, Sync, get_instance
-from trame_server import Server
 
-from ....ui import VtkView
 from ....utils import (
     DataArray,
     DataArrayType,
@@ -13,7 +11,7 @@ from ....utils import (
     get_random_color,
     load_mesh,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic, TwoDColor
+from .scene_object_logic import SceneObjectLogic, TwoDColor
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +31,8 @@ class MeshDisplay(StateDataModel):
 
 
 class MeshObjectLogic(SceneObjectLogic):
-    def __init__(self, server: Server, scene_object: SceneObject, views: list[VtkView]) -> None:
-        super().__init__(server, scene_object, views)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.MESH
         self.active_array = DataArray(self.server, title="Solid color")
         self.display = MeshDisplay(
@@ -123,12 +121,16 @@ class MeshObjectLogic(SceneObjectLogic):
 
         self.display.data_arrays = [*self.display.data_arrays, *data_arrays]
 
-    def load(self, file_path: str) -> None:
-        self.object_data = load_mesh(file_path)
-
+    def _load(self) -> None:
+        if self.object_data is None:
+            return
         self._populate_data_arrays()
 
         # TODO provide self.display to views to load proper configuration
         self.load_to_view()
 
         self.scene_object.gui.loading = False
+
+    def load(self, file_path: str) -> None:
+        self.object_data = load_mesh(file_path)
+        self._load()
