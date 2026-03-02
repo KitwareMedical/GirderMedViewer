@@ -72,6 +72,7 @@ class GlobalStyle(Style):
             ".connection-form { display: flex } "
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px;} "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px;} "
+            ".v-window { overflow: unset; } "
             ".position-selector .v-text-field__prefix {font-weight: 700 !important} "
             ".position-selector .v-input__details {display: none !important} "
             ".position-selector .v-input__control { width: 120px; } "

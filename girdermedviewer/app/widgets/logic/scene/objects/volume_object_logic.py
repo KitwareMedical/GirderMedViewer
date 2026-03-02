@@ -3,16 +3,15 @@ import logging
 from trame_dataclass.v2 import (
     StateDataModel,
     Sync,
+    TypeValidation,
 )
-from trame_server import Server
 
-from ....ui import VtkView
 from ....utils import (
     SceneObjectType,
     debounce,
     load_volume,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic
+from .scene_object_logic import SceneObjectLogic
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +27,12 @@ class VolumeDisplay(StateDataModel):
     scalar_range = Sync(list[float], list)
     window_level = Sync(list[float], list)
     threed_preset = Sync(VolumePreset, has_dataclass=True)
-    opacity = Sync(float, 1.0)
+    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
 class VolumeObjectLogic(SceneObjectLogic):
-    def __init__(self, server: Server, scene_object: SceneObject, views: list[VtkView]) -> None:
-        super().__init__(server, scene_object, views)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
@@ -69,8 +68,7 @@ class VolumeObjectLogic(SceneObjectLogic):
                 volume_preset_vr_shift,
             )
 
-    def load(self, file_path: str) -> None:
-        self.object_data = load_volume(file_path)
+    def _load(self) -> None:
         if self.object_data is not None:
             self.load_to_view()
             self.volume_range = list(self.object_data.GetScalarRange())
@@ -85,6 +83,10 @@ class VolumeObjectLogic(SceneObjectLogic):
             self.display.threed_preset.vr_shift = self.volume_range
 
             self.scene_object.gui.loading = False
+
+    def load(self, file_path: str) -> None:
+        self.object_data = load_volume(file_path)
+        self._load()
 
     def window_level_changed_in_view(self, window_level_in_view: list[float]) -> None:
         window_level_value = [

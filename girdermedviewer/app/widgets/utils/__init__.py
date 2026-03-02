@@ -9,11 +9,15 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import SceneObjectType
-from .vtk import (
+from .scene_utils import FilterType, SceneObjectType
+from .vtk.preset_utils import (
     Preset,
     PresetParser,
     VolumePresetParser,
+    get_volume_preset_parser,
+)
+from .vtk.vtk_utils import (
+    create_gaussian_filter,
     create_rendering_pipeline,
     get_number_of_slices,
     get_position_from_slice_index,
@@ -22,7 +26,6 @@ from .vtk import (
     get_reslice_normals,
     get_reslice_window_level,
     get_slice_index_from_position,
-    get_volume_preset_parser,
     load_mesh,
     load_volume,
     remove_prop,
@@ -54,6 +57,7 @@ __all__ = [
     "CacheMode",
     "FileFetchError",
     "FileFetcher",
+    "FilterType",
     "GirderConfig",
     "GirderItem",
     "GlobalStyle",
@@ -63,6 +67,7 @@ __all__ = [
     "Text",
     "VolumePresetParser",
     "are_same_paths",
+    "create_gaussian_filter",
     "create_rendering_pipeline",
     "debounce",
     "format_date",

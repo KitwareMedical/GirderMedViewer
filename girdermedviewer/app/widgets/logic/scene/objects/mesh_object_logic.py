@@ -1,23 +1,16 @@
 import logging
 
-from trame_dataclass.v2 import (
-    StateDataModel,
-    Sync,
-)
-from trame_server import Server
+from trame_dataclass.v2 import StateDataModel, Sync
 
-from ....ui import VtkView
 from ....utils import (
     SceneObjectType,
     debounce,
     get_random_color,
     load_mesh,
 )
-from .scene_object_logic import SceneObject, SceneObjectLogic
+from .scene_object_logic import SceneObjectLogic
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_VOLUME_PRESET_NAME = "CT-Cardiac3"
 
 
 class MeshDisplay(StateDataModel):
@@ -26,8 +19,8 @@ class MeshDisplay(StateDataModel):
 
 
 class MeshObjectLogic(SceneObjectLogic):
-    def __init__(self, server: Server, scene_object: SceneObject, views: list[VtkView]) -> None:
-        super().__init__(server, scene_object, views)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.MESH
         self.display = MeshDisplay(
             self.server,
@@ -50,8 +43,15 @@ class MeshObjectLogic(SceneObjectLogic):
         for view in self.views:
             view.set_mesh_color(self.scene_object._id, color_tuple)
 
-    def load(self, file_path: str) -> None:
-        self.object_data = load_mesh(file_path)
+    def _load(self) -> None:
+        if self.object_data is None:
+            return
+
+        # TODO provide self.display to views to load proper configuration
         self.load_to_view()
 
         self.scene_object.gui.loading = False
+
+    def load(self, file_path: str) -> None:
+        self.object_data = load_mesh(file_path)
+        self._load()
