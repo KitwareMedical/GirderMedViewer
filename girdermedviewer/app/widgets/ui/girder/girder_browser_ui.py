@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from trame.widgets import gwc
+from trame.widgets import gwc, html
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
@@ -26,14 +26,15 @@ class GirderBrowserState:
     default_location: dict[str, str] | None = None
     location: dict[str, str] | None = None
     is_browser_dialog_visible: bool = False
+    is_user_connected: bool = False
 
 
-class GirderBrowserUI(Button):
+class GirderBrowserUI(html.Div):
     row_clicked = Signal(dict[str, Any])
     location_updated = Signal(dict[str, Any])
 
     def __init__(self, **kwargs):
-        super().__init__(icon="mdi-file-plus-outline", tooltip="Browse data", size="default", **kwargs)
+        super().__init__(**kwargs)
         self._typed_state = TypedState(self.state, GirderBrowserState)
         self._build_ui()
 
@@ -43,7 +44,16 @@ class GirderBrowserUI(Button):
     def _build_ui(self):
         with (
             self,
-            v3.VDialog(v_model=(self._typed_state.name.is_browser_dialog_visible,), activator="parent", width=800),
+            Button(
+                disabled=(f"!{self._typed_state.name.is_user_connected}",),
+                icon="mdi-file-plus-outline",
+                tooltip="Browse data",
+            ),
+            v3.VDialog(
+                v_model=(self._typed_state.name.is_browser_dialog_visible,),
+                activator="parent",
+                width=800,
+            ),
             v3.VCard(title="Select data"),
         ):
             with v3.VCardText(classes="pa-0 d-flex justify-center"):

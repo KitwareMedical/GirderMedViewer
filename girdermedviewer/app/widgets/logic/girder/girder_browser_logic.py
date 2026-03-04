@@ -92,9 +92,11 @@ class GirderBrowserLogic(BaseLogic[GirderBrowserState]):
         if user:
             self._update_location(self.data.default_location or user)
             self.data.is_browser_dialog_visible = True
+            self.data.is_user_connected = True
         else:
             self._update_location(self.data.default_location)
             self.data.selected_items = []
+            self.data.is_user_connected = False
 
     def update_girder_default_location(self, default_location):
         self.data.default_location = default_location
