@@ -79,7 +79,7 @@ def debounce(wait, disabled=False):
                 except asyncio.CancelledError:
                     pass  # Task was canceled
                 except Exception as e:
-                    logger.isEnabledFor(e)
+                    logger.error(e)
 
             # Create and store the new task
             _debounce_tasks[key] = asyncio.create_task(delayed_execution())
