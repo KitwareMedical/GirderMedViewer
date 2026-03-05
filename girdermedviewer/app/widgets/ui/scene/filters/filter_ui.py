@@ -3,6 +3,7 @@ from undo_stack import Signal
 
 from ....utils import Button, FilterType, SceneObjectType
 from .gaussian_filter_ui import GaussianFilterUI
+from .segmentation_filter_ui import SegmentationFilterUI
 
 
 class FilterToolbarUI(html.Div):
@@ -18,6 +19,7 @@ class FilterToolbarUI(html.Div):
     def _build_ui(self):
         with self:
             self._build_filter_button(FilterType.GAUSSIAN_BLUR, SceneObjectType.VOLUME, icon="mdi-blur")
+            self._build_filter_button(FilterType.SEGMENTATION, SceneObjectType.VOLUME, icon="mdi-shape")
 
     def _build_filter_button(self, filter_type: FilterType, scene_object_type: SceneObjectType, **kwargs):
         def _filter_clicked(obj_id):
@@ -46,6 +48,12 @@ class FilterUI(html.Div):
         with self:
             self.gaussian_filter = GaussianFilterUI(
                 v_if=(self._is_filter_active(FilterType.GAUSSIAN_BLUR),),
+                obj_filter_prop=self._filter_prop,
+            )
+
+            self.segmentation_filter = SegmentationFilterUI(
+                v_if=(self._is_filter_active(FilterType.SEGMENTATION),),
+                obj_id=self._obj_id,
                 obj_filter_prop=self._filter_prop,
             )
 

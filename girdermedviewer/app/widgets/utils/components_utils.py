@@ -2,7 +2,14 @@ from typing import Any
 
 from trame.widgets.client import Style
 from trame.widgets.html import Div, Span
-from trame.widgets.vuetify3 import VAvatar, VBtn, VIcon, VTooltip
+from trame.widgets.vuetify3 import (
+    VAvatar,
+    VBtn,
+    VColorPicker,
+    VIcon,
+    VTextField,
+    VTooltip,
+)
 
 
 class Text(Div):
@@ -66,6 +73,27 @@ class Button(VBtn):
                 )
 
 
+class ColorPicker(VColorPicker):
+    def __init__(self, **kwargs):
+        super().__init__(
+            elevation=kwargs.pop("elevation", 0),
+            mode=kwargs.pop("mode", "rgb"),
+            style=kwargs.pop("style", "width: 100%;"),
+            **kwargs,
+        )
+
+
+class TextField(VTextField):
+    def __init__(self, **kwargs):
+        super().__init__(
+            variant="solo",
+            hide_details=True,
+            flat=True,
+            bg_color="transparent",
+            **kwargs,
+        )
+
+
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
@@ -75,6 +103,7 @@ class GlobalStyle(Style):
             ".display-property-setting { gap: 12px; display: flex; flex-direction: row; align-items: center; } "
             ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em;}"
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em;}"
+            ".segment-item .v-list-item__prepend { display: grid }"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px;} "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px;} "
             ".v-window { overflow: unset; } "

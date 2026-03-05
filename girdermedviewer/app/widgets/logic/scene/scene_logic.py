@@ -4,6 +4,10 @@ from trame_dataclass.v2 import StateDataModel, Sync
 from trame_server import Server
 from undo_stack import Signal
 
+from girdermedviewer.app.widgets.logic.scene.filters.segmentation_filter_logic import (
+    SegmentationFilterLogic,
+)
+
 from ...ui import (
     SceneUI,
     SliceView,
@@ -120,6 +124,16 @@ class SceneLogic(BaseLogic[None]):
             )
             self.scene_object_logics[filter_object._id] = filter_object_logic
 
+    def _add_segment(self, seg_filter_object_id: str) -> None:
+        seg_filter_object_logic = self.scene_object_logics.get(seg_filter_object_id)
+        if isinstance(seg_filter_object_logic, SegmentationFilterLogic):
+            seg_filter_object_logic.add_segment()
+
+    def _delete_segment(self, seg_filter_object_id: str, delete_segment_id: str) -> None:
+        seg_filter_object_logic = self.scene_object_logics.get(seg_filter_object_id)
+        if isinstance(seg_filter_object_logic, SegmentationFilterLogic):
+            seg_filter_object_logic.delete_segment(delete_segment_id)
+
     def add_scene_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)
         self.scene.objects = [*self.scene.objects, scene_object]
@@ -184,3 +198,5 @@ class SceneLogic(BaseLogic[None]):
         ui.delete_clicked.connect(self.remove_scene_object)
         ui.load_canceled.connect(self._cancel_load)
         ui.filter_clicked.connect(self._create_filter_object_logic)
+        ui.add_segment_clicked.connect(self._add_segment)
+        ui.delete_segment_clicked.connect(self._delete_segment)

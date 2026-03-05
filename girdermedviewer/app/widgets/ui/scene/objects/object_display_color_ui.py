@@ -2,7 +2,7 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import Button, MeshColoringMode, Text
+from ....utils import Button, ColorPicker, MeshColoringMode, Text
 from .object_components import (
     NumberInput,
     PresetSelector,
@@ -54,12 +54,7 @@ class MeshDisplayColorUI(html.Div):
                 with html.Div(
                     v_if=(f"active_array.coloring_mode == {MeshColoringMode.SOLID.value}",),
                 ):
-                    v3.VColorPicker(
-                        v_model=(f"{self.display}.solid_color",),
-                        elevation=0,
-                        modes=("['rgb']",),
-                        style="width: 100%",
-                    )
+                    ColorPicker(v_model=(f"{self.display}.solid_color",))
 
                 with Provider(
                     v_if=(f"active_array.coloring_mode == {MeshColoringMode.ARRAY.value}",),

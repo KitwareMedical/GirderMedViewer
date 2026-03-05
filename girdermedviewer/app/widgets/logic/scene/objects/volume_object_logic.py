@@ -1,6 +1,7 @@
 import logging
 
 from trame_dataclass.v2 import (
+    FieldEncoder,
     StateDataModel,
     Sync,
     TypeValidation,
@@ -8,6 +9,7 @@ from trame_dataclass.v2 import (
 
 from ....utils import (
     SceneObjectType,
+    VolumeObjectType,
     debounce,
     load_volume,
 )
@@ -23,33 +25,29 @@ class NormalColor(StateDataModel):
 
 
 class VolumeDisplay(StateDataModel):
+    volume_type = Sync(
+        VolumeObjectType,
+        VolumeObjectType.UNDEFINED,
+        convert=FieldEncoder(encoder=VolumeObjectType.encoder, decoder=VolumeObjectType.decoder),
+    )
     scalar_range = Sync(list[float])
     window_level = Sync(list[float])
-    number_of_components = Sync(int)
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
     opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
-class VolumeObjectLogic(SceneObjectLogic):
+class BaseVolumeObjectLogic(SceneObjectLogic):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
-            threed_color=ThreeDColor(self.server),
-            twod_color=TwoDColor(self.server),
-            normal_color=NormalColor(self.server),
         )
         self.scene_object.display = self.display._id
-        self.volume_range: list[float] = []
 
         self.display.watch(("opacity",), self._update_opacity)
-        self.display.watch(("window_level",), self._update_window_level)
-        self.display.threed_color.watch(("name", "vr_shift"), self._update_threed_coloring)
-        self.display.twod_color.watch(("name", "is_inverted"), self._update_twod_coloring)
-        self.display.normal_color.watch(("show_arrows", "arrow_length", "arrow_width"), self._update_normal_coloring)
 
     @debounce(0.05)
     def _update_opacity(self, opacity: float) -> None:
@@ -57,6 +55,33 @@ class VolumeObjectLogic(SceneObjectLogic):
             return
         for view in self.twod_views:
             view.set_volume_opacity(self.scene_object._id, opacity)
+
+
+class LabelmapVolumeObjectLogic(BaseVolumeObjectLogic):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.display.volume_type = VolumeObjectType.LABELMAP
+
+    def _load(self) -> None:
+        if self.object_data is not None:
+            # TODO provide self.display to views to load proper configuration
+            self.load_to_view()
+
+            self.scene_object.gui.loading = False
+
+
+class VolumeObjectLogic(BaseVolumeObjectLogic):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.volume_range: list[float] = []
+        self.display.threed_color = ThreeDColor(self.server)
+        self.display.twod_color = TwoDColor(self.server)
+        self.display.normal_color = NormalColor(self.server)
+
+        self.display.watch(("window_level",), self._update_window_level)
+        self.display.threed_color.watch(("name", "vr_shift"), self._update_threed_coloring)
+        self.display.twod_color.watch(("name", "is_inverted"), self._update_twod_coloring)
+        self.display.normal_color.watch(("show_arrows", "arrow_length", "arrow_width"), self._update_normal_coloring)
 
     @debounce(0.05)
     def _update_window_level(self, window_level: list[float]) -> None:
@@ -96,9 +121,15 @@ class VolumeObjectLogic(SceneObjectLogic):
         if self.object_data is not None:
             self.volume_range = list(self.object_data.GetScalarRange())
 
+            # Init volume type
+            self.display.volume_type = (
+                VolumeObjectType.VECTOR
+                if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1
+                else VolumeObjectType.SCALAR
+            )
+
             # Init window level
             self.display.scalar_range = self.volume_range
-            self.display.number_of_components = self.object_data.GetPointData().GetScalars().GetNumberOfComponents()
 
             # Init window level
             self.display.window_level = self.volume_range

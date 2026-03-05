@@ -1,5 +1,5 @@
 from .app_utils import AppConfig, debounce, is_valid_url
-from .components_utils import Button, GlobalStyle, Text
+from .components_utils import Button, ColorPicker, GlobalStyle, Text, TextField
 from .girder_utils import (
     CacheMode,
     FileFetcher,
@@ -9,7 +9,12 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType
+from .scene_utils import (
+    FilterType,
+    SceneObjectType,
+    SegmentationEffectType,
+    VolumeObjectType,
+)
 from .vtk.preset_utils import (
     ColorPresetParser,
     DataArray,
@@ -61,6 +66,7 @@ __all__ = [
     "AppState",
     "Button",
     "CacheMode",
+    "ColorPicker",
     "ColorPresetParser",
     "DataArray",
     "DataArrayType",
@@ -74,8 +80,11 @@ __all__ = [
     "Preset",
     "PresetParser",
     "SceneObjectType",
+    "SegmentationEffectType",
     "Text",
+    "TextField",
     "VolumeColoringMode",
+    "VolumeObjectType",
     "VolumePresetParser",
     "are_same_paths",
     "create_gaussian_filter",
