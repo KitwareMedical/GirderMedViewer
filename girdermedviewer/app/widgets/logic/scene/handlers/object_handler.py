@@ -17,7 +17,6 @@ class ObjectHandler(BaseLogic[SceneState]):
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, SceneState)
         self.object_logics: dict[str, SceneObjectLogic] = {}
-        self.display_handler = None
         self.views_logic = views_logic
 
     @property
@@ -29,7 +28,6 @@ class ObjectHandler(BaseLogic[SceneState]):
     def supported_extensions(self) -> tuple[str]:
         pass
 
-    @abstractmethod
     def supports_file(self, file_path: Path) -> None:
         return file_path.endswith(self.supported_extensions)
 

@@ -13,9 +13,10 @@ from ...utils import (
 from ..base_logic import BaseLogic
 from ..vtk.views_logic import ViewsLogic
 from .filters import FILTER_MAP
+from .filters.segmentation_filter_logic import SegmentationFilterLogic
 from .handlers.mesh_handler import MeshHandler
 from .handlers.object_handler import ObjectHandler
-from .handlers.volume_handler import VolumeHandler
+from .handlers.volume_handler import SegmentationHandler, VolumeHandler
 from .objects.mesh_object_logic import MeshObjectLogic
 from .objects.scene_object_logic import SceneObject, SceneObjectGUI, SceneObjectLogic
 from .objects.volume_object_logic import VolumeObjectLogic
@@ -49,6 +50,7 @@ class SceneLogic(BaseLogic[SceneState]):
 
         self.mesh_handler = MeshHandler(self.server, views_logic)
         self.volume_handler = VolumeHandler(self.server, views_logic)
+        self.segmentation_handler = SegmentationHandler(self.server, views_logic)
 
     def _get_presets_from_preset_parser(self, preset_parser: PresetParser) -> list[Preset]:
         return [
@@ -57,6 +59,8 @@ class SceneLogic(BaseLogic[SceneState]):
         ]
 
     def _get_object_handler(self, object_logic) -> ObjectHandler:
+        if isinstance(object_logic, SegmentationFilterLogic):
+            return self.segmentation_handler
         if isinstance(object_logic, VolumeObjectLogic):
             return self.volume_handler
         return self.mesh_handler
@@ -140,6 +144,18 @@ class SceneLogic(BaseLogic[SceneState]):
 
         self.object_logics[object_logic._id] = object_logic
 
+    def _add_segment(self, seg_filter_logic_id: str) -> None:
+        seg_filter_logic = self.object_logics.get(seg_filter_logic_id)
+        if not isinstance(seg_filter_logic, SegmentationFilterLogic):
+            return
+        self.segmentation_handler.add_segment_to_labelmap(seg_filter_logic)
+
+    def _delete_segment(self, seg_filter_logic_id: str, deleted_segment_id: str) -> None:
+        seg_filter_logic = self.object_logics.get(seg_filter_logic_id)
+        if not isinstance(seg_filter_logic, SegmentationFilterLogic):
+            return
+        self.segmentation_handler.delete_segment_from_labelmap(seg_filter_logic, deleted_segment_id)
+
     def add_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)
         if scene_object in self.scene.objects:
@@ -202,3 +218,5 @@ class SceneLogic(BaseLogic[SceneState]):
         ui.filter_clicked.connect(self.add_filter_object_to_views)
         ui.visibility_clicked.connect(self.toggle_object_visibility)
         ui.overlay_clicked.connect(self.toggle_object_overlay)
+        ui.add_segment_clicked.connect(self._add_segment)
+        ui.delete_segment_clicked.connect(self._delete_segment)
