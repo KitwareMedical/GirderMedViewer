@@ -7,18 +7,18 @@ from undo_stack import Signal
 from ...ui import AppUI
 from ...utils import AppConfig, GirderConfig
 from ..base_logic import BaseLogic
-from ..vtk.scene_logic import SceneLogic
+from ..scene import SceneLogic
 from .girder_browser_logic import GirderBrowserLogic
 from .girder_connection_logic import GirderConnectionLogic
+from .girder_load_logic import GirderLoadLogic
 
 logger = logging.getLogger(__name__)
 
 
 class GirderLogic(BaseLogic[None]):
     girder_connected = Signal(bool)
-    item_selection_changed = Signal(list[Any])
 
-    def __init__(self, server: Server, scene: SceneLogic, app_config: AppConfig) -> None:
+    def __init__(self, server: Server, scene_logic: SceneLogic, app_config: AppConfig) -> None:
         super().__init__(server, None)
         self._load_girder_config(app_config)
 
@@ -27,25 +27,31 @@ class GirderLogic(BaseLogic[None]):
         )
         self.browser_logic = GirderBrowserLogic(
             server,
-            self.config,
-            app_config.cache_mode,
-            app_config.temp_directory,
-            app_config.date_format,
+        )
+        self.load_logic = GirderLoadLogic(
+            server,
+            girder_config=self.config,
+            cache_mode=app_config.cache_mode,
+            temp_directory=app_config.temp_directory,
+            date_format=app_config.date_format,
         )
 
         self.connection_logic.girder_connected.connect(self._update_config)
         self.connection_logic.user_connected.connect(self._update_user)
 
-        # Update scene
-        self.browser_logic.item_loaded.connect(scene.add_scene_object)
-        self.browser_logic.item_unselected.connect(scene.remove_scene_object)
-        self.browser_logic.item_setting_changed.connect(scene.update_object_property)
+        # Connect girder and scene logics
+        self.browser_logic.item_selected.connect(self.load_logic.format_item)
+        self.browser_logic.item_selected.connect(self.load_logic.create_fetch_task)
+        self.load_logic.item_formatted.connect(scene_logic.add_scene_object)
+        self.load_logic.item_fetched.connect(scene_logic.load_scene_object)
+        self.load_logic.item_unfetched.connect(scene_logic.remove_scene_object)
 
-        self.state.change("selected")(self._on_selection_changed)
+        scene_logic.object_load_canceled.connect(self.load_logic.cancel_fetch_task)
+        scene_logic.object_removed.connect(self.browser_logic.unselect_item)
 
     def set_ui(self, ui: AppUI) -> None:
         self.connection_logic.set_ui(ui.girder_connection_ui)
-        self.browser_logic.set_ui(ui.girder_browser_ui, ui.girder_items_ui)
+        self.browser_logic.set_ui(ui.girder_browser_ui)
 
     def _load_girder_config(self, app_config: AppConfig) -> None:
         if app_config.default_url is not None:
@@ -56,11 +62,10 @@ class GirderLogic(BaseLogic[None]):
 
     def _update_config(self, girder_config: GirderConfig | None) -> None:
         self.config = girder_config if girder_config else GirderConfig()
-        self.browser_logic.update_girder_config(self.config)
+        self.browser_logic.update_girder_default_location(self.config.default_location)
+        self.load_logic.update_girder_config(self.config)
         self.girder_connected(self.config.url is not None)
 
-    def _on_selection_changed(self, selected: list[Any], **_kwargs):
-        self.item_selection_changed(selected)
-
     def _update_user(self, user: dict[str, Any] | None, token: str | None) -> None:
-        self.browser_logic.update_girder_user(user, token if token else "")
+        self.browser_logic.update_girder_user(user)
+        self.load_logic.update_token(token)

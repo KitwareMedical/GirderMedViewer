@@ -24,19 +24,10 @@ def are_same_paths(path1: Path, path2: Path):
 def format_date(date_str, format):
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(format)
 
-
-@dataclass
-class GirderLocation:
-    _id: str | None = None
-    _modelType: str | None = None
-
-
 @dataclass
 class GirderItem:
     _id: str
-    created: str
-    updated: str
-    meta: dict[str, str | int]
+    location_id: str
 
 
 @dataclass

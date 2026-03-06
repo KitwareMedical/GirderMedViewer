@@ -10,12 +10,11 @@ from undo_stack import Signal
 
 from ...utils import (
     Button,
-    PresetParser,
+    VolumePresetParser,
     create_rendering_pipeline,
     debounce,
     get_number_of_slices,
     get_position_from_slice_index,
-    get_presets,
     get_reslice_center,
     get_reslice_normals,
     get_reslice_window_level,
@@ -52,14 +51,14 @@ class PositionDialog(Button):
     def _build_ui(self):
         with (
             self,
-            v3.VDialog(
+            v3.VMenu(
                 v_model=("position_dialog", False),
                 activator="parent",
                 close_on_content_click=False,
                 persistent=True,
                 transition="slide-x-transition",
             ),
-            v3.VCard(v_if=("position && Object.keys(selected).length > 0",)),
+            v3.VCard(v_if=("position",)),
             v3.VCardText(classes="d-flex justify-space-between align-center"),
         ):
             v3.VTextField(
@@ -123,84 +122,6 @@ class ToolsStrip(html.Div):
             )
 
 
-@dataclass
-class SliderStateId:
-    value_id: str
-    min_id: str
-    max_id: str
-    step_id: str
-
-
-class ViewGutter(html.Div):
-    DEBOUNCED_SLIDER_UPDATE = True
-
-    def __init__(self, view, **kwargs):
-        super().__init__(
-            classes="gutter",
-            style=("position: absolute;top: 0;left: 0;background-color: transparent;height: 100%;"),
-            v_if=("Object.keys(selected).length > 0",),
-            **kwargs,
-        )
-        assert view.id is not None
-        self.view = view
-        with (
-            self,
-            html.Div(
-                v_if=("Object.keys(selected).length > 0",), classes="gutter-content d-flex flex-column fill-height pa-2"
-            ),
-        ):
-            Button(
-                click=self.toggle_fullscreen,
-                color="white",
-                icon=("fullscreen==null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit'",),
-                tooltip=("fullscreen==null ? 'Extend to fullscreen' : 'Exit fullscreen'",),
-                variant="text",
-            )
-            if isinstance(view, SliceView):
-                slider_id = SliderStateId(
-                    value_id=f"slider_value_{view.id}",
-                    min_id=f"slider_min_{view.id}",
-                    max_id=f"slider_max_{view.id}",
-                    step_id=f"slider_step_{view.id}",
-                )
-
-                def _on_slice_view_modified(**_kwargs):
-                    with self.state as state:
-                        range = view.get_slice_range()
-                        state.update(
-                            {
-                                slider_id.min_id: range[0],
-                                slider_id.max_id: range[1],
-                                slider_id.step_id: 1,  # _view.get_slice_step()
-                                slider_id.value_id: view.get_slice(),
-                            }
-                        )
-
-                self.state.change("position", "normals")(
-                    debounce(0.3, not ViewGutter.DEBOUNCED_SLIDER_UPDATE)(_on_slice_view_modified)
-                )
-
-                v3.VSlider(
-                    v_if=(f"{slider_id.value_id} != null",),
-                    classes="slice-slider",
-                    hide_details=True,
-                    direction="vertical",
-                    height="100%",
-                    v_model=(slider_id.value_id, view.get_slice()),
-                    min=(slider_id.min_id, view.get_slice_range()[0]),
-                    max=(slider_id.max_id, view.get_slice_range()[1]),
-                    step=(slider_id.step_id, 1),
-                    update_modelValue=(view.set_slice, f"[{slider_id.value_id}]"),
-                    # to lower the framerate when animating the slider
-                    start=self.ctrl.start_animation,
-                    end=self.ctrl.stop_animation,
-                    # needed to prevent None triggers
-                )
-
-    def toggle_fullscreen(self):
-        self.state.fullscreen = None if self.state.fullscreen else self.view.id
-
-
 class VtkView(vtk.VtkRemoteView):
     """Base class for VTK views"""
 
@@ -218,6 +139,10 @@ class VtkView(vtk.VtkRemoteView):
         self.renderer = renderer
         self.data = defaultdict(list)
         self.ctrl.view_update.add(weakref.WeakMethod(self.update))
+        self.volume_preset_parser: VolumePresetParser | None = None
+
+    def set_volume_preset_parser(self, volume_preset_parser: VolumePresetParser) -> None:
+        self.volume_preset_parser = volume_preset_parser
 
     def get_data_id(self, data):
         return next((key for key, value in self.data.items() if data in value), None)
@@ -528,7 +453,6 @@ class SliceView(VtkView):
 class ThreeDView(VtkView):
     def __init__(self, ref, **kwargs):
         super().__init__(ref, classes="threed", **kwargs)
-        self.presets = get_presets()
         self._build_ui()
 
     def get_volumes(self):
@@ -549,12 +473,16 @@ class ThreeDView(VtkView):
         self.update()
 
     def set_volume_preset(self, volume_id, preset_name, range):
+        if self.volume_preset_parser is None:
+            return
         logger.debug(f"set_volume_preset({volume_id}): {preset_name}, {range}")
-        preset = PresetParser(self.presets).get_preset_by_name(preset_name)
+        preset = self.volume_preset_parser.get_preset_by_name(preset_name)
+        if preset is None:
+            return
         volume = self.get_data(volume_id)
         if volume is None:
             return
-        modified = PresetParser.apply_slicer_preset(preset, volume.GetProperty(), range)
+        modified = self.volume_preset_parser.apply_preset(preset, volume.GetProperty(), range)
         if modified:
             self.update()
 
@@ -563,12 +491,81 @@ class ThreeDView(VtkView):
             ViewGutter(self)
 
 
+@dataclass
+class SliderStateId:
+    value_id: str
+    min_id: str
+    max_id: str
+    step_id: str
+
+
+class ViewGutter(html.Div):
+    DEBOUNCED_SLIDER_UPDATE = True
+
+    def __init__(self, view: VtkView, **kwargs):
+        super().__init__(
+            classes="view-gutter",
+            **kwargs,
+        )
+        assert view.id is not None
+        self.view = view
+        with self, html.Div(classes="view-gutter-content"):
+            Button(
+                click=self.toggle_fullscreen,
+                color="white",
+                icon=("fullscreen==null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit'",),
+                tooltip=("fullscreen==null ? 'Extend to fullscreen' : 'Exit fullscreen'",),
+                variant="text",
+            )
+            if isinstance(view, SliceView):
+                slider_id = SliderStateId(
+                    value_id=f"slider_value_{view.id}",
+                    min_id=f"slider_min_{view.id}",
+                    max_id=f"slider_max_{view.id}",
+                    step_id=f"slider_step_{view.id}",
+                )
+
+                def _on_slice_view_modified(**_kwargs):
+                    with self.state as state:
+                        range = view.get_slice_range()
+                        state.update(
+                            {
+                                slider_id.min_id: range[0],
+                                slider_id.max_id: range[1],
+                                slider_id.step_id: 1,  # _view.get_slice_step()
+                                slider_id.value_id: view.get_slice(),
+                            }
+                        )
+
+                self.state.change("position", "normals")(
+                    debounce(0.3, not ViewGutter.DEBOUNCED_SLIDER_UPDATE)(_on_slice_view_modified)
+                )
+
+                v3.VSlider(
+                    v_if=(f"{slider_id.value_id} != null",),
+                    classes="slice-slider",
+                    hide_details=True,
+                    direction="vertical",
+                    height="100%",
+                    v_model=(slider_id.value_id, view.get_slice()),
+                    min=(slider_id.min_id, view.get_slice_range()[0]),
+                    max=(slider_id.max_id, view.get_slice_range()[1]),
+                    step=(slider_id.step_id, 1),
+                    update_modelValue=(view.set_slice, f"[{slider_id.value_id}]"),
+                    # to lower the framerate when animating the slider
+                    start=self.ctrl.start_animation,
+                    end=self.ctrl.stop_animation,
+                    # needed to prevent None triggers
+                )
+
+    def toggle_fullscreen(self):
+        self.state.fullscreen = None if self.state.fullscreen else self.view.id
+
+
 class QuadView(v3.VContainer):
     def __init__(self, **kwargs):
         super().__init__(classes="fill-height pa-0", fluid=True, **kwargs)
         self.views = []
-        # self._typed_state = TypedState(self.state, ViewState)
-        # self._typed_state.data.presets = get_presets()
 
         self.state.fullscreen = None
         self._build_ui()

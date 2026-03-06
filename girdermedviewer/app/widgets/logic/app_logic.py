@@ -9,7 +9,7 @@ from ..ui import AppState, AppUI
 from ..utils import AppConfig, GirderConfig
 from .base_logic import BaseLogic
 from .girder import GirderLogic
-from .vtk.scene_logic import SceneLogic
+from .scene import SceneLogic
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,13 @@ class AppLogic(BaseLogic[AppState]):
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
 
-        self._scene_logic.objects_changed.connect(self._on_scene_changed)
+        self._scene_logic.object_loaded.connect(self._on_scene_changed)
+        self._scene_logic.object_unloaded.connect(self._on_scene_changed)
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
-        self._scene_logic.set_views(ui.quad_view.views)
+        self._scene_logic.set_view_ui(ui.quad_view)
+        self._scene_logic.set_ui(ui.scene_ui)
 
     def _load_app_config(self, config_file_path: Path | None = None) -> None:
         """
@@ -59,5 +61,5 @@ class AppLogic(BaseLogic[AppState]):
         logging.getLogger().setLevel(logging.WARNING)
         logging.getLogger(__package__).setLevel(self.app_config.log_level)
 
-    def _on_scene_changed(self, loaded_objects: list[str]):
-        self.data.is_viewer_disabled = len(loaded_objects) == 0
+    def _on_scene_changed(self, _, has_objects: bool):
+        self.data.is_viewer_disabled = not has_objects
