@@ -7,9 +7,11 @@ from trame_server import Server
 from trame_server.utils.typed_state import TypedState
 
 from ..utils import AppConfig, GlobalStyle
-from .girder import GirderBrowserUI, GirderConnectionUI
-from .scene import SceneUI
-from .vtk.components import QuadView, ToolsStrip
+from .girder.girder_browser_ui import GirderBrowserUI
+from .girder.girder_connection_ui import GirderConnectionUI
+from .scene.scene_ui import SceneUI
+from .vtk.tool_strip_ui import ToolStripUI
+from .vtk.view_ui import ViewUI
 
 
 @dataclass
@@ -42,6 +44,13 @@ class AppLayout(VAppLayout):
                 disable_route_watcher=True,
             )
 
+            self.tool_strip = v3.VNavigationDrawer(
+                permanent=True,
+                width=50,
+                disable_resize_watcher=True,
+                disable_route_watcher=True,
+            )
+
             self.viewer = v3.VMain(classes="d-flex flex-row flex-grow-1")
 
 
@@ -61,9 +70,11 @@ class AppUI:
                 v3.VSpacer()
                 self.girder_connection_ui = GirderConnectionUI()
 
+            with self.layout.tool_strip:
+                self.tool_strip_ui = ToolStripUI(disabled=self.name.is_viewer_disabled)
+
             with self.layout.viewer:
-                ToolsStrip(disabled=self.name.is_viewer_disabled)
-                self.quad_view = QuadView()
+                self.view_ui = ViewUI()
 
             with self.layout.drawer:
                 self.scene_ui = SceneUI()

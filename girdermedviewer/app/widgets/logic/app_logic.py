@@ -28,7 +28,7 @@ class AppLogic(BaseLogic[AppState]):
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
-        self._scene_logic.set_view_ui(ui.quad_view)
+        self._scene_logic.set_view_ui(ui.view_ui)
         self._scene_logic.set_ui(ui.scene_ui)
 
     def _load_app_config(self, config_file_path: Path | None = None) -> None:
