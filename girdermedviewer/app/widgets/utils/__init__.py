@@ -3,6 +3,7 @@ from .components_utils import Button, GlobalStyle, Text
 from .girder_utils import (
     CacheMode,
     FileFetcher,
+    FileFetchError,
     GirderConfig,
     GirderItem,
     are_same_paths,
@@ -51,6 +52,7 @@ __all__ = [
     "AppState",
     "Button",
     "CacheMode",
+    "FileFetchError",
     "FileFetcher",
     "GirderConfig",
     "GirderItem",

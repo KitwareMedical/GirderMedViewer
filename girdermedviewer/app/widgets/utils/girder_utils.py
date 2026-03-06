@@ -17,12 +17,17 @@ logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
 
+class FileFetchError(Exception):
+    pass
+
+
 def are_same_paths(path1: Path, path2: Path):
     return os.path.normcase(os.path.realpath(path1.resolve())) == os.path.normcase(os.path.realpath(path2.resolve()))
 
 
 def format_date(date_str, format):
     return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(format)
+
 
 @dataclass
 class GirderItem:
@@ -68,7 +73,7 @@ class FileFetcher:
 
         if cache_mode == CacheMode.Permanent:
             if temp_dir is None:
-                raise Exception("A directory must be provided if cache mode is Permanent")
+                raise FileFetchError("A directory must be provided if cache mode is Permanent")
             if not Path(temp_dir).exists():
                 Path(temp_dir).mkdir()
             self.temporary_directory = None
@@ -79,7 +84,7 @@ class FileFetcher:
             self.temp_dir_path = Path(self.temporary_directory.name)
 
         if self.assetstore_dir_path is not None and are_same_paths(self.assetstore_dir_path, self.temp_dir_path):
-            raise Exception("The temporary directory cannot match the assetstore directory.")
+            raise FileFetchError("The temporary directory cannot match the assetstore directory.")
 
     def __del__(self):
         if self.cache == CacheMode.Session:
@@ -111,7 +116,7 @@ class FileFetcher:
         file_path: Path | None = None
         if self.assetstore_dir_path is not None:
             if "path" not in file:
-                raise Exception(
+                raise FileFetchError(
                     "The Girder file is missing 'path' information. Make sure to use the girdermedviewer-plugin"
                 )
             file_path = self.assetstore_dir_path / file["path"]

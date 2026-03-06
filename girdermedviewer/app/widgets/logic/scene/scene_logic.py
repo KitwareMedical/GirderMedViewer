@@ -145,6 +145,11 @@ class SceneLogic(BaseLogic[None]):
             if isinstance(view, ThreeDView):
                 view.set_volume_preset_parser(self.volume_preset_parser)
 
+    def clear_scene(self):
+        object_ids = [obj._id for obj in self.scene.objects]
+        for object_id in object_ids:
+            self.remove_scene_object(object_id)
+
     def set_ui(self, ui: SceneUI):
         ui.delete_clicked.connect(self.remove_scene_object)
         ui.load_canceled.connect(self._cancel_load)
