@@ -6,7 +6,9 @@ from trame_dataclass.v2 import Provider, get_instance
 from undo_stack import Signal
 
 from ...utils import Button, Text
-from .objects import SceneObjectDisplayUI, SceneObjectInfoUI, SceneObjectMetadataUI
+from .objects.object_display_ui import SceneObjectDisplayUI
+from .objects.object_info_ui import SceneObjectInfoUI
+from .objects.object_metadata_ui import SceneObjectMetadataUI
 
 
 class SceneObjectUI(v3.VExpansionPanel):

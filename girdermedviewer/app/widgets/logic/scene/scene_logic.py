@@ -5,10 +5,10 @@ from trame_server import Server
 from undo_stack import Signal
 
 from ...ui import (
-    QuadView,
     SceneUI,
     SliceView,
     ThreeDView,
+    ViewUI,
     VtkView,
 )
 from ...utils import (
@@ -113,8 +113,9 @@ class SceneLogic(BaseLogic[None]):
             if len(self.primary_volumes) == 0:
                 self._set_primary_volume(scene_object_logic)
 
-            scene_object.flush()
             self.object_loaded(scene_object._id, len(self.scene.objects) > 0)
+
+            self.state.flush()  # FIXME: need to flush manually
         else:
             self.object_removed(scene_object_db_id)
 
@@ -136,7 +137,7 @@ class SceneLogic(BaseLogic[None]):
             self.unload_scene_object(scene_object_id)
             self.object_removed(scene_object_logic.scene_object.database_id)
 
-    def set_view_ui(self, ui: QuadView) -> None:
+    def set_view_ui(self, ui: ViewUI) -> None:
         self.views = ui.views
         for view in self.views:
             if isinstance(view, SliceView):
