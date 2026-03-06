@@ -87,16 +87,11 @@ class GirderBrowserLogic(BaseLogic[GirderBrowserState]):
         ]
         self.item_unselected(item_id)
 
-    def update_girder_user(self, user) -> None:
+    def update_girder_user(self, user: dict[str, Any] | None) -> None:
         logger.debug(f"Setting user to {user}")
-        if user:
-            self._update_location(self.data.default_location or user)
-            self.data.is_browser_dialog_visible = True
-            self.data.is_user_connected = True
-        else:
-            self._update_location(self.data.default_location)
-            self.data.selected_items = []
-            self.data.is_user_connected = False
+        self._update_location(self.data.default_location or user)
+        self.data.is_browser_dialog_visible = user is not None
+        self.data.is_user_connected = user is not None
 
     def update_girder_default_location(self, default_location):
         self.data.default_location = default_location

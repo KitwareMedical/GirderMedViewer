@@ -35,6 +35,7 @@ class GirderLogic(BaseLogic[None]):
             temp_directory=app_config.temp_directory,
             date_format=app_config.date_format,
         )
+        self.scene_logic = scene_logic
 
         self.connection_logic.girder_connected.connect(self._update_config)
         self.connection_logic.user_connected.connect(self._update_user)
@@ -70,3 +71,6 @@ class GirderLogic(BaseLogic[None]):
     def _update_user(self, user: dict[str, Any] | None, token: str | None) -> None:
         self.browser_logic.update_girder_user(user)
         self.load_logic.update_token(token)
+
+        if user is None:
+            self.scene_logic.clear_scene()
