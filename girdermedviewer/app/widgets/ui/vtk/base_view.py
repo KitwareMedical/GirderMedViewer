@@ -10,12 +10,14 @@ from trame_server.utils.typed_state import TypedState
 
 from ...utils import (
     Button,
+    ColorPresetParser,
+    DataArray,
     VolumePresetParser,
     create_rendering_pipeline,
     debounce,
     remove_prop,
-    set_mesh_color,
     set_mesh_opacity,
+    set_mesh_solid_color,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,12 +70,16 @@ class VtkView(vtk.VtkRemoteView):
         self.renderer = renderer
         self.data = defaultdict(list)
         self.ctrl.view_update.add(weakref.WeakMethod(self.update))
+        self.color_preset_parser: ColorPresetParser | None = None
         self.volume_preset_parser: VolumePresetParser | None = None
 
         self.typed_state = TypedState(self.state, ViewState)
 
     def set_volume_preset_parser(self, volume_preset_parser: VolumePresetParser) -> None:
         self.volume_preset_parser = volume_preset_parser
+
+    def set_color_preset_parser(self, color_preset_parser: ColorPresetParser) -> None:
+        self.color_preset_parser = color_preset_parser
 
     def get_data_id(self, data):
         return next((key for key, value in self.data.items() if data in value), None)
@@ -117,10 +123,30 @@ class VtkView(vtk.VtkRemoteView):
         if modified is not False:
             self.update()
 
-    def set_mesh_color(self, data_id, color):
+    def set_mesh_solid_color(self, data_id, color):
         modified = False
         for actor in self.get_actors(data_id):
-            modified = set_mesh_color(actor, color) or modified
+            modified = set_mesh_solid_color(actor, color) or modified
+        if modified is not False:
+            self.update()
+
+    def set_mesh_array_color(
+        self, data_id: str, array_obj: DataArray, preset_name: str, is_inverted: bool, preset_range: list[float]
+    ):
+        if self.color_preset_parser is None:
+            return
+
+        logger.debug(f"set_mesh_array_color({data_id}): {preset_name}")
+        preset = self.color_preset_parser.get_preset_by_name(preset_name)
+        if preset is None:
+            return
+
+        modified = False
+        for actor in self.get_actors(data_id):
+            modified = (
+                self.color_preset_parser.apply_preset_to_mesh(actor, array_obj, preset, preset_range, is_inverted)
+                or modified
+            )
         if modified is not False:
             self.update()
 

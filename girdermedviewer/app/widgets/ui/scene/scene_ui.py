@@ -82,7 +82,8 @@ class SceneObjectUI(v3.VExpansionPanel):
                             SceneObjectDisplayUI(
                                 obj_display="display",
                                 obj_type=f"{self.obj}.object_type",
-                                threed_presets=f"{self.scene}.volume_presets",
+                                color_preset=f"{self.scene}.color_presets",
+                                volume_presets=f"{self.scene}.volume_presets",
                             )
                         with v3.VCardActions(classes="justify-end"):
                             Button(

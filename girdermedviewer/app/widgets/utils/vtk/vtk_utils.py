@@ -408,11 +408,12 @@ def set_mesh_opacity(actor, opacity):
     return True
 
 
-def set_mesh_color(actor, color):
-    # oldColor = [0, 0, 0]
-    oldColor = actor.GetProperty().GetColor()
-    if oldColor == color:
+def set_mesh_solid_color(actor, color):
+    old_scalar_visibilty = actor.GetMapper().GetScalarVisibility()
+    old_color = actor.GetProperty().GetColor()
+    if old_color == color and not old_scalar_visibilty:
         return False
+    actor.GetMapper().SetScalarVisibility(False)
     actor.GetProperty().SetColor(color)
     return True
 
@@ -557,7 +558,7 @@ def load_volume(file_path):
         return reader.GetOutput()
 
     if file_path.endswith(".zip"):
-        from dicomexporter import exporter  # pip install ".[dicom]"  # noqa: PLC0415
+        from dicomexporter import exporter  # pip install ".[dicom]"
 
         with TemporaryDirectory() as temp_dir, ZipFile(file_path, "r") as zip_ref:
             zip_ref.extractall(temp_dir)
