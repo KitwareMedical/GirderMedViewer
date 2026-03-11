@@ -10,7 +10,7 @@ from ..utils import AppConfig, GlobalStyle
 from .girder.girder_browser_ui import GirderBrowserUI
 from .girder.girder_connection_ui import GirderConnectionUI
 from .scene.scene_ui import SceneUI
-from .vtk.tool_strip_ui import ToolStripUI
+from .vtk.tool_ui import ToolUI
 from .vtk.views_ui import ViewsUI
 
 
@@ -46,10 +46,11 @@ class AppLayout(VAppLayout):
             )
 
             self.tool_strip = v3.VNavigationDrawer(
-                permanent=True,
-                width=50,
+                classes="tool-strip",
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
+                permanent=True,
+                width=50,
             )
 
             self.viewer = v3.VMain(classes="d-flex flex-row flex-grow-1")
@@ -72,13 +73,14 @@ class AppUI:
                 self.girder_connection_ui = GirderConnectionUI()
 
             with self.layout.tool_strip:
-                self.tool_strip_ui = ToolStripUI(disabled=self.name.is_viewer_disabled)
+                self.tool_ui = ToolUI(disabled=self.name.is_viewer_disabled)
 
             with self.layout.viewer:
                 self.views_ui = ViewsUI()
 
             with self.layout.drawer:
                 self.scene_ui = SceneUI()
+                self.tool_ui.build_active_tool_ui()
 
     @property
     def data(self) -> AppState:

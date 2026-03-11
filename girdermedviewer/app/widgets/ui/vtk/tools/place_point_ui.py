@@ -1,15 +1,15 @@
 import logging
 
+from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 
-from ...utils import Button
-from .views_ui import ViewsState
+from ..views_ui import ViewsState
 
 logger = logging.getLogger(__name__)
 
 
-class PositionMenu(Button):
+class PlacePointUI(html.Div):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._typed_state = TypedState(self.state, ViewsState)
@@ -18,14 +18,7 @@ class PositionMenu(Button):
     def _build_ui(self) -> None:
         with (
             self,
-            v3.VMenu(
-                v_model=(self._typed_state.name.is_position_menu_visible,),
-                activator="parent",
-                close_on_content_click=False,
-                persistent=True,
-                transition="slide-x-transition",
-            ),
-            v3.VCard(v_if=(self._typed_state.name.position,)),
+            v3.VCard(v_if=(self._typed_state.name.position,), variant="flat", title="Place Point"),
             v3.VCardText(classes="d-flex justify-space-between align-center"),
         ):
             v3.VTextField(
@@ -39,7 +32,7 @@ class PositionMenu(Button):
                 model_value=(f"parseFloat({self._typed_state.name.position}[index]).toFixed(2)",),
                 update_modelValue=(self.set_position, "[$event, index]"),
                 prefix=("field.prefix",),
-                color=("field.color",),
+                base_color=("field.color",),
                 type="number",
                 density="compact",
             )
