@@ -1,8 +1,10 @@
+from dataclasses import dataclass, field
 from typing import Any
 
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider, get_instance
+from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
 from ...utils import Button, FilterType, Text
@@ -10,6 +12,13 @@ from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
 from .objects.object_metadata_ui import SceneObjectMetadataUI
+
+
+@dataclass
+class SceneState:
+    scene_id: str | None = None
+    active_primary_volume_id: str | None = None
+    primary_volume_ids: list[str] = field(default_factory=list)
 
 
 class SceneObjectUI(v3.VExpansionPanel):
@@ -155,7 +164,8 @@ class SceneUI(html.Div):
 
     def __init__(self, **kwargs):
         super().__init__(classes="pa-2 fill-height", style="overflow: auto;", **kwargs)
-        self.scene = get_instance(self.state.scene_id)
+        self._typed_state = TypedState(self.state, SceneState)
+        self.scene = get_instance(self._typed_state.data.scene_id)
         self._build_ui()
 
         self.object_ui.load_canceled.connect(self.load_canceled)

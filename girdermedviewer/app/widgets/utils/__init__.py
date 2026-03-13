@@ -9,7 +9,7 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType
+from .scene_utils import FilterType, SceneObjectType, VolumePriorityType
 from .vtk.preset_utils import (
     Preset,
     PresetParser,
@@ -66,6 +66,7 @@ __all__ = [
     "SceneObjectType",
     "Text",
     "VolumePresetParser",
+    "VolumePriorityType",
     "are_same_paths",
     "create_gaussian_filter",
     "create_rendering_pipeline",

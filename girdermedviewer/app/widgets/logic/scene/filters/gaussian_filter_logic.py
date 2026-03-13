@@ -20,7 +20,7 @@ class GaussianFilterLogic(VolumeObjectLogic):
         self.scene_object.filter_prop_id = self.scene_object_filter._id
         self.original_logic = original_logic
         self.object_filter = create_gaussian_filter(original_logic.object_data)
-        self.load()
+        self._load_object_data()
 
         self.scene_object_filter.watch(("sigma",), self._update_sigma, eager=True)
 
@@ -29,10 +29,9 @@ class GaussianFilterLogic(VolumeObjectLogic):
         for view in self.views:
             view.update()
 
-    def load(self):
+    def _load_object_data(self):
         self.object_data = self.object_filter.GetOutput()
         self.object_filter.Update()
-        self._load()
 
     def _update_sigma(self, sigma: int) -> None:
         self.object_filter.SetStandardDeviation(sigma)

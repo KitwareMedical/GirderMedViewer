@@ -5,9 +5,8 @@ from trame_server import Server
 from undo_stack import Signal
 
 from ...ui import (
+    SceneState,
     SceneUI,
-    SliceView,
-    ThreeDView,
     ViewUI,
     VtkView,
 )
@@ -21,6 +20,9 @@ from ...utils import (
 )
 from ..base_logic import BaseLogic
 from .filters import FILTER_MAP
+from .handlers.mesh_handler import MeshHandler
+from .handlers.object_handler import ObjectHandler
+from .handlers.volume_handler import VolumeHandler
 from .objects.mesh_object_logic import MeshObjectLogic
 from .objects.scene_object_logic import SceneObject, SceneObjectGUI, SceneObjectLogic
 from .objects.volume_object_logic import VolumeObjectLogic
@@ -38,22 +40,24 @@ class Scene(StateDataModel):
     gui = Sync(SceneGUI, has_dataclass=True)
 
 
-class SceneLogic(BaseLogic[None]):
-    object_loaded = Signal(str, bool)
-    object_unloaded = Signal(str, bool)
+class SceneLogic(BaseLogic[SceneState]):
+    object_added_to_views = Signal(str, bool)
+    object_removed_from_views = Signal(str, bool)
     object_added = Signal(str)
     object_removed = Signal(str)
     object_load_canceled = Signal(str)
 
     def __init__(self, server: Server) -> None:
-        super().__init__(server, None)
+        super().__init__(server, SceneState)
 
         self.scene = Scene(self.server, gui=SceneGUI(self.server, gui=SceneGUI(self.server)))
-        self.state.scene_id = self.scene._id
-        self.scene_object_logics: dict[str, SceneObjectLogic] = {}
+        self.data.scene_id = self.scene._id
+        self.object_logics: dict[str, SceneObjectLogic] = {}
         self._init_presets()
 
-        self.primary_volumes: list[str] = []
+        self.mesh_handler = MeshHandler(self.server)
+        self.volume_handler = VolumeHandler(self.server)
+
         self.load_tasks = {}
 
         self.views: list[VtkView] = []
@@ -64,11 +68,16 @@ class SceneLogic(BaseLogic[None]):
             for name, data in preset_parser.get_presets_icons_url()
         ]
 
+    def _get_object_handler(self, object_logic) -> ObjectHandler:
+        if isinstance(object_logic, VolumeObjectLogic):
+            return self.volume_handler
+        return self.mesh_handler
+
     def _init_presets(self) -> None:
         self.volume_preset_parser = get_volume_preset_parser()
         self.scene.volume_presets = self._get_presets_from_preset_parser(self.volume_preset_parser)
 
-    def _create_scene_object_logic(self, file_path: str, scene_object: SceneObject) -> SceneObjectLogic:
+    def _create_file_object_logic(self, file_path: str, scene_object: SceneObject) -> SceneObjectLogic:
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if file_path.endswith(supported_mesh_extensions()):
@@ -77,103 +86,108 @@ class SceneLogic(BaseLogic[None]):
             return VolumeObjectLogic(self.server, scene_object, self.views)
         raise ValueError("Unsupported file extension")
 
-    def _set_primary_volume(self, scene_object_logic: SceneObjectLogic) -> None:
-        if scene_object_logic.is_volume():
-            self.primary_volumes.append(scene_object_logic.scene_object._id)
-            scene_object_logic.display.opacity = -1.0
-
-    def _cancel_load(self, scene_object_id):
-        scene_object_logic = self.scene_object_logics.get(scene_object_id)
-        if scene_object_logic is not None:
-            self.object_load_canceled(scene_object_logic.scene_object.database_id)
-
-    def _on_window_level_changed_in_view(self, window_level: list[float]) -> None:
-        if len(self.primary_volumes) > 0:
-            scene_object_logic = self.scene_object_logics.get(self.primary_volumes[0])
-            if scene_object_logic and isinstance(scene_object_logic, VolumeObjectLogic):
-                scene_object_logic.window_level_changed_in_view(window_level)
-
-    def _create_filter_object_logic(self, scene_object_id: str, filter_type: FilterType) -> None:
+    def _create_filter_object_logic(
+        self, parent_object_logic: SceneObjectLogic, filter_type: FilterType
+    ) -> SceneObjectLogic:
         filter_object_logic_type = FILTER_MAP.get(filter_type)
         if filter_object_logic_type is None:
-            logger.info(f"No logic associated to filter type: {filter_type.value}")
-            return
+            raise ValueError(f"No logic associated to filter type: {filter_type.value}")
 
-        parent_object_logic = self.scene_object_logics.get(scene_object_id)
-        parent_object = parent_object_logic.scene_object
-        if parent_object_logic is not None:
-            filter_object = SceneObject(
-                self.server, name=f"{parent_object.name}_{filter_type.value}", filter_type=filter_type
-            )
-            self.add_scene_object(filter_object)
+        filter_object = SceneObject(
+            self.server, name=f"{parent_object_logic.scene_object.name}_{filter_type.value}", filter_type=filter_type
+        )
+        self.add_object(filter_object)
 
-            filter_object_logic = filter_object_logic_type(
-                original_logic=parent_object_logic,
-                server=self.server,
-                scene_object=filter_object,
-                views=self.views,
-            )
-            self.scene_object_logics[filter_object._id] = filter_object_logic
+        return filter_object_logic_type(
+            original_logic=parent_object_logic,
+            server=self.server,
+            scene_object=filter_object,
+            views=self.views,
+        )
 
-    def add_scene_object(self, scene_object: SceneObject) -> None:
+    def _cancel_load(self, object_id):
+        object_logic = self.object_logics.get(object_id)
+        if object_logic is not None:
+            self.object_load_canceled(object_logic.scene_object.database_id)
+
+    def _remove_dependent_objects(self, object_logic: SceneObjectLogic) -> None:
+        for obj in self.object_logics.values():
+            if obj.parent_id == object_logic._id:
+                self.remove_object_from_views(obj._id)
+
+    def _add_object_to_views(self, object_logic: SceneObjectLogic) -> None:
+        self._get_object_handler(object_logic).add_object_to_views()
+
+    def _remove_object_from_views(self, object_logic: SceneObjectLogic) -> None:
+        self._remove_dependent_objects(object_logic)
+        self._get_object_handler(object_logic).remove_object_from_views()
+
+    def add_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)
         self.scene.objects = [*self.scene.objects, scene_object]
         self.object_added(scene_object._id)
 
-    def load_scene_object(self, file_path: str, scene_object_db_id: str) -> None:
+    def add_file_object_to_views(self, file_path: str, object_db_id: str) -> None:
         # Check that object has been created
-        scene_object = next((obj for obj in self.scene.objects if obj.database_id == scene_object_db_id), None)
+        scene_object = next((obj for obj in self.scene.objects if obj.database_id == object_db_id), None)
         if scene_object is not None:
-            scene_object_logic = self._create_scene_object_logic(file_path, scene_object)
-            self.scene_object_logics[scene_object._id] = scene_object_logic
-            scene_object_logic.load(file_path)
+            object_logic = self._create_file_object_logic(file_path, scene_object)
+            self.object_logics[scene_object._id] = object_logic
 
-            if len(self.primary_volumes) == 0:
-                self._set_primary_volume(scene_object_logic)
+            object_logic.load_object_data(file_path)
+            self._add_object_to_views(object_logic)
 
-            self.object_loaded(scene_object._id, len(self.scene.objects) > 0)
+            self.object_added_to_views(scene_object._id, len(self.scene.objects) > 0)
 
             self.state.flush()  # FIXME: need to flush manually
         else:
-            self.object_removed(scene_object_db_id)
+            self.object_removed(object_db_id)
 
-    def unload_scene_object(self, scene_object_id: str) -> None:
-        scene_object_logic = self.scene_object_logics.get(scene_object_id)
-
-        if scene_object_id in self.primary_volumes:
-            self.primary_volumes = [volume_id for volume_id in self.primary_volumes if volume_id != scene_object_id]
-
-        if scene_object_logic is not None:
-            scene_object_logic.set_views([])
-            self.scene_object_logics.pop(scene_object_id)
-
-        self.object_unloaded(scene_object_id, len(self.scene.objects) > 0)
-
-    def remove_scene_object(self, scene_object_id: str) -> None:
-        scene_object_logic = self.scene_object_logics.get(scene_object_id)
-        if scene_object_logic is None:
+    def add_filter_object_to_views(self, parent_object_id: str, filter_type: FilterType) -> None:
+        parent_object_logic = self.object_logics.get(parent_object_id)
+        if parent_object_logic is None:
             return
-        self.scene.objects = [obj for obj in self.scene.objects if obj._id != scene_object_id]
-        self.unload_scene_object(scene_object_id)
 
-        if scene_object_logic.scene_object.database_id is not None:
-            self.object_removed(scene_object_logic.scene_object.database_id)
+        filter_object_logic = self._create_filter_object_logic(parent_object_logic, filter_type)
+        self.object_logics[filter_object_logic._id] = filter_object_logic
 
-    def set_view_ui(self, ui: ViewUI) -> None:
-        self.views = ui.views
-        for view in self.views:
-            if isinstance(view, SliceView):
-                # Connect window leveling for all slice views
-                view.window_level_changed.connect(self._on_window_level_changed_in_view)
-            if isinstance(view, ThreeDView):
-                view.set_volume_preset_parser(self.volume_preset_parser)
+        self._add_object_to_views(filter_object_logic)
+
+        self.object_added_to_views(filter_object_logic._id, len(self.scene.objects) > 0)
+
+        self.state.flush()  # FIXME: need to flush manually
+
+    def remove_object_from_views(self, object_id: str) -> None:
+        object_logic = self.object_logics.get(object_id)
+
+        if object_logic is not None:
+            self.object_logics.pop(object_id)
+
+        self.object_removed_from_views(object_id, len(self.scene.objects) > 0)
+
+    def remove_object(self, object_id: str) -> None:
+        object_logic = self.object_logics.get(object_id)
+        if object_logic is None:
+            return
+        self.scene.objects = [obj for obj in self.scene.objects if obj._id != object_id]
+        self.remove_object_from_views(object_id)
+
+        if object_logic.scene_object.database_id is not None:
+            self.object_removed(object_logic.scene_object.database_id)
+
+    def set_view_ui(self, view_ui: ViewUI) -> None:
+        self.volume_handler.set_view_ui(view_ui)
+        self.mesh_handler.set_view_ui(view_ui)
+
+        for view in view_ui.views:
+            view.set_volume_preset_parser(self.volume_preset_parser)
 
     def clear_scene(self):
         object_ids = [obj._id for obj in self.scene.objects]
         for object_id in object_ids:
-            self.remove_scene_object(object_id)
+            self.remove_object(object_id)
 
     def set_ui(self, ui: SceneUI):
-        ui.delete_clicked.connect(self.remove_scene_object)
+        ui.delete_clicked.connect(self.remove_object)
         ui.load_canceled.connect(self._cancel_load)
         ui.filter_clicked.connect(self._create_filter_object_logic)

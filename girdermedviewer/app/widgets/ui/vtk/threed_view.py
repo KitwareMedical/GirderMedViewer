@@ -18,12 +18,12 @@ class ThreeDView(VtkView):
     def get_volumes(self):
         return [obj for objs in self.data.values() for obj in objs if obj.IsA("vtkVolume")]
 
-    def add_volume(self, image_data, data_id=None):
+    def add_volume(self, data_id, image_data):
         volume = render_volume_in_3D(image_data, self.renderer)
         self.register_data(data_id, volume)
         self.update()
 
-    def add_mesh(self, poly_data, data_id=None):
+    def add_mesh(self, data_id, poly_data):
         actor = render_mesh_in_3D(poly_data, self.renderer)
         self.register_data(data_id, actor)
         self.update()
@@ -32,14 +32,14 @@ class ThreeDView(VtkView):
         reset_3D(self.renderer)
         self.update()
 
-    def set_volume_preset(self, volume_id, preset_name, range):
+    def set_volume_preset(self, data_id, preset_name, range):
         if self.volume_preset_parser is None:
             return
-        logger.debug(f"set_volume_preset({volume_id}): {preset_name}, {range}")
+        logger.debug(f"set_volume_preset({data_id}): {preset_name}, {range}")
         preset = self.volume_preset_parser.get_preset_by_name(preset_name)
         if preset is None:
             return
-        volume = self.get_data(volume_id)
+        volume = self.get_data(data_id)
         if volume is None:
             return
         modified = self.volume_preset_parser.apply_preset(preset, volume.GetProperty(), range)
