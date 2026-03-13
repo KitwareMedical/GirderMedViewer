@@ -39,7 +39,7 @@ class AppLayout(VAppLayout):
             self.drawer = v3.VNavigationDrawer(
                 v_model=(self.typed_state.name.is_drawer_visible,),
                 permanent=True,
-                width=500,
+                width=550,
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
             )

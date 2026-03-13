@@ -2,6 +2,8 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 
 from ....utils import Button, SceneObjectType, Text
+from .object_components import PresetSelector, PropertyRangeSlider
+from .object_display_opacity_ui import ObjectDisplayOpacityUI
 
 
 class VolumeDisplayUI(html.Div):
@@ -43,9 +45,7 @@ class VolumeDisplayUI(html.Div):
                     click=f"{self.display}.window_level = {self.display}.scalar_range",
                 )
 
-            with html.Div(v_if=(f"{self.display}.opacity > 0",)):
-                Text("Opacity", classes="text-subtitle-2 pt-2")
-                OpacitySlider(v_model=(f"{self.display}.opacity",))
+            ObjectDisplayOpacityUI(v_if=(f"{self.display}.opacity >= 0",), obj_opacity=f"{self.display}.opacity")
 
 
 class MeshDisplayUI(html.Div):
@@ -67,40 +67,7 @@ class MeshDisplayUI(html.Div):
                 style="width: 100%",
             )
 
-            Text("Opacity", classes="text-subtitle-2 pt-2")
-            OpacitySlider(v_model=(f"{self.display}.opacity",))
-
-
-class OpacitySlider(v3.VSlider):
-    def __init__(self, **kwargs):
-        super().__init__(min=0, max=1, step=1e-6, hide_details=True, **kwargs)
-
-
-class PresetSelector(v3.VSelect):
-    def __init__(self, **kwargs):
-        super().__init__(variant="solo-filled", flat=True, hide_details=True, **kwargs)
-        with self:
-            with (
-                v3.Template(v_slot_item="{ props }"),
-                v3.VListItem(v_bind="props"),
-                v3.Template(v_slot_prepend=""),
-            ):
-                v3.VImg(v_if=("props.data",), src=("props.data",), height=64, width=64, classes="mr-2")
-
-            with v3.Template(v_slot_selection="{item}"):
-                v3.VImg(v_if=("item.props.data",), src=("item.props.data",), height=32, width=32, classes="mr-2")
-                html.Span("{{ item.title }}")
-
-
-class PropertyRangeSlider(v3.VRangeSlider):
-    def __init__(self, range_min_max: str, **kwargs):
-        super().__init__(
-            min=(f"{range_min_max}[0]",),
-            max=(f"{range_min_max}[1]",),
-            step=kwargs.pop("step", 1e-6),
-            hide_details=True,
-            **kwargs,
-        )
+            ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
 
 
 class SceneObjectDisplayUI(html.Div):
