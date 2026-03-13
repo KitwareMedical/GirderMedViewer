@@ -3,6 +3,8 @@ from enum import Enum
 
 from undo_stack import Signal
 
+from girdermedviewer.app.widgets.utils.scene_utils import VolumePriorityType
+
 from ...utils import (
     debounce,
     get_number_of_slices,
@@ -19,8 +21,10 @@ from ...utils import (
     set_reslice_center,
     set_reslice_normal,
     set_reslice_opacity,
+    set_reslice_visibility,
     set_reslice_window_level,
     set_slice_opacity,
+    set_slice_visibility,
     set_slice_window_level,
 )
 from .base_view import ViewType, VtkView
@@ -64,23 +68,13 @@ class SliceView(VtkView):
 
         self._build_ui()
 
-    def unregister_data(self, data_id, no_render=False, _only_data=None):
-        super().unregister_data(data_id, no_render=True, only_data=None)
-        # we can't have secondary volumes without at least a primary volume
-        if not self.has_primary_volume() and self.has_secondary_volume():
-            image_slice = self.get_image_slices()[0]
-            secondary_data_id = self.get_data_id(image_slice)
-            # Replace the secondary volume into a primary volume
-            self.add_primary_volume(image_slice.GetMapper().GetDataSetInput(), secondary_data_id)
-            super().unregister_data(secondary_data_id, True, only_data=image_slice)
+    def unregister_data(self, data_id):
+        super().unregister_data(data_id)
 
         if not self.has_primary_volume():
             self.typed_state.data.position = None
             self.typed_state.data.normals = None
             self.typed_state.data.are_obliques_visible = False
-
-        if not no_render:
-            self.update()
 
     def flush(self):
         if SliceView.DEBOUNCED_FLUSH:
@@ -105,7 +99,7 @@ class SliceView(VtkView):
         data = [self.data[data_id]] if data_id in self.data else self.data.values()
         return [obj for objs in data for obj in objs if obj.IsA("vtkActor")]
 
-    def add_primary_volume(self, image_data, data_id=None):
+    def _add_primary_volume(self, data_id, image_data):
         reslice_image_viewer = render_volume_in_slice(
             image_data, self.renderer, self.orientation.value, obliques=self.typed_state.data.are_obliques_visible
         )
@@ -121,19 +115,21 @@ class SliceView(VtkView):
 
         self.update()
 
-    def add_secondary_volume(self, image_data, data_id=None):
+        self.on_reslice_cursor_interaction(self.get_reslice_image_viewer(), None)
+
+    def _add_secondary_volume(self, data_id, image_data):
         actor = render_volume_as_overlay_in_slice(image_data, self.renderer, self.orientation.value)
         self.register_data(data_id, actor)
         self.update()
 
-    def add_volume(self, image_data, data_id=None):
-        if not self.has_primary_volume():
-            self.add_primary_volume(image_data, data_id)
+    def add_volume(self, data_id, image_data, priority: VolumePriorityType):
+        if priority == VolumePriorityType.PRIMARY:
+            self._add_primary_volume(data_id, image_data)
             self.on_reslice_cursor_interaction(self.get_reslice_image_viewer(), None)
-        else:
-            self.add_secondary_volume(image_data, data_id)
+        elif priority == VolumePriorityType.SECONDARY:
+            self._add_secondary_volume(data_id, image_data)
 
-    def add_mesh(self, poly_data, data_id=None):
+    def add_mesh(self, data_id, poly_data):
         actor = render_mesh_in_slice(poly_data, self.orientation.value, self.renderer)
         self.register_data(data_id, actor)
         self.update()
@@ -183,6 +179,17 @@ class SliceView(VtkView):
         reslice_image_viewer = self.get_reslice_image_viewer()
         if reslice_image_viewer is not None:
             set_oblique_visibility(reslice_image_viewer, obliques_visibility)
+            self.update()
+
+    def set_volume_visibility(self, data_id: str, visible: bool) -> None:
+        logger.debug(f"set_volume_visibility({data_id}): {visible}")
+        modified = False
+        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
+        if reslice_image_viewer is not None:
+            modified = set_reslice_visibility(reslice_image_viewer, visible)
+        for slice in self.get_image_slices(data_id):
+            modified = set_slice_visibility(slice, visible) or modified
+        if modified:
             self.update()
 
     def set_volume_opacity(self, data_id, opacity):

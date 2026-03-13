@@ -1,5 +1,6 @@
 import logging
 import weakref
+from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -16,6 +17,7 @@ from ...utils import (
     remove_prop,
     set_mesh_color,
     set_mesh_opacity,
+    set_mesh_visibility,
 )
 
 logger = logging.getLogger(__name__)
@@ -91,24 +93,25 @@ class VtkView(vtk.VtkRemoteView):
         # removed when data_id is unregistered.
         self.data[data_id].append(data)
 
-    def unregister_data(self, data_id, no_render=False, only_data=None):
-        """
-        :param only_data removes only the provided data if any, all associated if None
-        """
+    def unregister_data(self, data_id):
         for data in list(self.data[data_id]):
-            if only_data is None or data == only_data:
-                remove_prop(self.renderer, data)
-                self.data[data_id].remove(data)
+            remove_prop(self.renderer, data)
+            self.data[data_id].remove(data)
         if len(self.data[data_id]) == 0:
             self.data.pop(data_id)
-        if not no_render:
+
+        self.update()
+
+    @abstractmethod
+    def set_volume_visibility(self, data_id: str, visible: bool) -> None:
+        pass
+
+    def set_mesh_visibility(self, data_id: str, visible: bool) -> None:
+        modified = False
+        for actor in self.get_actors(data_id):
+            modified = set_mesh_visibility(actor, visible) or modified
+        if modified is not False:
             self.update()
-
-    def remove_volume(self, data_id, no_render=False, only_data=None):
-        return self.unregister_data(data_id, no_render, only_data)
-
-    def remove_mesh(self, data_id, no_render=False, only_data=None):
-        return self.unregister_data(data_id, no_render, only_data)
 
     def set_mesh_opacity(self, data_id, opacity):
         modified = False

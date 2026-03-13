@@ -144,6 +144,13 @@ def get_reslice_window_level(reslice_image_viewer):
     return (reslice_image_viewer.GetColorWindow(), reslice_image_viewer.GetColorLevel())
 
 
+def set_reslice_visibility(reslice_image_viewer: vtkResliceImageViewer, visible: bool) -> bool:
+    if reslice_image_viewer is None:
+        return False
+    # TODO Julien
+    return True
+
+
 def set_reslice_opacity(_reslice_image_viewer, opacity):
     if opacity != 1:
         logger.warning("not implemented")
@@ -359,6 +366,15 @@ def render_volume_as_overlay_in_slice(image_data, renderer, axis=2, opacity=0.8)
     return image_slice
 
 
+def set_slice_visibility(image_slice: vtkImageSlice, visible: bool) -> bool:
+    if image_slice is None:
+        return False
+    if image_slice.GetVisibility() == visible:
+        return False
+    image_slice.SetVisibility(visible)
+    return True
+
+
 def set_slice_opacity(image_slice, opacity):
     if image_slice is None:
         return False
@@ -402,6 +418,13 @@ def render_mesh_in_slice(poly_data, axis, renderer):
     return actor
 
 
+def set_mesh_visibility(actor: vtkActor, visible):
+    if actor.GetVisibility() == visible:
+        return False
+    actor.SetVisibility(visible)
+    return True
+
+
 def set_mesh_opacity(actor, opacity):
     if actor.GetProperty().GetOpacity() == opacity:
         return False
@@ -426,6 +449,13 @@ def reset_3D(renderer):
     renderer.GetActiveCamera().SetPosition((bounds[1], bounds[2], center[2]))
     renderer.GetActiveCamera().SetViewUp(0, 0, 1)
     renderer.ResetCameraScreenSpace(0.8)
+
+
+def set_volume_visibility(volume: vtkVolume, visible: bool) -> bool:
+    if volume.GetVisibility() == visible:
+        return False
+    volume.SetVisibility(visible)
+    return True
 
 
 def render_volume_in_3D(image_data, renderer):
@@ -565,7 +595,7 @@ def load_volume(file_path):
         return reader.GetOutput()
 
     if file_path.endswith(".zip"):
-        from dicomexporter import exporter  # pip install ".[dicom]"  # noqa: PLC0415
+        from dicomexporter import exporter  # pip install ".[dicom]"
 
         with TemporaryDirectory() as temp_dir, ZipFile(file_path, "r") as zip_ref:
             zip_ref.extractall(temp_dir)

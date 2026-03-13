@@ -28,3 +28,9 @@ class SceneObjectType(Enum):
     @classmethod
     def decoder(cls, value: Any):
         return cls(value)
+
+
+class VolumePriorityType(Enum):
+    PRIMARY = "primary"
+    SECONDARY = "secondary"
+    UNDEFINED = None

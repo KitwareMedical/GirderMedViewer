@@ -3,6 +3,7 @@ from typing import Any
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider, get_instance
+from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
 from ...utils import Button, FilterType, Text
@@ -10,12 +11,14 @@ from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
 from .objects.object_metadata_ui import SceneObjectMetadataUI
+from .scene_state import SceneState
 
 
 class SceneObjectUI(v3.VExpansionPanel):
     load_canceled = Signal(Any)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
+    visibility_clicked = Signal(str, bool)
 
     def __init__(self, obj: str, scene: str, **kwargs) -> None:
         super().__init__(classes="item-card", **kwargs)
@@ -40,16 +43,19 @@ class SceneObjectUI(v3.VExpansionPanel):
                     ):
                         v3.VProgressCircular(
                             v_bind="props",
-                            size=20,
-                            indeterminate=True,
-                            width=3,
                             click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
+                            indeterminate=True,
+                            size=20,
+                            width=3,
                             __events=[("click_native_stop", "click.native.stop")],
                         )
 
-                    v3.VIcon(
+                    Button(
                         v_else=True,
-                        icon=("expanded ? 'mdi-menu-up' : 'mdi-menu-down'",),
+                        click_native_stop=(self.visibility_clicked, f"[{self.obj}._id, !{self.obj}.is_visible]"),
+                        icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
+                        __events=[("click_native_stop", "click.native.stop")],
                     )
 
             with v3.VExpansionPanelText(v_if=(f"!{self.obj}.gui.loading",)), v3.VCard():
@@ -123,11 +129,9 @@ class SceneObjectUI(v3.VExpansionPanel):
 
                     with (
                         v3.VWindowItem(value="display", v_if=(f"{self.obj}.display",)),
-                        Provider(name="display", instance=(f"{self.obj}.display",)),
                     ):
                         SceneObjectDisplayUI(
-                            obj_display="display",
-                            obj_type=f"{self.obj}.object_type",
+                            obj=self.obj,
                             threed_presets=f"{self.scene}.volume_presets",
                         )
 
@@ -152,15 +156,18 @@ class SceneUI(html.Div):
     load_canceled = Signal(str)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
+    visibility_clicked = Signal(str, bool)
 
     def __init__(self, **kwargs):
         super().__init__(classes="pa-2 fill-height", style="overflow: auto;", **kwargs)
-        self.scene = get_instance(self.state.scene_id)
+        self._typed_state = TypedState(self.state, SceneState)
+        self.scene = get_instance(self._typed_state.data.scene_id)
         self._build_ui()
 
         self.object_ui.load_canceled.connect(self.load_canceled)
         self.object_ui.delete_clicked.connect(self.delete_clicked)
         self.object_ui.filter_clicked.connect(self.filter_clicked)
+        self.object_ui.visibility_clicked.connect(self.visibility_clicked)
 
     def _build_ui(self):
         with self, self.scene.provide_as("scene"):
