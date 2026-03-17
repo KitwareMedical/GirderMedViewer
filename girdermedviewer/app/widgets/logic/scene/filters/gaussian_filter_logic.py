@@ -18,7 +18,7 @@ class GaussianFilterLogic(VolumeObjectLogic):
         super().__init__(*args, **kwargs)
         self.scene_object_filter = GaussianFilterProperties(self.server)
         self.scene_object.filter_prop_id = self.scene_object_filter._id
-        self.soft_parent_id = original_logic._id
+        self.soft_input_id = original_logic._id
         self.object_filter = create_gaussian_filter(original_logic.object_data)
         self._load_object_data()
 

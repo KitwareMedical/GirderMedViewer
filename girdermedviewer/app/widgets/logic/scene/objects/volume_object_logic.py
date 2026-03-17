@@ -8,7 +8,7 @@ from trame_dataclass.v2 import (
 
 from ....utils import (
     SceneObjectType,
-    VolumePriorityType,
+    VolumeLayer,
     load_volume,
 )
 from .scene_object_logic import SceneObjectLogic
@@ -32,7 +32,7 @@ class VolumeDisplay(StateDataModel):
 
 class VolumeObjectLogic(SceneObjectLogic):
     volume_range: list[float] = list
-    priority: VolumePriorityType = VolumePriorityType.UNDEFINED
+    layer: VolumeLayer = VolumeLayer.UNDEFINED
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

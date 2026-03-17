@@ -54,6 +54,17 @@ class SceneObject(StateDataModel):
 
 
 class SceneObjectLogic(BaseLogic[None]):
+    """
+    Defines properties of object added to the scene:
+        - display, info, metadata
+        - VTK data
+        - input
+
+    An object can have input object:
+        - input: depends on its input; if the input is deleted, then the object is also deleted
+        - soft input: copied information from its input but can exist without it
+    """
+
     updated = Signal()
 
     def __init__(
@@ -65,8 +76,8 @@ class SceneObjectLogic(BaseLogic[None]):
         self._id = scene_object._id
         self.scene_object = scene_object
         self.object_data = None
-        self.parent_id = None
-        self.soft_parent_id = None
+        self.input_id = None
+        self.soft_input_id = None
 
     @abstractmethod
     def load_object_data(self, *args, **kwargs):

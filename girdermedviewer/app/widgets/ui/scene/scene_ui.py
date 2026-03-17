@@ -7,7 +7,7 @@ from trame_dataclass.v2 import Provider, get_instance
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ...utils import Button, FilterType, LoadingButton, Text
+from ...utils import Button, FilterType, LoadingButton, SceneObjectType, Text
 from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
@@ -25,7 +25,8 @@ class SceneObjectUI(v3.VExpansionPanel):
     load_canceled = Signal(Any)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
-    visibility_clicked = Signal(str, bool)
+    visibility_clicked = Signal(str)
+    overlay_clicked = Signal(str)
 
     def __init__(self, obj: str, scene: str, **kwargs) -> None:
         super().__init__(classes="item-card", **kwargs)
@@ -37,11 +38,14 @@ class SceneObjectUI(v3.VExpansionPanel):
 
         self.filter_toolbar.filter_clicked.connect(self.filter_clicked)
 
+    def _is_volume(self) -> str:
+        return f"({self.obj}.object_type === '{SceneObjectType.VOLUME.value}')"
+
     def _is_primary_volume(self) -> str:
         return f"{self._typed_state.name.primary_volume_ids}.includes({self.obj}._id)"
 
     def _is_active_primary_volume(self) -> str:
-        return f"{self._typed_state.name.active_primary_volume_id} === {self.obj}._id"
+        return f"({self._typed_state.name.active_primary_volume_id} === {self.obj}._id)"
 
     def _is_disabled(self) -> str:
         return f"!{self.obj}.is_visible"
@@ -56,12 +60,19 @@ class SceneObjectUI(v3.VExpansionPanel):
                         tooltip="Cancel",
                         click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
                     )
-                    Button(
-                        v_else=True,
-                        click_native_stop=(self.visibility_clicked, f"[{self.obj}._id, !{self.obj}.is_visible]"),
-                        icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                        tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
-                    )
+                    with html.Div(v_else=True):
+                        Button(
+                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
+                            click_native_stop=(self.overlay_clicked, f"[{self.obj}._id]"),
+                            color=(f"!{self._is_primary_volume()} ? 'primary' : 'undefined'",),
+                            icon="mdi-layers",
+                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
+                        )
+                        Button(
+                            click_native_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
+                            icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                            tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
+                        )
 
             with v3.VExpansionPanelText(v_if=(f"!{self.obj}.gui.loading",)), v3.VCard():
                 with (
@@ -163,7 +174,8 @@ class SceneUI(html.Div):
     load_canceled = Signal(str)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
-    visibility_clicked = Signal(str, bool)
+    visibility_clicked = Signal(str)
+    overlay_clicked = Signal(str)
 
     def __init__(self, **kwargs):
         super().__init__(classes="pa-2 fill-height", style="overflow: auto;", **kwargs)
@@ -175,6 +187,7 @@ class SceneUI(html.Div):
         self.object_ui.delete_clicked.connect(self.delete_clicked)
         self.object_ui.filter_clicked.connect(self.filter_clicked)
         self.object_ui.visibility_clicked.connect(self.visibility_clicked)
+        self.object_ui.overlay_clicked.connect(self.overlay_clicked)
 
     def _build_ui(self):
         with self, self.scene.provide_as("scene"):

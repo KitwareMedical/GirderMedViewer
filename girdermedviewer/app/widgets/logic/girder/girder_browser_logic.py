@@ -76,7 +76,7 @@ class GirderBrowserLogic(BaseLogic[GirderBrowserState]):
             selected_item for selected_item in selected_items if selected_item.location_id == location_id
         ]
 
-    def unselect_item(self, item_id: str) -> None:
+    def unselect_item(self, _, item_id: str) -> None:
         if not self._is_item_selected(item_id):
             logger.info(f"Item {item_id} is not currently selected")
             return

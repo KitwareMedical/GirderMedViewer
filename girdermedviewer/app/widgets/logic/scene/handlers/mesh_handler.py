@@ -1,9 +1,12 @@
+import logging
 from collections.abc import Callable
 
 from ....ui import ViewUI, VtkView
-from ....utils import debounce
+from ....utils import debounce, supported_mesh_extensions
 from ..objects.mesh_object_logic import MeshObjectLogic
 from .object_handler import ObjectHandler
+
+logger = logging.getLogger(__name__)
 
 
 class MeshDisplayHandler:
@@ -44,7 +47,10 @@ class MeshHandler(ObjectHandler):
     def __init__(self, server):
         super().__init__(server)
         self.display_handler = MeshDisplayHandler()
-        self.object_logics: dict[str, MeshObjectLogic] = {}
+
+    @property
+    def supported_extensions(self) -> tuple[str]:
+        return supported_mesh_extensions()
 
     def _connect_mesh_logic_to_display_handler(self, mesh_logic: MeshObjectLogic):
         mesh_logic.display.watch(("opacity",), self.display_handler.update_opacity(mesh_logic._id))
@@ -58,9 +64,9 @@ class MeshHandler(ObjectHandler):
             view.add_mesh(mesh_logic._id, mesh_logic.object_data)
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
-        self.object_logics.pop(mesh_logic._id)
         mesh_logic.display.clear_watchers()
-        super().remove_object_from_views(mesh_logic)
+        self.object_logics.pop(mesh_logic._id)
+        self.unregister_object_from_views(mesh_logic)
 
     def set_object_visibility(self, mesh_logic: MeshObjectLogic, visible: bool) -> None:
         mesh_logic.scene_object.is_visible = visible

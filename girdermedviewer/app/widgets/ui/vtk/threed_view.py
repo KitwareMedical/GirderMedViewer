@@ -1,6 +1,6 @@
 import logging
 
-from girdermedviewer.app.widgets.utils.scene_utils import VolumePriorityType
+from girdermedviewer.app.widgets.utils.scene_utils import VolumeLayer
 
 from ...utils import (
     render_mesh_in_3D,
@@ -18,7 +18,7 @@ class ThreeDView(VtkView):
         super().__init__(ref=ref, view_type=ViewType.THREED, **kwargs)
         self._build_ui()
 
-    def add_volume(self, data_id, image_data, _priority: VolumePriorityType):
+    def add_volume(self, data_id, image_data, _layer: VolumeLayer):
         volume = render_volume_in_3D(image_data, self.renderer)
         self.register_data(data_id, volume)
         self.update()

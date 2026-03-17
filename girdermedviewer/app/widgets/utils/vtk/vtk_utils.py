@@ -145,9 +145,12 @@ def get_reslice_window_level(reslice_image_viewer):
 
 
 def set_reslice_visibility(reslice_image_viewer: vtkResliceImageViewer, visible: bool) -> bool:
-    if reslice_image_viewer is None:
+    alpha = (float(visible), float(visible))
+    lut = reslice_image_viewer.GetWindowLevel().GetLookupTable()
+    if lut.GetAlphaRange() == alpha:
         return False
-    # TODO Julien
+    lut.SetAlphaRange(*alpha)
+    lut.Build()
     return True
 
 
@@ -312,6 +315,7 @@ def render_volume_in_slice(image_data, renderer, axis=2, obliques=True):
     # (Oblique): Make all vtkResliceImageViewer instance share the same
     reslice_image_viewer.SetResliceCursor(get_reslice_image_viewer(-1).GetResliceCursor())
 
+    set_reslice_visibility(reslice_image_viewer, True)
     reset_reslice(reslice_image_viewer)
 
     for i in range(3):

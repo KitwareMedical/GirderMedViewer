@@ -3,7 +3,7 @@ from enum import Enum
 
 from undo_stack import Signal
 
-from girdermedviewer.app.widgets.utils.scene_utils import VolumePriorityType
+from girdermedviewer.app.widgets.utils.scene_utils import VolumeLayer
 
 from ...utils import (
     debounce,
@@ -68,13 +68,16 @@ class SliceView(VtkView):
 
         self._build_ui()
 
-    def unregister_data(self, data_id):
-        super().unregister_data(data_id)
+    def unregister_data(self, data_id, only_data=None):
+        # Do no remove ResliceImageViewer if there is still primary volumes
+        remove_prop = not (self.is_primary_volume(data_id) and self.has_multiple_primary_volumes())
+        super().unregister_data(data_id, only_data, remove_prop)
 
         if not self.has_primary_volume():
-            self.typed_state.data.position = None
             self.typed_state.data.normals = None
             self.typed_state.data.are_obliques_visible = False
+            if not self.has_secondary_volume():
+                self.typed_state.data.position = None
 
     def flush(self):
         if SliceView.DEBOUNCED_FLUSH:
@@ -122,11 +125,11 @@ class SliceView(VtkView):
         self.register_data(data_id, actor)
         self.update()
 
-    def add_volume(self, data_id, image_data, priority: VolumePriorityType):
-        if priority == VolumePriorityType.PRIMARY:
+    def add_volume(self, data_id, image_data, layer: VolumeLayer):
+        if layer == VolumeLayer.PRIMARY:
             self._add_primary_volume(data_id, image_data)
             self.on_reslice_cursor_interaction(self.get_reslice_image_viewer(), None)
-        elif priority == VolumePriorityType.SECONDARY:
+        elif layer == VolumeLayer.SECONDARY:
             self._add_secondary_volume(data_id, image_data)
 
     def add_mesh(self, data_id, poly_data):
@@ -163,11 +166,11 @@ class SliceView(VtkView):
     def has_primary_volume(self):
         return self.get_reslice_image_viewer() is not None
 
+    def has_multiple_primary_volumes(self):
+        return len([data_id for data_id in self.data if self.is_primary_volume(data_id)]) > 1
+
     def has_secondary_volume(self):
         return len(self.get_image_slices()) > 0
-
-    def has_mesh(self):
-        return len(self.get_mesh_slices()) > 0
 
     def reset(self):
         reslice_image_viewer = self.get_reslice_image_viewer()

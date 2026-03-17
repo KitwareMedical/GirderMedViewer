@@ -30,7 +30,7 @@ class SceneObjectType(Enum):
         return cls(value)
 
 
-class VolumePriorityType(Enum):
+class VolumeLayer(Enum):
     PRIMARY = "primary"
     SECONDARY = "secondary"
     UNDEFINED = None
