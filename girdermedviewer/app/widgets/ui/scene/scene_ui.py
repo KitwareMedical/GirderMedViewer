@@ -179,7 +179,7 @@ class SceneUI(html.Div):
     overlay_clicked = Signal(str)
 
     def __init__(self, **kwargs):
-        super().__init__(classes="pa-2 fill-height", style="overflow: auto;", **kwargs)
+        super().__init__(classes="scene-drawer", **kwargs)
         self._typed_state = TypedState(self.state, SceneState)
         self.scene = get_instance(self._typed_state.data.scene_id)
         self._build_ui()
@@ -208,6 +208,6 @@ class SceneUI(html.Div):
                 )
             Text(
                 v_else=True,
-                classes="d-flex justify-center font-italic fill-height align-center",
+                classes="d-flex justify-center font-italic",
                 text="Select data to get started",
             )

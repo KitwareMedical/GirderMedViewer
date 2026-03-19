@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+from enum import Enum
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
@@ -52,6 +53,21 @@ logger = logging.getLogger(__name__)
 # FIXME do not use global variable
 # dict[axis:vtkResliceImageViewer]
 viewers = {}
+
+
+class ViewType(Enum):
+    SAGITTAL = "sag"
+    THREED = "3d"
+    CORONAL = "cor"
+    AXIAL = "ax"
+
+
+def set_vector_field_arrow_length(*_args, **_kwargs):
+    pass
+
+
+def set_vector_field_arrow_thickness(*_args, **_kwargs):
+    pass
 
 
 def set_oblique_visibility(reslice_image_viewer, visible):
@@ -426,7 +442,7 @@ def render_volume_as_vector_field(image_data, renderer, axis=2):
     glyph_mapper.OrientOn()
 
     bounds = glyph_mapper.GetBounds()
-    logger.info('glyph bounds: %s', bounds)
+    logger.info("glyph bounds: %s", bounds)
 
     glyph_actor = vtkActor()
     glyph_actor.SetMapper(glyph_mapper)

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from trame.ui.vuetify3 import VAppLayout
+from trame.widgets import gwc
 from trame.widgets import vuetify3 as v3
-from trame.widgets.gwc import GirderProvider
 from trame_server import Server
 from trame_server.utils.typed_state import TypedState
 
@@ -11,7 +11,7 @@ from .girder.girder_browser_ui import GirderBrowserUI
 from .girder.girder_connection_ui import GirderConnectionUI
 from .scene.scene_ui import SceneUI
 from .vtk.tool_strip_ui import ToolStripUI
-from .vtk.view_ui import ViewUI
+from .vtk.views_ui import ViewsUI
 
 
 @dataclass
@@ -38,10 +38,11 @@ class AppLayout(VAppLayout):
 
             self.drawer = v3.VNavigationDrawer(
                 v_model=(self.typed_state.name.is_drawer_visible,),
-                permanent=True,
-                width=550,
+                classes="drawer",
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
+                permanent=True,
+                width=500,
             )
 
             self.tool_strip = v3.VNavigationDrawer(
@@ -55,7 +56,7 @@ class AppLayout(VAppLayout):
 
 
 class AppUI:
-    def __init__(self, layout: AppLayout, provider: GirderProvider, app_config: AppConfig) -> None:
+    def __init__(self, layout: AppLayout, provider: gwc.GirderProvider, app_config: AppConfig) -> None:
         self.layout = layout
         self.provider = provider
 
@@ -74,7 +75,7 @@ class AppUI:
                 self.tool_strip_ui = ToolStripUI(disabled=self.name.is_viewer_disabled)
 
             with self.layout.viewer:
-                self.view_ui = ViewUI()
+                self.views_ui = ViewsUI()
 
             with self.layout.drawer:
                 self.scene_ui = SceneUI()

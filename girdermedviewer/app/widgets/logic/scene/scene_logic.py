@@ -4,19 +4,14 @@ from trame_dataclass.v2 import StateDataModel, Sync, get_instance
 from trame_server import Server
 from undo_stack import Signal
 
-from ...ui import (
-    SceneState,
-    SceneUI,
-    ViewUI,
-)
+from ...ui import SceneState, SceneUI
 from ...utils import (
     FilterType,
     Preset,
     PresetParser,
-    get_color_preset_parser,
-    get_volume_preset_parser,
 )
 from ..base_logic import BaseLogic
+from ..vtk.views_logic import ViewsLogic
 from .filters import FILTER_MAP
 from .handlers.mesh_handler import MeshHandler
 from .handlers.object_handler import ObjectHandler
@@ -46,18 +41,16 @@ class SceneLogic(BaseLogic[SceneState]):
     object_removed = Signal(str, str)
     object_load_canceled = Signal(str)
 
-    def __init__(self, server: Server) -> None:
+    def __init__(self, server: Server, views_logic: ViewsLogic) -> None:
         super().__init__(server, SceneState)
 
         self.scene = Scene(self.server, gui=SceneGUI(self.server, gui=SceneGUI(self.server)))
         self.data.scene_id = self.scene._id
         self.object_logics: dict[str, SceneObjectLogic] = {}
-        self._init_presets()
+        self._init_presets(views_logic)
 
-        self.mesh_handler = MeshHandler(self.server)
-        self.volume_handler = VolumeHandler(self.server)
-
-        self.load_tasks = {}
+        self.mesh_handler = MeshHandler(self.server, views_logic)
+        self.volume_handler = VolumeHandler(self.server, views_logic)
 
     def _get_presets_from_preset_parser(self, preset_parser: PresetParser) -> list[Preset]:
         return [
@@ -70,14 +63,13 @@ class SceneLogic(BaseLogic[SceneState]):
             return self.volume_handler
         return self.mesh_handler
 
-    def _init_presets(self) -> None:
-        self.volume_preset_parser = get_volume_preset_parser()
-        self.scene.volume_presets = self._get_presets_from_preset_parser(self.volume_preset_parser)
+    def _init_presets(self, views_logic: ViewsLogic) -> None:
+        self.scene.volume_presets = self._get_presets_from_preset_parser(views_logic.volume_preset_parser)
+        self.scene.color_presets = self._get_presets_from_preset_parser(views_logic.color_preset_parser)
 
-        self.color_preset_parser = get_color_preset_parser()
-        self.scene.color_presets = self._get_presets_from_preset_parser(self.color_preset_parser)
-
-    def _create_file_object_logic(self, file_path: str, scene_object: SceneObject) -> MeshObjectLogic | VolumeObjectLogic:
+    def _create_file_object_logic(
+        self, file_path: str, scene_object: SceneObject
+    ) -> MeshObjectLogic | VolumeObjectLogic:
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if self.mesh_handler.supports_file(file_path):
@@ -201,14 +193,6 @@ class SceneLogic(BaseLogic[SceneState]):
             return
 
         self.volume_handler.toggle_object_overlay(object_logic)
-
-    def set_view_ui(self, view_ui: ViewUI) -> None:
-        self.volume_handler.set_view_ui(view_ui)
-        self.mesh_handler.set_view_ui(view_ui)
-
-        for view in view_ui.views:
-            view.set_color_preset_parser(self.color_preset_parser)
-            view.set_volume_preset_parser(self.volume_preset_parser)
 
     def clear_scene(self):
         object_ids = [obj._id for obj in self.scene.objects]
