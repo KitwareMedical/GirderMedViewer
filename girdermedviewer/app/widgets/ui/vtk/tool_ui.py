@@ -7,8 +7,9 @@ from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 
 from ...utils import Button
-from .base_view import ViewState
 from .tools.place_point_ui import PlacePointUI
+from .tools.place_roi_ui import PlaceROIUI
+from .views_state import ViewsState
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 class ToolType(Enum):
     UNDEFINED = 0
     PLACE_POINT = 1
+    PLACE_ROI = 2
 
 
 @dataclass
@@ -29,37 +31,36 @@ class ToolUI(html.Div):
             classes="tools-strip",
             **kwargs,
         )
-        self._views_state = TypedState(self.state, ViewState)
+        self.disabled = disabled
+        self._views_state = TypedState(self.state, ViewsState)
         self._typed_state = TypedState(self.state, ToolState)
 
         with self:
-            Button(
+            self._build_tool_button(
                 click=self._toggle_obliques_visibility,
-                disabled=(disabled,),
-                color=(f"{self._views_state.name.are_obliques_visible} && !{disabled} ? 'primary' : 'undefined'",),
+                is_colored=self._views_state.name.are_obliques_visible,
                 icon="mdi-cube-scan",
                 tooltip=(f"{self._views_state.name.are_obliques_visible} ? 'Hide obliques' : 'Show obliques'",),
-                variant="text",
-                size="default",
             )
 
-            Button(
+            self._build_tool_button(
                 click=self.ctrl.reset,
-                disabled=(disabled,),
                 icon="mdi-camera-flip-outline",
                 tooltip="Reset views",
-                variant="text",
-                size="default",
             )
 
-            Button(
+            self._build_tool_button(
                 click=lambda: self._activate_tool(ToolType.PLACE_POINT),
-                disabled=(disabled,),
-                color=(f"{self._is_tool_active(ToolType.PLACE_POINT)} && !{disabled} ? 'primary' : 'undefined'",),
+                is_colored=self._is_tool_active(ToolType.PLACE_POINT),
                 icon="mdi-target",
                 tooltip="Place point",
-                variant="text",
-                size="default",
+            )
+
+            self._build_tool_button(
+                click=lambda: self._activate_tool(ToolType.PLACE_ROI),
+                is_colored=self._is_tool_active(ToolType.PLACE_ROI),
+                icon="mdi-crop",
+                tooltip="Place ROI",
             )
 
     def _toggle_obliques_visibility(self):
@@ -74,7 +75,17 @@ class ToolUI(html.Div):
     def _is_tool_active(self, tool_type: ToolType) -> str:
         return f"({self._typed_state.name.active_tool} === {tool_type.value})"
 
+    def _build_tool_button(self, is_colored: str | None = None, **kwargs):
+        Button(
+            color=(f"{is_colored} && !{self.disabled} ? 'primary' : 'undefined'",) if is_colored else None,
+            disabled=(self.disabled,),
+            size="default",
+            variant="text",
+            **kwargs,
+        )
+
     def build_active_tool_ui(self):
         with html.Div():
             v3.VDivider(v_if=(f"!{self._is_tool_active(ToolType.UNDEFINED)}",))
-            PlacePointUI(v_if=(self._is_tool_active(ToolType.PLACE_POINT),))
+            self.place_point_ui = PlacePointUI(v_if=(self._is_tool_active(ToolType.PLACE_POINT),))
+            self.place_roi_ui = PlaceROIUI(v_if=(self._is_tool_active(ToolType.PLACE_ROI),))

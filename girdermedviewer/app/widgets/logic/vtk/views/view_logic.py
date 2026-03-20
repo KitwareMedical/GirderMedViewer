@@ -5,10 +5,7 @@ from trame_server.core import Server
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from girdermedviewer.app.widgets.logic.vtk.handlers.volume_handler import (
-    VolumeThreeDHandler,
-    VolumeTwoDHandler,
-)
+from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
 
 from ....ui import ViewsState, ViewState, ViewType, ViewUI
 from ....utils import (
@@ -17,6 +14,10 @@ from ....utils import (
 )
 from ...base_logic import BaseLogic
 from ..handlers.mesh_handler import MeshHandler
+from ..handlers.volume_handler import (
+    VolumeThreeDHandler,
+    VolumeTwoDHandler,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +53,15 @@ class ViewLogic(BaseLogic[ViewState]):
         pass
 
     @abstractmethod
-    def add_volume(self):
+    def add_volume(self, data_id, data):
         pass
 
     @abstractmethod
-    def add_mesh(self):
+    def add_mesh(self, data_id, data):
+        pass
+
+    @abstractmethod
+    def init_roi(self, roi: PlaceROILogic):
         pass
 
     def remove_volume(self, data_id, only_data=None):

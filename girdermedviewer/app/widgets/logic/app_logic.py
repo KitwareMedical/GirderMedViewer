@@ -1,5 +1,4 @@
 import logging
-import sys
 from configparser import ConfigParser
 from pathlib import Path
 
@@ -30,7 +29,7 @@ class AppLogic(BaseLogic[AppState]):
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
         self._scene_logic.set_ui(ui.scene_ui)
-        self._views_logic.set_ui(ui.views_ui)
+        self._views_logic.set_ui(ui.views_ui, ui.tool_ui)
 
     def _load_app_config(self, config_file_path: Path | None = None) -> None:
         """
@@ -56,11 +55,6 @@ class AppLogic(BaseLogic[AppState]):
             url: GirderConfig(url=url, **config) for url, config in config_dict.items() if url.startswith("http")
         }
         self.app_config = AppConfig(**app_config)
-
-        logging.basicConfig(stream=sys.stdout)
-        # Silence dependencies logs and keep only the application ones
-        logging.getLogger().setLevel(logging.WARNING)
-        logging.getLogger(__package__).setLevel(self.app_config.log_level)
 
     def _on_scene_changed(self, _, has_objects: bool):
         self.data.is_viewer_disabled = not has_objects
