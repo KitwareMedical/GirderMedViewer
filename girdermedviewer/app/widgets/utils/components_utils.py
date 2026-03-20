@@ -2,7 +2,7 @@ from typing import Any
 
 from trame.widgets.client import Style
 from trame.widgets.html import Div, Span
-from trame.widgets.vuetify3 import VAvatar, VBtn, VIcon, VTooltip
+from trame.widgets.vuetify3 import VAvatar, VBtn, VIcon, VProgressCircular, VTooltip
 
 
 class Text(Div):
@@ -45,6 +45,7 @@ class Button(VBtn):
 
         text_transform = "uppercase" if kwargs.get("block", False) else text_transform or "none"
         kwargs["style"] = " ".join([kwargs.get("style", ""), f"text-transform: {text_transform};"])
+        kwargs["__events"] = [*kwargs.get("__events", []), ("click_native_stop", "click.native.stop")]
 
         super().__init__(**kwargs)
 
@@ -64,6 +65,19 @@ class Button(VBtn):
                     open_delay=500,
                     text=tooltip,
                 )
+
+
+class LoadingButton(Button):
+    def __init__(self, **kwargs):
+        kwargs["icon"] = kwargs.get("icon", True)
+        kwargs["variant"] = kwargs.get("variant", "text")
+        super().__init__(**kwargs)
+        with self:
+            VProgressCircular(
+                indeterminate=True,
+                size=20,
+                width=3,
+            )
 
 
 class GlobalStyle(Style):

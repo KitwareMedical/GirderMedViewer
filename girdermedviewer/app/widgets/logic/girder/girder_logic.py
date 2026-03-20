@@ -42,11 +42,10 @@ class GirderLogic(BaseLogic[None]):
 
         # Connect girder and scene logics
         self.browser_logic.item_selected.connect(self.load_logic.format_item)
-        self.browser_logic.item_selected.connect(self.load_logic.create_fetch_task)
-        self.load_logic.item_formatted.connect(scene_logic.add_scene_object)
+        self.load_logic.item_formatted.connect(scene_logic.add_object)
         self.load_logic.item_unformatted.connect(self.browser_logic.unselect_item)
-        self.load_logic.item_fetched.connect(scene_logic.load_scene_object)
-        self.load_logic.item_unfetched.connect(scene_logic.remove_scene_object)
+        self.load_logic.item_fetched.connect(scene_logic.add_file_object_to_views)
+        self.load_logic.item_unfetched.connect(scene_logic.remove_object)
 
         scene_logic.object_load_canceled.connect(self.load_logic.cancel_fetch_task)
         scene_logic.object_removed.connect(self.browser_logic.unselect_item)

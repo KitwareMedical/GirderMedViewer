@@ -23,8 +23,8 @@ class AppLogic(BaseLogic[AppState]):
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
 
-        self._scene_logic.object_loaded.connect(self._on_scene_changed)
-        self._scene_logic.object_unloaded.connect(self._on_scene_changed)
+        self._scene_logic.object_added_to_views.connect(self._on_scene_changed)
+        self._scene_logic.object_removed_from_views.connect(self._on_scene_changed)
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)

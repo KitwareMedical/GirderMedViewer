@@ -8,7 +8,7 @@ from trame_dataclass.v2 import (
 
 from ....utils import (
     SceneObjectType,
-    debounce,
+    VolumeLayer,
     load_volume,
 )
 from .scene_object_logic import SceneObjectLogic
@@ -31,6 +31,9 @@ class VolumeDisplay(StateDataModel):
 
 
 class VolumeObjectLogic(SceneObjectLogic):
+    volume_range: list[float] = list
+    layer: VolumeLayer = VolumeLayer.UNDEFINED
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
@@ -40,37 +43,8 @@ class VolumeObjectLogic(SceneObjectLogic):
         )
         self.scene_object.display = self.display._id
 
-        self.volume_range: list[float] = []
-
-        self.display.watch(("opacity",), self._update_opacity)
-        self.display.watch(("window_level",), self._update_window_level)
-        self.display.threed_preset.watch(("name", "vr_shift"), self._update_threed_preset)
-
-    @debounce(0.05)
-    def _update_opacity(self, opacity: float) -> None:
-        if opacity < 0:
-            return
-        for view in self.twod_views:
-            view.set_volume_opacity(self.scene_object._id, opacity)
-
-    @debounce(0.05)
-    def _update_window_level(self, window_level: list[float]) -> None:
-        for view in self.twod_views:
-            view.set_volume_window_level_min_max(self.scene_object._id, window_level)
-            view.update()
-
-    @debounce(0.05)
-    def _update_threed_preset(self, volume_preset_name: str, volume_preset_vr_shift: list[float]) -> None:
-        for view in self.threed_views:
-            view.set_volume_preset(
-                self.scene_object._id,
-                volume_preset_name,
-                volume_preset_vr_shift,
-            )
-
-    def _load(self) -> None:
+    def _init_display_properties(self):
         if self.object_data is not None:
-            self.load_to_view()
             self.volume_range = list(self.object_data.GetScalarRange())
 
             # Init window level
@@ -82,11 +56,9 @@ class VolumeObjectLogic(SceneObjectLogic):
             # Init 3D preset range
             self.display.threed_preset.vr_shift = self.volume_range
 
-            self.scene_object.gui.loading = False
-
-    def load(self, file_path: str) -> None:
+    def load_object_data(self, file_path: str) -> None:
         self.object_data = load_volume(file_path)
-        self._load()
+        self._init_display_properties()
 
     def window_level_changed_in_view(self, window_level_in_view: list[float]) -> None:
         window_level_value = [

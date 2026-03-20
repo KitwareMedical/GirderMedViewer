@@ -1,56 +1,78 @@
+from dataclasses import dataclass, field
 from typing import Any
 
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider, get_instance
+from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ...utils import Button, FilterType, Text
+from ...utils import Button, FilterType, LoadingButton, SceneObjectType, Text
 from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
 from .objects.object_metadata_ui import SceneObjectMetadataUI
 
 
+@dataclass
+class SceneState:
+    scene_id: str | None = None
+    active_primary_volume_id: str | None = None
+    primary_volume_ids: list[str] = field(default_factory=list)
+
+
 class SceneObjectUI(v3.VExpansionPanel):
     load_canceled = Signal(Any)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
+    visibility_clicked = Signal(str)
+    overlay_clicked = Signal(str)
 
     def __init__(self, obj: str, scene: str, **kwargs) -> None:
         super().__init__(classes="item-card", **kwargs)
+
+        self._typed_state = TypedState(self.state, SceneState)
         self.obj = obj
         self.scene = scene
         self._build_ui()
 
         self.filter_toolbar.filter_clicked.connect(self.filter_clicked)
 
+    def _is_volume(self) -> str:
+        return f"({self.obj}.object_type === '{SceneObjectType.VOLUME.value}')"
+
+    def _is_primary_volume(self) -> str:
+        return f"{self._typed_state.name.primary_volume_ids}.includes({self.obj}._id)"
+
+    def _is_active_primary_volume(self) -> str:
+        return f"({self._typed_state.name.active_primary_volume_id} === {self.obj}._id)"
+
+    def _is_disabled(self) -> str:
+        return f"!{self.obj}.is_visible"
+
     def _build_ui(self):
         with self:
-            with v3.VExpansionPanelTitle():
+            with v3.VExpansionPanelTitle(color=(f"{self._is_active_primary_volume()} ? 'primary' : 'undefined'",)):
                 Text("{{ " + self.obj + ".name }}", classes="text-header")
                 with v3.Template(v_slot_actions="{ expanded }"):
-                    with (
-                        v3.VTooltip(
-                            v_if=(f"{self.obj}.gui.loading",),
-                            close_delay=100,
-                            text="Cancel download",
-                        ),
-                        v3.Template(v_slot_activator="{ props }"),
-                    ):
-                        v3.VProgressCircular(
-                            v_bind="props",
-                            size=20,
-                            indeterminate=True,
-                            width=3,
-                            click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
-                            __events=[("click_native_stop", "click.native.stop")],
-                        )
-
-                    v3.VIcon(
-                        v_else=True,
-                        icon=("expanded ? 'mdi-menu-up' : 'mdi-menu-down'",),
+                    LoadingButton(
+                        v_if=(f"{self.obj}.gui.loading",),
+                        tooltip="Cancel",
+                        click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
                     )
+                    with html.Div(v_else=True):
+                        Button(
+                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
+                            click_native_stop=(self.overlay_clicked, f"[{self.obj}._id]"),
+                            color=(f"!{self._is_primary_volume()} ? 'primary' : 'undefined'",),
+                            icon="mdi-layers",
+                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
+                        )
+                        Button(
+                            click_native_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
+                            icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                            tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
+                        )
 
             with v3.VExpansionPanelText(v_if=(f"!{self.obj}.gui.loading",)), v3.VCard():
                 with (
@@ -116,18 +138,18 @@ class SceneObjectUI(v3.VExpansionPanel):
                         Provider(name="filter_prop", instance=(f"{self.obj}.filter_prop_id",)),
                     ):
                         FilterUI(
-                            obj_id=f"{self.obj}._id",
                             obj_filter_type=f"{self.obj}.filter_type",
                             obj_filter_prop="filter_prop",
+                            disabled=self._is_disabled(),
                         )
 
                     with (
                         v3.VWindowItem(value="display", v_if=(f"{self.obj}.display",)),
-                        Provider(name="display", instance=(f"{self.obj}.display",)),
                     ):
                         SceneObjectDisplayUI(
-                            obj_display="display",
-                            obj_type=f"{self.obj}.object_type",
+                            obj=self.obj,
+                            disabled=self._is_disabled(),
+                            has_opacity=f"!{self._is_primary_volume()}",
                             threed_presets=f"{self.scene}.volume_presets",
                         )
 
@@ -152,15 +174,20 @@ class SceneUI(html.Div):
     load_canceled = Signal(str)
     filter_clicked = Signal(str, FilterType)
     delete_clicked = Signal(str)
+    visibility_clicked = Signal(str)
+    overlay_clicked = Signal(str)
 
     def __init__(self, **kwargs):
         super().__init__(classes="pa-2 fill-height", style="overflow: auto;", **kwargs)
-        self.scene = get_instance(self.state.scene_id)
+        self._typed_state = TypedState(self.state, SceneState)
+        self.scene = get_instance(self._typed_state.data.scene_id)
         self._build_ui()
 
         self.object_ui.load_canceled.connect(self.load_canceled)
         self.object_ui.delete_clicked.connect(self.delete_clicked)
         self.object_ui.filter_clicked.connect(self.filter_clicked)
+        self.object_ui.visibility_clicked.connect(self.visibility_clicked)
+        self.object_ui.overlay_clicked.connect(self.overlay_clicked)
 
     def _build_ui(self):
         with self, self.scene.provide_as("scene"):

@@ -1,5 +1,5 @@
 from .app_utils import AppConfig, debounce, is_valid_url
-from .components_utils import Button, GlobalStyle, Text
+from .components_utils import Button, GlobalStyle, LoadingButton, Text
 from .girder_utils import (
     CacheMode,
     FileFetcher,
@@ -9,7 +9,7 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType
+from .scene_utils import FilterType, SceneObjectType, VolumeLayer
 from .vtk.preset_utils import (
     Preset,
     PresetParser,
@@ -38,13 +38,17 @@ from .vtk.vtk_utils import (
     reset_reslice,
     set_mesh_color,
     set_mesh_opacity,
+    set_mesh_visibility,
     set_oblique_visibility,
     set_reslice_center,
     set_reslice_normal,
     set_reslice_opacity,
+    set_reslice_visibility,
     set_reslice_window_level,
     set_slice_opacity,
+    set_slice_visibility,
     set_slice_window_level,
+    set_volume_visibility,
     supported_mesh_extensions,
     supported_volume_extensions,
 )
@@ -61,10 +65,12 @@ __all__ = [
     "GirderConfig",
     "GirderItem",
     "GlobalStyle",
+    "LoadingButton",
     "Preset",
     "PresetParser",
     "SceneObjectType",
     "Text",
+    "VolumeLayer",
     "VolumePresetParser",
     "are_same_paths",
     "create_gaussian_filter",
@@ -92,13 +98,17 @@ __all__ = [
     "reset_reslice",
     "set_mesh_color",
     "set_mesh_opacity",
+    "set_mesh_visibility",
     "set_oblique_visibility",
     "set_reslice_center",
     "set_reslice_normal",
     "set_reslice_opacity",
+    "set_reslice_visibility",
     "set_reslice_window_level",
     "set_slice_opacity",
+    "set_slice_visibility",
     "set_slice_window_level",
+    "set_volume_visibility",
     "supported_mesh_extensions",
     "supported_volume_extensions",
 ]

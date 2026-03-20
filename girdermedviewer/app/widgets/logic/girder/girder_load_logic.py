@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class GirderLoadLogic(BaseLogic[None]):
     item_fetched = Signal(str, str)
-    item_unfetched = Signal(str, str)
+    item_unfetched = Signal(str)
     item_formatted = Signal(SceneObject)
     item_unformatted = Signal(str)
 
@@ -64,7 +64,7 @@ class GirderLoadLogic(BaseLogic[None]):
             database_id=item.get("_id"),
         )
 
-    async def _fetch_item(self, item: dict[str, Any]) -> None:
+    async def _fetch_item(self, task_id: str, item: dict[str, Any]) -> None:
         logger.debug(f"Fetching item {item['_id']}")
         try:
             files = list(self.file_fetcher.get_item_files(item))
@@ -74,37 +74,39 @@ class GirderLoadLogic(BaseLogic[None]):
                 raise FileFetchError("No file to fetch..." if not files else "Multiple files found...")
 
             async with self.file_fetcher.fetch_file(files[0]) as file_path:
-                self.item_fetched(str(file_path), item["_id"])
+                self.item_fetched(str(file_path), task_id)
 
         except (HttpError, FileFetchError):
             logger.error(f"Error fetching files for {item['_id']}: {traceback.format_exc()}")
-            self.item_unfetched(item["_id"])
+            self.item_unfetched(task_id)
 
-    def create_fetch_task(self, item: dict[str, Any]) -> None:
-        logger.debug(f"Creating fetch task for {item}")
+    def create_fetch_task(self, task_id: str, item: dict[str, Any]) -> None:
+        logger.debug(f"Creating fetch task {task_id} for {item['_id']}")
 
         async def _fetch():
             await asyncio.sleep(1)
             try:
-                await self._fetch_item(item)
+                await self._fetch_item(task_id, item)
             finally:
-                self.fetch_tasks.pop(item["_id"], None)
+                self.fetch_tasks.pop(task_id, None)
 
-        self.fetch_tasks[item["_id"]] = create_task(_fetch())
+        self.fetch_tasks[task_id] = create_task(_fetch())
 
-    def cancel_fetch_task(self, item_id) -> None:
-        logger.debug(f"Cancelling fetch task for {item_id}")
-        task = self.fetch_tasks.get(item_id)
+    def cancel_fetch_task(self, task_id: str) -> None:
+        logger.debug(f"Cancelling fetch task {task_id}")
+        task = self.fetch_tasks.get(task_id)
         if task and not task.done():
             task.cancel()
-            self.fetch_tasks.pop(item_id, None)
-            self.item_unfetched(item_id)
-            logger.debug(f"Cancelled fetch task for {item_id}")
+            self.fetch_tasks.pop(task_id, None)
+
+        self.item_unfetched(task_id)
+        logger.debug(f"Cancelled fetch task {task_id}")
 
     def format_item(self, item: dict[str, Any]) -> None:
         try:
             scene_object = self._create_scene_object_from_item(item)
             self.item_formatted(scene_object)
+            self.create_fetch_task(scene_object._id, item)
         except HttpError:
             logger.error(f"Error formatting info and metadata for {item['_id']}: {traceback.format_exc()}")
             self.item_unformatted(item["_id"])

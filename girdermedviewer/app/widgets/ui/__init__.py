@@ -1,7 +1,7 @@
 from .app_ui import AppLayout, AppState, AppUI
 from .girder.girder_browser_ui import GirderBrowserState, GirderBrowserUI
 from .girder.girder_connection_ui import GirderConnectionState, GirderConnectionUI
-from .scene.scene_ui import SceneUI
+from .scene.scene_ui import SceneState, SceneUI
 from .vtk.base_view import VtkView
 from .vtk.slice_view import SliceView
 from .vtk.threed_view import ThreeDView
@@ -16,6 +16,7 @@ __all__ = [
     "GirderBrowserUI",
     "GirderConnectionState",
     "GirderConnectionUI",
+    "SceneState",
     "SceneUI",
     "SliceView",
     "ThreeDView",

@@ -2,6 +2,7 @@ import ast
 import logging
 import os
 import sys
+import traceback
 from asyncio import to_thread
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -11,6 +12,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 from urllib.parse import urljoin
+
+from urllib3.exceptions import IncompleteRead
 
 logging.basicConfig(stream=sys.stdout)
 
@@ -133,6 +136,8 @@ class FileFetcher:
 
         try:
             yield file_path
+        except IncompleteRead as e:
+            raise FileFetchError(f"An error happened reading the Girder file: : {traceback.format_exc()}") from e
         finally:
             if self.cache == CacheMode.No:
                 self.clear_cache(file_path)

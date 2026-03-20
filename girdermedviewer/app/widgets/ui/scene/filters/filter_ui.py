@@ -35,18 +35,15 @@ class FilterToolbarUI(html.Div):
 
 
 class FilterUI(html.Div):
-    def __init__(self, obj_id: str, obj_filter_type: str, obj_filter_prop: str, **kwargs) -> None:
+    def __init__(self, obj_filter_type: str, obj_filter_prop: str, disabled: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._obj_id = obj_id
         self._filter_type = obj_filter_type
-        self._filter_prop = obj_filter_prop
-        self._build_ui()
 
-    def _build_ui(self) -> None:
         with self:
             self.gaussian_filter = GaussianFilterUI(
                 v_if=(self._is_filter_active(FilterType.GAUSSIAN_BLUR),),
-                obj_filter_prop=self._filter_prop,
+                disabled=disabled,
+                obj_filter_prop=obj_filter_prop,
             )
 
     def _is_filter_active(self, filter_type: FilterType) -> str:

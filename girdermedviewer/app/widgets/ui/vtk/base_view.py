@@ -1,5 +1,6 @@
 import logging
 import weakref
+from abc import abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -7,6 +8,7 @@ from enum import Enum
 from trame.widgets import html, vtk
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
+from vtkmodules.vtkCommonDataModel import vtkImageData
 
 from ...utils import (
     Button,
@@ -16,6 +18,7 @@ from ...utils import (
     remove_prop,
     set_mesh_color,
     set_mesh_opacity,
+    set_mesh_visibility,
 )
 
 logger = logging.getLogger(__name__)
@@ -24,14 +27,6 @@ logger = logging.getLogger(__name__)
 class ViewType(Enum):
     SLICE = 0
     THREED = 1
-
-
-@dataclass
-class SliderStateId:
-    value_id: str
-    min_id: str
-    max_id: str
-    step_id: str
 
 
 @dataclass
@@ -89,26 +84,36 @@ class VtkView(vtk.VtkRemoteView):
     def register_data(self, data_id, data):
         # Associate data (typically an actor) to data_id so that it can be
         # removed when data_id is unregistered.
+        if data in self.data.get(data_id, []):
+            return
         self.data[data_id].append(data)
 
-    def unregister_data(self, data_id, no_render=False, only_data=None):
+    def unregister_data(self, data_id, only_data=None, remove=True):
         """
         :param only_data removes only the provided data if any, all associated if None
+        :param remove removes the prop from the view
         """
-        for data in list(self.data[data_id]):
+        data_list = list(self.data.get(data_id, []))
+        for data in data_list:
             if only_data is None or data == only_data:
-                remove_prop(self.renderer, data)
+                if remove:
+                    remove_prop(self.renderer, data)
                 self.data[data_id].remove(data)
-        if len(self.data[data_id]) == 0:
+        if len(data_list) == 0:
             self.data.pop(data_id)
-        if not no_render:
+
+        self.update()
+
+    @abstractmethod
+    def set_volume_visibility(self, data_id: str, visible: bool, image_data: vtkImageData | None = None) -> None:
+        pass
+
+    def set_mesh_visibility(self, data_id: str, visible: bool) -> None:
+        modified = False
+        for actor in self.get_actors(data_id):
+            modified = set_mesh_visibility(actor, visible) or modified
+        if modified is not False:
             self.update()
-
-    def remove_volume(self, data_id, no_render=False, only_data=None):
-        return self.unregister_data(data_id, no_render, only_data)
-
-    def remove_mesh(self, data_id, no_render=False, only_data=None):
-        return self.unregister_data(data_id, no_render, only_data)
 
     def set_mesh_opacity(self, data_id, opacity):
         modified = False
