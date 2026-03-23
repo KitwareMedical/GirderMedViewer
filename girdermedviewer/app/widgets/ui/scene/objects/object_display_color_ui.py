@@ -192,11 +192,19 @@ class VolumeDisplayNormalColorUI(html.Div):
                     v_model=(f"{self.display}.normal_color.arrow_length",),
                     disabled=(f"!{self.display}.normal_color.show_arrows",),
                     label="Length",
+                    min=0.01,
+                    max=10.0,
+                    step=0.01,
+                    precision=2,
                 )
                 NumberInput(
                     v_model=(f"{self.display}.normal_color.arrow_width",),
                     disabled=(f"!{self.display}.normal_color.show_arrows",),
                     label="Width",
+                    min=0.01,
+                    max=1.0,
+                    step=0.01,
+                    precision=2,
                 )
 
             VolumeWindowLevelUI(self.display)

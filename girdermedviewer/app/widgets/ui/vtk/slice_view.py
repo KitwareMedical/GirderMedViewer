@@ -15,8 +15,10 @@ from ...utils import (
     get_slice_index_from_position,
     render_mesh_in_slice,
     render_volume_as_overlay_in_slice,
+    render_volume_as_vector_field,
     render_volume_in_slice,
     reset_reslice,
+    set_actor_visibility,
     set_oblique_visibility,
     set_reslice_center,
     set_reslice_normal,
@@ -26,6 +28,8 @@ from ...utils import (
     set_slice_opacity,
     set_slice_visibility,
     set_slice_window_level,
+    set_vector_field_arrow_length,
+    set_vector_field_arrow_thickness,
 )
 from .base_view import ViewType, VtkView
 
@@ -252,7 +256,24 @@ class SliceView(VtkView):
     ):
         logger.debug(f"set_volume_normal_color({data_id})")
         modified = False
-        # TODO Julien
+        glyph_actors = self.get_glyph_actors(data_id)
+        if _show_arrows and len(glyph_actors) == 0:
+            glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id),
+                                                        self.renderer,
+                                                        self.orientation.value)
+            self.register_data(data_id, glyph_actor)
+            glyph_actors = [glyph_actor]
+            modified = True
+        # FIXME: add a convenient function to set visibility of any actor
+        for glyph_actor in glyph_actors:
+            modified = set_actor_visibility(glyph_actor, _show_arrows) or modified
+            modified = set_vector_field_arrow_length(glyph_actor, _arrow_length) or modified
+            modified = set_vector_field_arrow_thickness(glyph_actor, _arrow_width) or modified
+        for image_slice in self.get_image_slices(data_id):
+            modified = set_actor_visibility(image_slice, not _show_arrows) or modified
+        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
+        if reslice_image_viewer is not None:
+            modified = set_actor_visibility(reslice_image_viewer, not _show_arrows) or modified
         if modified:
             self.update()
 

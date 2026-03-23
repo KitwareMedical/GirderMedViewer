@@ -17,6 +17,7 @@ from ...utils import (
     VolumePresetParser,
     create_rendering_pipeline,
     debounce,
+    get_image_data,
     remove_prop,
     set_mesh_opacity,
     set_mesh_solid_color,
@@ -86,6 +87,18 @@ class VtkView(vtk.VtkRemoteView):
     def get_actors(self, data_id):
         data = [self.data[data_id]] if data_id in self.data else self.data.values()
         return [obj for objs in data for obj in objs if obj.IsA("vtkActor")]
+
+    def get_image_data(self, data_id):
+        data = [self.data[data_id]] if data_id in self.data else self.data.values()
+        image_data = [get_image_data(obj)
+                      for objs in data
+                      for obj in objs
+                      if get_image_data(obj) is not None]
+        return image_data[0] if len(image_data) else None
+
+    def get_glyph_actors(self, data_id):
+        data = [self.data[data_id]] if data_id in self.data else self.data.values()
+        return [obj for objs in data for obj in objs if obj.IsA("vtkGlyph3DMapper")]
 
     def register_data(self, data_id, data):
         # Associate data (typically an actor) to data_id so that it can be

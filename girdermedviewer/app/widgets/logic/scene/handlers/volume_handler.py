@@ -81,6 +81,13 @@ class VolumeDisplayHandler:
                     arrow_length,
                     arrow_width,
                 )
+            for view in self.threed_views:
+                view.set_volume_normal_color(
+                    volume_id,
+                    show_arrows,
+                    arrow_length,
+                    arrow_width,
+                )
 
         return _update_normal_coloring
 
@@ -148,7 +155,7 @@ class VolumeHandler(ObjectHandler):
             ("name", "vr_shift"), self.display_handler.update_threed_coloring(volume_logic._id)
         )
         volume_logic.display.twod_color.watch(("name", "is_inverted"), self.display_handler.update_twod_coloring(volume_logic._id))
-        volume_logic.display.normal_color.watch(("show_arrows", "arrow_length", "arrow_width"), self.display_handler.update_normal_coloring)
+        volume_logic.display.normal_color.watch(("show_arrows", "arrow_length", "arrow_width"), self.display_handler.update_normal_coloring(volume_logic._id))
         volume_logic.scene_object.watch(
             ("is_visible",), self.display_handler.update_threed_visibility(volume_logic._id)
         )

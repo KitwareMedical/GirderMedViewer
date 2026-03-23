@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 class NormalColor(StateDataModel):
     show_arrows = Sync(bool, False)
-    arrow_length = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
-    arrow_width = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
+    arrow_length = Sync(float, 0.3, type_checking=TypeValidation.SKIP)
+    arrow_width = Sync(float, 0.03, type_checking=TypeValidation.SKIP)
 
 
 class VolumeDisplay(StateDataModel):

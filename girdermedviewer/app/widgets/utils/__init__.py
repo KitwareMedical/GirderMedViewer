@@ -9,15 +9,14 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType, VolumeLayer
+
 from .vtk.preset_utils import (
-    ColorPresetParser,
     DataArray,
     DataArrayType,
+    ColorPresetParser,
     MeshColoringMode,
     Preset,
     PresetParser,
-    VolumeColoringMode,
     VolumePresetParser,
     get_color_preset_parser,
     get_volume_preset_parser,
@@ -38,12 +37,14 @@ from .vtk.vtk_utils import (
     render_mesh_in_3D,
     render_mesh_in_slice,
     render_volume_as_overlay_in_slice,
+    render_volume_as_vector_field,
     render_volume_in_3D,
     render_volume_in_slice,
     reset_3D,
     reset_reslice,
-    set_mesh_opacity,
+    set_actor_visibility,
     set_mesh_solid_color,
+    set_mesh_opacity,
     set_mesh_visibility,
     set_oblique_visibility,
     set_reslice_center,
@@ -54,10 +55,24 @@ from .vtk.vtk_utils import (
     set_slice_opacity,
     set_slice_visibility,
     set_slice_window_level,
+    set_vector_field_arrow_length,
+    set_vector_field_arrow_thickness,
     set_volume_visibility,
     supported_mesh_extensions,
     supported_volume_extensions,
 )
+
+from .vtk.vtk_utils import (
+    get_image_data,
+    get_number_of_slices,
+    get_position_from_slice_index,
+    get_random_color,
+    create_gaussian_filter,
+    create_rendering_pipeline,
+)
+
+from .scene_utils import FilterType, SceneObjectType, VolumeLayer
+
 
 __all__ = [
     "AppConfig",
@@ -89,6 +104,7 @@ __all__ = [
     "debounce",
     "format_date",
     "get_color_preset_parser",
+    "get_image_data",
     "get_number_of_slices",
     "get_position_from_slice_index",
     "get_random_color",
@@ -104,10 +120,13 @@ __all__ = [
     "render_mesh_in_3D",
     "render_mesh_in_slice",
     "render_volume_as_overlay_in_slice",
+    "render_volume_as_vector_field",
     "render_volume_in_3D",
     "render_volume_in_slice",
     "reset_3D",
     "reset_reslice",
+    "set_actor_opacity",
+    "set_actor_visibility",
     "set_mesh_opacity",
     "set_mesh_solid_color",
     "set_mesh_visibility",
@@ -120,6 +139,8 @@ __all__ = [
     "set_slice_opacity",
     "set_slice_visibility",
     "set_slice_window_level",
+    "set_vector_field_arrow_length",
+    "set_vector_field_arrow_thickness",
     "set_volume_visibility",
     "supported_mesh_extensions",
     "supported_volume_extensions",

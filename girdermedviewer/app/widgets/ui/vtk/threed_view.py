@@ -5,7 +5,11 @@ from girdermedviewer.app.widgets.utils.scene_utils import VolumeLayer
 from ...utils import (
     render_mesh_in_3D,
     render_volume_in_3D,
+    render_volume_as_vector_field,
     reset_3D,
+    set_actor_visibility,
+    set_vector_field_arrow_length,
+    set_vector_field_arrow_thickness,
     set_volume_visibility,
 )
 from .base_view import ViewType, VtkView
@@ -64,6 +68,22 @@ class ThreeDView(VtkView):
     ):
         logger.debug(f"set_volume_normal_color({data_id})")
         modified = False
-        # TODO Julien
+        glyph_actors = self.get_glyph_actors(data_id)
+        if _show_arrows and len(glyph_actors) == 0:
+            glyph_actor = render_volume_as_vector_field(
+                self.get_image_data(data_id),
+                self.renderer
+            )
+            self.register_data(data_id, glyph_actor)
+            glyph_actors = [glyph_actor]
+            modified = True
+        # FIXME: add a convenient function to set visibility of any actor
+        for glyph_actor in glyph_actors:
+            modified = set_actor_visibility(glyph_actor, _show_arrows) or modified
+            modified = set_vector_field_arrow_length(glyph_actor, _arrow_length) or modified
+            modified = set_vector_field_arrow_thickness(glyph_actor, _arrow_width) or modified
+        volume = self.get_data(data_id)
+        if volume is not None:
+            modified = set_volume_visibility(volume, not _show_arrows) or modified
         if modified:
             self.update()

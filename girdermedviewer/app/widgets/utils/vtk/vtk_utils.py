@@ -7,10 +7,13 @@ from zipfile import ZipFile
 from vtk import reference as vtk_reference
 from vtk import (
     vtkActor,
+    vtkArrowSource,
     vtkBoundingBox,
     vtkBox,
     vtkColorSeries,
     vtkCutter,
+    vtkGlyph3DMapper,
+    vtkImageData,
     vtkImageGaussianSmooth,
     vtkImageReslice,
     vtkImageResliceMapper,
@@ -21,6 +24,7 @@ from vtk import (
     vtkNIFTIImageReader,
     vtkNrrdReader,
     vtkPolyDataMapper,
+    vtkResliceCursor,
     vtkResliceCursorLineRepresentation,
     vtkResliceCursorRepresentation,
     vtkResliceCursorWidget,
@@ -59,10 +63,11 @@ def set_oblique_visibility(reslice_image_viewer, visible):
     reslice_cursor_widget.SetProcessEvents(visible)
 
 
-def get_reslice_cursor(reslice_object):
+def get_reslice_cursor(reslice_object) -> vtkResliceCursor | None:
     """
-    Return the point where the 3 planes intersect.
-    :rtype tuple[float, float, float]
+    Return the vtkResliceCursor from a vtkResliceImageViewer,
+    a vtkResliceCursorWidget or a vtkResliceCursorRepresentation.
+    :rtype vtkResliceCursor | None:
     """
     if isinstance(reslice_object, vtkResliceImageViewer):
         reslice_object = reslice_object.GetResliceCursor()
@@ -74,10 +79,10 @@ def get_reslice_cursor(reslice_object):
     return reslice_object
 
 
-def get_reslice_cursor_representation(reslice_object):
+def get_reslice_cursor_representation(reslice_object) -> vtkResliceCursorRepresentation | None:
     """
-    Return the point where the 3 planes intersect.
-    :rtype tuple[float, float, float]
+    Return the vtkResliceCursorRepresentation from vtkResliceImageViewer or a vtkResliceCursorWidget.
+    :rtype vtkResliceCursorRepresentation | None:
     """
     if isinstance(reslice_object, vtkResliceImageViewer):
         reslice_object = reslice_object.GetResliceCursorWidget()
@@ -85,6 +90,14 @@ def get_reslice_cursor_representation(reslice_object):
         reslice_object = reslice_object.GetResliceCursorRepresentation()
     assert reslice_object is None or reslice_object.IsA("vtkResliceCursorRepresentation")
     return reslice_object
+
+
+def get_image_data(object: vtkResliceImageViewer | vtkImageSlice) -> vtkImageData | None:
+    if isinstance(object, vtkResliceImageViewer):
+        return object.GetInput()
+    if isinstance(object, vtkImageSlice):
+        return object.GetMapper().GetInput()
+    return None
 
 
 def get_closest_point_in_bounds(bounds, point):
@@ -171,8 +184,9 @@ def set_reslice_opacity(_reslice_image_viewer, opacity):
 
 def reset_reslice(reslice_image_viewer):
     reslice_cursor = get_reslice_cursor(reslice_image_viewer)
-    if reslice_image_viewer.GetInput() is not None:
-        center = reslice_image_viewer.input.center
+    image_data = get_image_data(reslice_image_viewer)
+    if image_data is not None:
+        center = image_data.center
         reslice_cursor.SetCenter(center)
     # reslice_image_viewer.GetResliceCursorWidget().ResetResliceCursor()
     reslice_cursor.GetPlane(0).SetNormal(-1, 0, 0)
@@ -207,7 +221,8 @@ def get_reslice_normal(reslice_image_viewer, axis):
 def get_reslice_range(reslice_image_viewer, axis, center=None):
     if reslice_image_viewer is None:
         return None
-    bounds = reslice_image_viewer.GetInput().GetBounds()
+    image_data = get_image_data(reslice_image_viewer)
+    bounds = image_data.GetBounds()
     if center is None or not vtkBoundingBox(bounds).ContainsPoint(center):
         center = get_reslice_center(reslice_image_viewer)
     normal = list(get_reslice_normal(reslice_image_viewer, axis))
@@ -223,7 +238,7 @@ def get_reslice_range(reslice_image_viewer, axis, center=None):
     p1 = vtk_reference(0)
     p2 = vtk_reference(0)
     vtkBox.IntersectWithInfiniteLine(bounds, center_minus_normal, center_plus_normal, t1, t2, x1, x2, p1, p2)
-    reslice_image_viewer.GetInput().GetSpacing()
+    image_data.GetSpacing()
     return x1, x2
 
 
@@ -240,7 +255,7 @@ def get_number_of_slices(reslice_image_viewer, axis):
     if reslice_image_viewer is None:
         return 0
     start, end = get_reslice_range(reslice_image_viewer, axis)
-    spacing = reslice_image_viewer.GetInput().GetSpacing()
+    spacing = get_image_data(reslice_image_viewer).GetSpacing()
     return get_index(start, end, spacing)
 
 
@@ -249,7 +264,7 @@ def get_slice_index_from_position(position, reslice_image_viewer, axis):
     if reslice_image_viewer is None:
         return None
     start, _ = get_reslice_range(reslice_image_viewer, axis, position)
-    spacing = reslice_image_viewer.GetInput().GetSpacing()
+    spacing = get_image_data(reslice_image_viewer).GetSpacing()
     return get_index(start, position, spacing)
 
 
@@ -269,7 +284,7 @@ def get_position_from_slice_index(index, reslice_image_viewer, axis):
     ]
 
 
-def get_reslice_image_viewer(axis=-1):
+def get_reslice_image_viewer(axis=-1) -> vtkResliceImageViewer:
     """
     Returns a matching reslice image viewer or create it if it does not exist.
     If axis is -1, it returns the firstly added reslice image viewer
@@ -379,13 +394,78 @@ def set_slice_visibility(image_slice: vtkImageSlice, visible: bool) -> bool:
     return True
 
 
-def set_slice_opacity(image_slice, opacity):
-    if image_slice is None:
+def render_volume_as_vector_field(image_data, renderer, axis=2):
+    reslice_image_viewer = get_reslice_image_viewer(axis)
+    reslice_cursor = get_reslice_cursor(reslice_image_viewer)
+
+    point_data = image_data.GetPointData()
+    for i in range(point_data.GetNumberOfArrays()):
+        logger.info("array: %s", point_data.GetArray(i).GetName())
+
+    cutter = vtkCutter()
+    cutter.SetInputData(image_data)
+    cutter.SetCutFunction(reslice_cursor.GetPlane(axis))
+
+    arrow = vtkArrowSource()
+    arrow.SetTipLength(0.3)
+    arrow.SetTipRadius(0.1)
+    arrow.SetShaftRadius(0.03)
+
+    imageMapper = vtkImageResliceMapper()
+    imageMapper.SetInputData(image_data)
+    imageMapper.SetSlicePlane(reslice_cursor.GetPlane(axis))
+
+    glyph_mapper = vtkGlyph3DMapper()
+    glyph_mapper.SetInputConnection(cutter.GetOutputPort())
+    glyph_mapper.SetSourceConnection(arrow.GetOutputPort())
+
+    glyph_mapper.SetOrientationArray("Scalars")
+    # glyph_mapper.SetScaleArray("Vectors")
+    # glyph_mapper.SetScaleModeToScaleByVector()
+    # glyph_mapper.SetScaleFactor(0.2)
+    glyph_mapper.OrientOn()
+
+    bounds = glyph_mapper.GetBounds()
+    logger.info('glyph bounds: %s', bounds)
+
+    glyph_actor = vtkActor()
+    glyph_actor.SetMapper(glyph_mapper)
+
+    renderer.AddActor(glyph_actor)
+
+    # Fit volume to viewport
+    # renderer.ResetCameraScreenSpace(0.8)
+
+    return glyph_actor
+
+
+def set_actor_visibility(image_slice_or_actor: vtkActor | vtkImageSlice, visibility: bool) -> bool:
+    """
+    Set the visibility of a vtkActor or a vtkImageSlice.
+    Return true if the visibility was changed, false otherwise.
+    @see set_actor_opacity
+    """
+    if image_slice_or_actor is None:
         return False
-    if image_slice.GetProperty().GetOpacity() == opacity:
+    if hasattr(image_slice_or_actor, "GetResliceCursorWidget"):
+        image_slice_or_actor = image_slice_or_actor.GetResliceCursorWidget().GetRepresentation()
+    if image_slice_or_actor.GetVisibility() == visibility:
         return False
-    image_slice.GetProperty().SetOpacity(opacity)
+    image_slice_or_actor.SetVisibility(visibility)
     return True
+
+
+def set_actor_opacity(image_slice_or_actor: vtkActor | vtkImageSlice, opacity: float) -> bool:
+    if image_slice_or_actor is None:
+        return False
+    if image_slice_or_actor.GetProperty().GetOpacity() == opacity:
+        return False
+    image_slice_or_actor.GetProperty().SetOpacity(opacity)
+    return True
+
+
+def set_slice_opacity(image_slice: vtkImageSlice, opacity: float) -> bool:
+    return set_actor_opacity(image_slice, opacity)
 
 
 def set_slice_window_level(image_slice, window_level):
@@ -430,10 +510,7 @@ def set_mesh_visibility(actor: vtkActor, visible):
 
 
 def set_mesh_opacity(actor, opacity):
-    if actor.GetProperty().GetOpacity() == opacity:
-        return False
-    actor.GetProperty().SetOpacity(opacity)
-    return True
+    return set_actor_opacity(actor, opacity)
 
 
 def set_mesh_solid_color(actor, color):
