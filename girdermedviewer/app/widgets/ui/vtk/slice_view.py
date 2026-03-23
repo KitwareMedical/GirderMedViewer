@@ -15,8 +15,10 @@ from ...utils import (
     get_slice_index_from_position,
     render_mesh_in_slice,
     render_volume_as_overlay_in_slice,
+    render_volume_as_vector_field,
     render_volume_in_slice,
     reset_reslice,
+    set_actor_visibility,
     set_oblique_visibility,
     set_reslice_center,
     set_reslice_normal,
@@ -26,6 +28,8 @@ from ...utils import (
     set_slice_opacity,
     set_slice_visibility,
     set_slice_window_level,
+    set_vector_field_arrow_length,
+    set_vector_field_arrow_thickness,
 )
 from .base_view import ViewType, VtkView
 
@@ -225,6 +229,53 @@ class SliceView(VtkView):
             window = window_level_min_max[1] - window_level_min_max[0]
             level = (window_level_min_max[0] + window_level_min_max[1]) / 2
             self.set_volume_window_level(data_id, (window, level))
+
+    def set_volume_scalar_color_preset(self, data_id: str, preset_name: str, is_inverted: bool):
+        if self.color_preset_parser is None:
+            return
+        logger.debug(f"set_volume_scalar_color_preset({data_id}):{' Inverse' if is_inverted else ''} {preset_name}")
+        preset = self.color_preset_parser.get_preset_by_name(preset_name)
+        if preset is None:
+            return
+
+        modified = False
+        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
+        if reslice_image_viewer is not None or preset is None:
+            modified = self.color_preset_parser.apply_preset_to_volume(reslice_image_viewer, preset,  is_inverted)
+        for slice in self.get_image_slices(data_id):
+            modified = self.color_preset_parser.apply_preset_to_volume(slice.GetProperty(), preset, is_inverted)
+        if modified:
+            self.update()
+
+    def set_volume_normal_color(
+        self,
+        data_id: str,
+        _show_arrows: bool,
+        _arrow_length: bool,
+        _arrow_width: bool,
+    ):
+        logger.debug(f"set_volume_normal_color({data_id})")
+        modified = False
+        glyph_actors = self.get_glyph_actors(data_id)
+        if _show_arrows and len(glyph_actors) == 0:
+            glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id),
+                                                        self.renderer,
+                                                        self.orientation.value)
+            self.register_data(data_id, glyph_actor)
+            glyph_actors = [glyph_actor]
+            modified = True
+        # FIXME: add a convenient function to set visibility of any actor
+        for glyph_actor in glyph_actors:
+            modified = set_actor_visibility(glyph_actor, _show_arrows) or modified
+            modified = set_vector_field_arrow_length(glyph_actor, _arrow_length) or modified
+            modified = set_vector_field_arrow_thickness(glyph_actor, _arrow_width) or modified
+        for image_slice in self.get_image_slices(data_id):
+            modified = set_actor_visibility(image_slice, not _show_arrows) or modified
+        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
+        if reslice_image_viewer is not None:
+            modified = set_actor_visibility(reslice_image_viewer, not _show_arrows) or modified
+        if modified:
+            self.update()
 
     def on_window_leveling(self, *_args):
         window_level_value = get_reslice_window_level(self.get_reslice_image_viewer())

@@ -1,9 +1,11 @@
 import logging
 from collections.abc import Callable
 
+from trame_dataclass.v2 import get_instance
+
 from ....ui import ViewUI, VtkView
-from ....utils import debounce, supported_mesh_extensions
-from ..objects.mesh_object_logic import MeshObjectLogic
+from ....utils import DataArray, MeshColoringMode, debounce, supported_mesh_extensions
+from ..objects.mesh_object_logic import MeshDisplay, MeshObjectLogic
 from .object_handler import ObjectHandler
 
 logger = logging.getLogger(__name__)
@@ -29,15 +31,42 @@ class MeshDisplayHandler:
 
         return _update_opacity
 
-    def update_color(self, mesh_id: str) -> Callable:
+    def update_solid_coloring(self, mesh_id: str) -> Callable:
         @debounce(0.05)
-        def _update_color(color: str) -> None:
+        def _update_solid_coloring(color: str) -> None:
             hex = color.lstrip("#")
             color_tuple = tuple(float(int(hex[i : i + 2], 16)) / 255.0 for i in (0, 2, 4))
             for view in self.views:
-                view.set_mesh_color(mesh_id, color_tuple)
+                view.set_mesh_solid_color(mesh_id, color_tuple)
+        return _update_solid_coloring
+        
+    def update_array_coloring(self, mesh_id: str, mesh_display: MeshDisplay) -> Callable:
+        @debounce(0.05)
+        def _update_array_coloring(name: str, is_inverted: bool, scalar_range: list[float]) -> None:
+            active_array = get_instance(mesh_display.active_array_id)
+            for view in self.views:
+                view.set_mesh_array_color(
+                    mesh_id,
+                    active_array,
+                    name,
+                    is_inverted,
+                    scalar_range,
+                )
 
-        return _update_color
+        return _update_array_coloring
+    
+    def update_active_array(self, mesh_id: str, mesh_display: MeshDisplay) -> Callable:
+        @debounce(0.05)
+        def _update_active_array(active_array_id: str) -> None:
+            active_array = get_instance(active_array_id)
+            assert isinstance(active_array, DataArray)
+            if active_array.coloring_mode == MeshColoringMode.SOLID:
+                self.update_solid_coloring(mesh_id)(mesh_display.solid_color)
+
+            elif active_array.coloring_mode == MeshColoringMode.ARRAY:
+                mesh_display.array_color.array_range = active_array.array_min_max
+
+        return _update_active_array
 
     def set_view_ui(self, view_ui: ViewUI):
         self.views = view_ui.views
@@ -54,7 +83,12 @@ class MeshHandler(ObjectHandler):
 
     def _connect_mesh_logic_to_display_handler(self, mesh_logic: MeshObjectLogic):
         mesh_logic.display.watch(("opacity",), self.display_handler.update_opacity(mesh_logic._id))
-        mesh_logic.display.watch(("color",), self.display_handler.update_color(mesh_logic._id))
+        mesh_logic.display.watch(("active_array_id",), self.display_handler.update_active_array(mesh_logic._id, mesh_logic.display))
+        mesh_logic.display.watch(("solid_color",), self.display_handler.update_solid_coloring(mesh_logic._id))
+        mesh_logic.display.array_color.watch(
+            ("name", "is_inverted", "array_range"),
+            self.display_handler.update_array_coloring(mesh_logic._id, mesh_logic.display),
+        )
         mesh_logic.scene_object.watch(("is_visible",), self.display_handler.update_visibility(mesh_logic._id))
 
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:

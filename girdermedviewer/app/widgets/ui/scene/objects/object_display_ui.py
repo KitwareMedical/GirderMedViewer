@@ -2,84 +2,59 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import Button, SceneObjectType, Text
-from .object_components import PresetSelector, PropertyRangeSlider
+from ....utils import SceneObjectType
+from .object_display_color_ui import (
+    MeshDisplayColorUI,
+    VolumeDisplayNormalColorUI,
+    VolumeDisplayThreeDColorUI,
+    VolumeDisplayTwoDColorUI,
+)
 from .object_display_opacity_ui import ObjectDisplayOpacityUI
 
 
 class VolumeDisplayUI(html.Div):
-    def __init__(self, obj_display: str, disabled: str, has_opacity: str, threed_presets: str, **kwargs):
+    def __init__(self, obj_display: str, disabled: str, has_opacity: str, twod_presets: str, threed_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
         self.disabled = disabled
         self.has_opacity = has_opacity
+        self.twod_presets = twod_presets
         self.threed_presets = threed_presets
         self._build_ui()
 
     def _build_ui(self) -> None:
         with self:
-            with html.Div(v_if=(f"{self.display}.threed_preset",)):
-                Text("Preset 3D", classes="text-subtitle-2 pt-2")
-                PresetSelector(
-                    v_model=(f"{self.display}.threed_preset.name"),
-                    disabled=(self.disabled,),
-                    items=(self.threed_presets,),
-                )
-
-                Text("Volume Rendering Shift", classes="text-subtitle-2 pt-2")
-                PropertyRangeSlider(
-                    v_model=(f"{self.display}.threed_preset.vr_shift",),
-                    disabled=(self.disabled,),
-                    range_min_max=f"{self.display}.scalar_range",
-                )
-
-            Text("Window / level", classes="text-subtitle-2 pt-2")
-            with (
-                PropertyRangeSlider(
-                    v_model=f"{self.display}.window_level",
-                    disabled=(self.disabled,),
-                    range_min_max=f"{self.display}.scalar_range",
-                ),
-                v3.Template(v_slot_append=True),
-            ):
-                Button(
-                    click=f"{self.display}.window_level = {self.display}.scalar_range",
-                    disabled=(self.disabled,),
-                    tooltip="Auto Window/Level",
-                    icon="mdi-refresh-auto",
-                )
-
-            ObjectDisplayOpacityUI(
-                v_if=(self.has_opacity,),
-                obj_opacity=f"{self.display}.opacity",
-            )
+            with html.Div(v_if=(f"{self.display}.number_of_components == 1",)):
+                VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
+                v3.VDivider(classes="display-property-divider")
+                VolumeDisplayTwoDColorUI(self.display, self.twod_presets)
+            with html.Div(v_if=(f"{self.display}.number_of_components == 3",)):
+                VolumeDisplayNormalColorUI(self.display)
+            with html.Div(v_if=(self.has_opacity,),):
+                v3.VDivider(classes="display-property-divider")
+                ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
 
 
 class MeshDisplayUI(html.Div):
-    def __init__(self, obj_display: str, **kwargs):
+    def __init__(self, obj_display: str, scalar_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
+        self.scalar_presets = scalar_presets
         self._build_ui()
 
     def _build_ui(self) -> None:
         with self:
-            Text("Color", classes="text-subtitle-2")
-            v3.VColorPicker(
-                v_model=(f"{self.display}.color",),
-                elevation=0,
-                modes=("['rgb']",),
-                style="width: 100%",
-            )
-
-            ObjectDisplayOpacityUI(obj_opacity="display.opacity")
+            MeshDisplayColorUI(self.display, self.scalar_presets)
+            v3.VDivider(classes="display-property-divider")
+            ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
 
 
 class SceneObjectDisplayUI(html.Div):
-    def __init__(self, obj: str, disabled: str, has_opacity: str, threed_presets: str, **kwargs):
+    def __init__(self, obj: str, disabled: str, has_opacity: str, color_presets: str, volume_presets: str, **kwargs):
         super().__init__(
             **kwargs,
         )
@@ -90,11 +65,13 @@ class SceneObjectDisplayUI(html.Div):
                 obj_display="display",
                 disabled=disabled,
                 has_opacity=has_opacity,
-                threed_presets=threed_presets,
+                twod_presets=color_presets,
+                threed_presets=volume_presets,
                 v_if=(self._is_object_type(SceneObjectType.VOLUME),),
             )
             MeshDisplayUI(
                 obj_display="display",
+                scalar_presets=color_presets,
                 v_if=(self._is_object_type(SceneObjectType.MESH),),
             )
 

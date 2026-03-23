@@ -84,6 +84,11 @@ class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
             ".connection-form { display: flex } "
+            ".display-property { gap: 12px; display: flex; flex-direction: column; } "
+            ".display-property-divider { margin-top: 12px; margin-bottom: 12px; } "
+            ".display-property-setting { gap: 12px; display: flex; flex-direction: row; align-items: center; } "
+            ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em;}"
+            ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em;}"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px;} "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px;} "
             ".v-window { overflow: unset; } "
