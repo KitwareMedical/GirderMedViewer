@@ -80,6 +80,31 @@ class LoadingButton(Button):
             )
 
 
+class LayerIcon(VIcon):
+    def __init__(self, inactive: bool = False, gap: bool = False, **kwargs):
+        kwargs["icon"] = kwargs.pop("icon", "mdi-square")
+        kwargs["classes"] = kwargs.pop("classes", "layer-icon")
+        if inactive:
+            kwargs["classes"] += " layer-icon--inactive"
+        if gap:
+            kwargs["classes"] += " layer-icon--gap"
+        super().__init__(**kwargs)
+
+
+class LayerButton(Button):
+    def __init__(self, main_layer: str | tuple[str], **kwargs):
+        super().__init__(icon=True, variant="text", **kwargs)
+        with self, Div(classes="layer-btn"):
+            with Div(classes="layer-bottom"):
+                LayerIcon(v_if=main_layer)
+                LayerIcon(v_else=True, inactive=True)
+            with Div(classes="layer-top"):
+                LayerIcon(gap=True)
+            with Div(classes="layer-top"):
+                LayerIcon(v_if=main_layer, inactive=True)
+                LayerIcon(v_else=True)
+
+
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
@@ -91,6 +116,12 @@ class GlobalStyle(Style):
             ".girder-browser { width: 100%; } "
             ".item-card .v-expansion-panel--active>.v-expansion-panel-title,.v-expansion-panel-title { height: 64px !important }"
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important; }"
+            ".layer-btn { position: relative; height: 24px; width: 24px; transform: rotateX(45deg); } "
+            ".layer-bottom { position: absolute; top: 4px; left: -1px; } "
+            ".layer-top { position: absolute; top: -4px; left: -1px; } "
+            ".layer-icon { transform: rotate(45deg); } "
+            ".layer-icon--inactive { opacity: 0.6 !important; } "
+            ".layer-icon--gap { color: rgb(var(--v-theme-surface)); } "
             ".metadata-content { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap:8px; }"
             ".metadata-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
             ".metadata-item { width: 50%; }"

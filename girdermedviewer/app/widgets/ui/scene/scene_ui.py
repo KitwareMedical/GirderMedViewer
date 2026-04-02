@@ -7,7 +7,14 @@ from trame_dataclass.v2 import Provider, get_instance
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ...utils import Button, FilterType, LoadingButton, SceneObjectType, Text
+from ...utils import (
+    Button,
+    FilterType,
+    LayerButton,
+    LoadingButton,
+    SceneObjectType,
+    Text,
+)
 from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
@@ -67,13 +74,6 @@ class SceneObjectUI(v3.VExpansionPanel):
                         click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
                     )
                     with html.Div(v_else=True):
-                        Button(
-                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
-                            click_native_stop=(self.overlay_clicked, f"[{self.obj}._id]"),
-                            color=(f"!{self._is_primary_volume()} ? 'primary' : 'undefined'",),
-                            icon="mdi-layers",
-                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
-                        )
                         Button(
                             click_native_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
                             icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
@@ -168,13 +168,19 @@ class SceneObjectUI(v3.VExpansionPanel):
 
                 with v3.VCardActions(classes="justify-space-between"):
                     self.filter_toolbar = FilterToolbarUI(obj_id=f"{self.obj}._id", obj_type=f"{self.obj}.object_type")
-
-                    Button(
-                        icon="mdi-delete",
-                        tooltip="Delete",
-                        color="error",
-                        click=(self.delete_clicked, f"[{self.obj}._id]"),
-                    )
+                    with html.Div(classes="d-flex"):
+                        LayerButton(
+                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
+                            main_layer=(self._is_primary_volume(),),
+                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
+                            click=(self.overlay_clicked, f"[{self.obj}._id]"),
+                        )
+                        Button(
+                            icon="mdi-delete",
+                            tooltip="Delete",
+                            color="error",
+                            click=(self.delete_clicked, f"[{self.obj}._id]"),
+                        )
 
 
 class SceneUI(html.Div):
