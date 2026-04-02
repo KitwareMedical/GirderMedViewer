@@ -52,8 +52,14 @@ class SceneObjectUI(v3.VExpansionPanel):
 
     def _build_ui(self):
         with self:
-            with v3.VExpansionPanelTitle(color=(f"{self._is_active_primary_volume()} ? 'primary' : 'undefined'",)):
+            with v3.VExpansionPanelTitle():
                 Text("{{ " + self.obj + ".name }}", classes="text-header")
+                v3.VChip(
+                    v_if=(self._is_active_primary_volume(),),
+                    classes="ml-2",
+                    color="primary",
+                    text="main",
+                )
                 with v3.Template(v_slot_actions="{ expanded }"):
                     LoadingButton(
                         v_if=(f"{self.obj}.gui.loading",),
