@@ -59,26 +59,28 @@ class SceneObjectUI(v3.VExpansionPanel):
 
     def _build_ui(self):
         with self:
-            with v3.VExpansionPanelTitle():
-                Text("{{ " + self.obj + ".name }}", classes="text-header")
+            with v3.VExpansionPanelTitle(classes="item-card-title", v_if=(f"{self.obj}.gui.loading",)):
+                Text("{{ " + self.obj + ".name }}", classes="text-header font-weight-medium")
+                with v3.Template(v_slot_actions="{ expanded }"):
+                    LoadingButton(
+                        tooltip="Cancel",
+                        click_stop=(self.load_canceled, f"[{self.obj}._id]"),
+                    )
+
+            with v3.VExpansionPanelTitle(classes="item-card-title", v_else=True):
+                v3.VIcon(icon=(f"{self.obj}.gui.icon",))
+                Text("{{ " + self.obj + ".name }}", classes="text-header font-weight-medium")
                 v3.VChip(
                     v_if=(self._is_active_primary_volume(),),
-                    classes="ml-2",
                     color="primary",
                     text="main",
                 )
                 with v3.Template(v_slot_actions="{ expanded }"):
-                    LoadingButton(
-                        v_if=(f"{self.obj}.gui.loading",),
-                        tooltip="Cancel",
-                        click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
+                    Button(
+                        click_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
+                        icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
                     )
-                    with html.Div(v_else=True):
-                        Button(
-                            click_native_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
-                            icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                            tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
-                        )
 
             with v3.VExpansionPanelText(v_if=(f"!{self.obj}.gui.loading",)), v3.VCard():
                 with (

@@ -2,7 +2,13 @@ from typing import Any
 
 from trame.widgets.client import Style
 from trame.widgets.html import Div, Span
-from trame.widgets.vuetify3 import VAvatar, VBtn, VIcon, VProgressCircular, VTooltip
+from trame.widgets.vuetify3 import (
+    VAvatar,
+    VBtn,
+    VIcon,
+    VProgressCircular,
+    VTooltip,
+)
 
 
 class Text(Div):
@@ -45,7 +51,7 @@ class Button(VBtn):
 
         text_transform = "uppercase" if kwargs.get("block", False) else text_transform or "none"
         kwargs["style"] = " ".join([kwargs.get("style", ""), f"text-transform: {text_transform};"])
-        kwargs["__events"] = [*kwargs.get("__events", []), ("click_native_stop", "click.native.stop")]
+        kwargs["__events"] = [*kwargs.get("__events", []), ("click_stop", "click.stop")]
 
         super().__init__(**kwargs)
 
@@ -116,11 +122,12 @@ class GlobalStyle(Style):
             ".girder-browser { width: 100%; } "
             ".item-card .v-expansion-panel--active>.v-expansion-panel-title,.v-expansion-panel-title { height: 64px !important }"
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important; }"
+            ".item-card-title { gap: 16px; } "
             ".layer-btn { position: relative; height: 24px; width: 24px; transform: rotateX(45deg); } "
             ".layer-bottom { position: absolute; top: 4px; left: -1px; } "
             ".layer-top { position: absolute; top: -4px; left: -1px; } "
             ".layer-icon { transform: rotate(45deg); } "
-            ".layer-icon--inactive { opacity: 0.6 !important; } "
+            ".layer-icon--inactive { opacity: 0.4 !important; } "
             ".layer-icon--gap { color: rgb(var(--v-theme-surface)); } "
             ".metadata-content { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap:8px; }"
             ".metadata-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"

@@ -10,7 +10,7 @@ from trame_dataclass.v2 import (
 from trame_server import Server
 from undo_stack import Signal
 
-from ....utils import FilterType, SceneObjectType
+from ....utils import ICONS_MAP, FilterType, SceneObjectType
 from ...base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ class SceneObjectMetadata(StateDataModel):
 class SceneObjectGUI(StateDataModel):
     current_window = ClientOnly(str)
     loading = Sync(bool, True)
+    icon = Sync(str)
 
 
 class SceneObject(StateDataModel):
@@ -98,3 +99,10 @@ class SceneObjectLogic(BaseLogic[None]):
 
     def set_loading_status(self, loading: bool) -> None:
         self.scene_object.gui.loading = loading
+
+    def set_icon(self) -> None:
+        self.scene_object.gui.icon = ICONS_MAP.get(
+            self.scene_object.filter_type
+            if self.scene_object.filter_type != FilterType.UNDEFINED
+            else self.scene_object.object_type
+        )

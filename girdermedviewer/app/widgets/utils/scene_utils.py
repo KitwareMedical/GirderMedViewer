@@ -34,3 +34,11 @@ class VolumeLayer(Enum):
     PRIMARY = "primary"
     SECONDARY = "secondary"
     UNDEFINED = None
+
+
+ICONS_MAP = {
+    FilterType.SEGMENTATION: "mdi-shape",
+    FilterType.GAUSSIAN_BLUR: "mdi-blur",
+    SceneObjectType.MESH: "mdi-vector-polyline",
+    SceneObjectType.VOLUME: "mdi-grid",
+}

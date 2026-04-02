@@ -9,7 +9,7 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType, VolumeLayer
+from .scene_utils import ICONS_MAP, FilterType, SceneObjectType, VolumeLayer
 from .vtk.preset_utils import (
     ColorPresetParser,
     DataArray,
@@ -65,6 +65,7 @@ from .vtk.vtk_utils import (
 )
 
 __all__ = [
+    "ICONS_MAP",
     "AppConfig",
     "AppLayout",
     "AppState",
