@@ -4,6 +4,7 @@ from .components_utils import (
     GlobalStyle,
     LayerButton,
     LoadingButton,
+    NumberInput,
     Text,
 )
 from .girder_utils import (
@@ -28,7 +29,6 @@ from .vtk.preset_utils import (
     get_volume_preset_parser,
 )
 from .vtk.vtk_utils import (
-    ViewType,
     create_gaussian_filter,
     create_rendering_pipeline,
     get_image_data,
@@ -89,11 +89,11 @@ __all__ = [
     "LayerButton",
     "LoadingButton",
     "MeshColoringMode",
+    "NumberInput",
     "Preset",
     "PresetParser",
     "SceneObjectType",
     "Text",
-    "ViewType",
     "VolumeColoringMode",
     "VolumeLayer",
     "VolumePresetParser",

@@ -104,8 +104,9 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.data.are_obliques_visible = False
             self.data.is_viewer_disabled = True
             if not has_secondary_volume:
-                self.data.position = None
+                self.data.position.pos_x, self.data.position.pos_y, self.data.position.pos_z = None, None, None
                 self.data.are_sliders_visible = False
+                self._tool_state.data.active_tool = ToolType.UNDEFINED
 
         self.update_views()
 

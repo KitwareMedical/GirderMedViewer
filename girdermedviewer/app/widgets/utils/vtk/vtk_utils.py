@@ -1,7 +1,6 @@
 import logging
 import math
 import os
-from enum import Enum
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
@@ -53,13 +52,6 @@ logger = logging.getLogger(__name__)
 # FIXME do not use global variable
 # dict[axis:vtkResliceImageViewer]
 viewers = {}
-
-
-class ViewType(Enum):
-    SAGITTAL = "sag"
-    THREED = "3d"
-    CORONAL = "cor"
-    AXIAL = "ax"
 
 
 def set_vector_field_arrow_length(*_args, **_kwargs):
@@ -293,11 +285,11 @@ def get_position_from_slice_index(index, reslice_image_viewer, axis):
     if slice_count == 0:
         return None
     dir = [end[0] - start[0], end[1] - start[1], end[2] - start[2]]
-    return [
+    return (
         start[0] + index * dir[0] / slice_count,
         start[1] + index * dir[1] / slice_count,
         start[2] + index * dir[2] / slice_count,
-    ]
+    )
 
 
 def get_reslice_image_viewer(axis=-1) -> vtkResliceImageViewer:

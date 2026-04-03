@@ -5,8 +5,6 @@ from trame_server.core import Server
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
-
 from ....ui import ViewsState, ViewState, ViewType, ViewUI
 from ....utils import (
     ColorPresetParser,
@@ -18,6 +16,7 @@ from ..handlers.volume_handler import (
     VolumeThreeDHandler,
     VolumeTwoDHandler,
 )
+from ..place_roi_logic import PlaceROILogic
 
 logger = logging.getLogger(__name__)
 

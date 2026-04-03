@@ -2,9 +2,8 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import Button, MeshColoringMode, Text
+from ....utils import Button, MeshColoringMode, NumberInput, Text
 from .object_components import (
-    NumberInput,
     PresetSelector,
     PropertyRangeSlider,
     Selector,
@@ -194,7 +193,7 @@ class VolumeDisplayNormalColorUI(html.Div):
                     label="Length",
                     min=0.01,
                     max=10.0,
-                    step=0.01,
+                    step=(0.01,),
                     precision=2,
                 )
                 NumberInput(
@@ -203,7 +202,7 @@ class VolumeDisplayNormalColorUI(html.Div):
                     label="Width",
                     min=0.01,
                     max=1.0,
-                    step=0.01,
+                    step=(0.01,),
                     precision=2,
                 )
 

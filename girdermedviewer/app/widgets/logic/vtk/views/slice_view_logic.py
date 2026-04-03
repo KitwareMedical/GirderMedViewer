@@ -1,11 +1,8 @@
 import logging
 from enum import Enum
 
-from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
-
-from ....ui import ViewUI
+from ....ui import ViewType, ViewUI
 from ....utils import (
-    ViewType,
     VolumeLayer,
     debounce,
     get_number_of_slices,
@@ -21,6 +18,7 @@ from ....utils import (
     set_reslice_window_level,
 )
 from ..handlers.volume_handler import VolumeTwoDHandler
+from ..place_roi_logic import PlaceROILogic
 from .view_logic import ViewLogic
 
 logger = logging.getLogger(__name__)
@@ -60,6 +58,23 @@ class SliceViewLogic(ViewLogic):
         )
 
         self.volume_handler = VolumeTwoDHandler(self.color_preset_parser)
+
+    @property
+    def position(self) -> tuple[float]:
+        return (
+            self._views_state.data.position.pos_x,
+            self._views_state.data.position.pos_y,
+            self._views_state.data.position.pos_z,
+        )
+
+    @position.setter
+    def position(self, position_tuple: tuple[float]) -> None:
+        if len(position_tuple) == 3:
+            (
+                self._views_state.data.position.pos_x,
+                self._views_state.data.position.pos_y,
+                self._views_state.data.position.pos_z,
+            ) = tuple(round(pos, 3) for pos in position_tuple)
 
     def set_ui(self, ui: ViewUI):
         super().set_ui(ui)
@@ -122,8 +137,8 @@ class SliceViewLogic(ViewLogic):
         :see-also on_reslice_cursor_interaction
         """
         new_position = get_reslice_center(reslice_image_viewer)
-        if self._views_state.data.position != new_position:
-            self._views_state.data.position = new_position
+        if self.position != new_position:
+            self.position = new_position
         # Because it is called within a co-routine, position is not
         # flushed right away.
         self.flush()
@@ -138,7 +153,7 @@ class SliceViewLogic(ViewLogic):
          - cursor interaction
         :see-also on_slice_scroll
         """
-        self._views_state.data.position = get_reslice_center(reslice_image_widget)
+        self.position = get_reslice_center(reslice_image_widget)
         self._views_state.data.normals = get_reslice_normals(reslice_image_widget)
         # Flushing will trigger rendering
         self.flush()
@@ -155,14 +170,16 @@ class SliceViewLogic(ViewLogic):
         self.flush()
 
     def _update_position_and_normals_in_view(self, position, normals):
-        set_reslice_center(self.volume_handler.get_reslice_image_viewer(), position)
+        set_reslice_center(
+            self.volume_handler.get_reslice_image_viewer(), (position.pos_x, position.pos_y, position.pos_z)
+        )
         set_reslice_normal(
             self.volume_handler.get_reslice_image_viewer(), normals[self.orientation.value], self.orientation.value
         )
         self.flush()
 
     def _on_position_or_normals_changed(self, position, normals):
-        if position is not None and normals is not None:
+        if position.pos_x is not None and normals is not None:
             self._update_position_and_normals_in_view(position, normals)
             self._update_slider()
 
@@ -174,15 +191,13 @@ class SliceViewLogic(ViewLogic):
 
     def get_slice(self):
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
-        return get_slice_index_from_position(
-            self._views_state.data.position, reslice_image_viewer, self.orientation.value
-        )
+        return get_slice_index_from_position(self.position, reslice_image_viewer, self.orientation.value)
 
     def set_slice(self, slice):
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
-        position = get_position_from_slice_index(slice, reslice_image_viewer, self.orientation.value)
-        if position is not None and self._views_state.data.position != position:
-            self._views_state.data.position = position
+        new_position = get_position_from_slice_index(slice, reslice_image_viewer, self.orientation.value)
+        if new_position is not None and self.position != new_position:
+            self.position = new_position
             self.flush()
 
     def on_window_level_changed(self, window_level, **_kwargs):

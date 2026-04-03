@@ -6,6 +6,7 @@ from trame.widgets.vuetify3 import (
     VAvatar,
     VBtn,
     VIcon,
+    VNumberInput,
     VProgressCircular,
     VTooltip,
 )
@@ -111,6 +112,18 @@ class LayerButton(Button):
                 LayerIcon(v_else=True)
 
 
+class NumberInput(VNumberInput):
+    def __init__(self, **kwargs):
+        super().__init__(
+            control_variant=kwargs.pop("control_variant", "stacked"),
+            density=kwargs.pop("density", "compact"),
+            flat=kwargs.pop("flat", True),
+            hide_details=kwargs.pop("hide_details", True),
+            inset=kwargs.pop("inset", True),
+            **kwargs,
+        )
+
+
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
@@ -133,13 +146,14 @@ class GlobalStyle(Style):
             ".metadata-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }"
             ".metadata-item { width: 50%; }"
             ".metadata-list { display: flex; flex-wrap: wrap; }"
-            ".point-selector { display: flex; justify-content: space-between; align-items: center; gap: 4px; }"
+            ".point-selector { display: flex; justify-content: space-between; align-items: center; gap: 8px; }"
             ".position-selector .v-input__details { display: none !important; } "
             ".position-selector .v-text-field__prefix { font-weight: 700 !important; } "
             ".quad-view { display: flex; gap: 2px; width: 100%; height: 100%; flex-direction: row; flex-wrap: wrap; }"
             ".scene-drawer { overflow: auto; } "
             ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em; }"
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em; }"
+            ".tool-card { padding: 0px; }"
             ".tools-strip { display: flex; flex-direction: column; align-items: center; width: 50px; }"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px; } "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px; } "

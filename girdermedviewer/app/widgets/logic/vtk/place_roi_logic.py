@@ -4,7 +4,7 @@ from trame_server import Server
 from undo_stack import Signal
 from vtk import vtkBoxRepresentation, vtkBoxWidget2, vtkPolyData
 
-from ...ui import PlaceROIState, PlaceROIUI
+from ...ui import PlaceROIState, PlaceROIUI, PointState
 from ..base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,9 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
 
     def __init__(self, server: Server) -> None:
         super().__init__(server, PlaceROIState)
+        self._min_bounds_state = self._typed_state.get_sub_state(self.name.min_roi_bounds)
+        self._max_bounds_state = self._typed_state.get_sub_state(self.name.max_roi_bounds)
+
         self._id = "ROI"
         self.box_widget = vtkBoxWidget2()
 
@@ -31,16 +34,25 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
         self.bind_changes(
             {
                 self.name.is_roi_locked: self._on_lock_toggled,
-                self.name.roi_bounds: self._update,
+                (self.name.min_roi_bounds, self.name.max_roi_bounds): self._update,
             }
         )
 
-    def _set_bounds(self, bounds: tuple[float], clean: bool = False) -> None:
+    def _get_bounds(self):
+        return (
+            self.data.min_roi_bounds.pos_x,
+            self.data.max_roi_bounds.pos_x,
+            self.data.min_roi_bounds.pos_y,
+            self.data.max_roi_bounds.pos_y,
+            self.data.min_roi_bounds.pos_z,
+            self.data.max_roi_bounds.pos_z,
+        )
+
+    def _set_bounds(self, bounds: tuple[float]) -> None:
         if self.data.is_roi_locked:
             return
-        self.data.roi_bounds = bounds
-        if clean:
-            self.state.clean(self.name.roi_bounds)
+        self._min_bounds_state.set_dataclass(PointState(round(bounds[0], 2), round(bounds[2], 2), round(bounds[4], 2)))
+        self._max_bounds_state.set_dataclass(PointState(round(bounds[1], 2), round(bounds[3], 2), round(bounds[5], 2)))
 
     def _on_lock_toggled(self, locked: bool) -> None:
         if locked:
@@ -55,14 +67,16 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
         if self.data.is_roi_locked:
             return
         new_bounds = self.threed_rep.GetBounds()
-        self._set_bounds(new_bounds, clean=True)
-        self._update_slice_rep()
-        self.roi_updated()
+        self._set_bounds(new_bounds)
+        self.state.flush()
 
-    def _update(self, roi_bounds: tuple[float]) -> None:
-        if self.data.is_roi_locked:
+    def _update(self, min_roi_bounds: PointState, max_roi_bounds: PointState) -> None:
+        if self.data.is_roi_locked or min_roi_bounds.pos_x is None or max_roi_bounds.pos_x is None:
             return
-        self.threed_rep.PlaceWidget(roi_bounds)
+
+        roi_bounds = self._get_bounds()
+        if roi_bounds != self.threed_rep.GetBounds():
+            self.threed_rep.PlaceWidget(roi_bounds)
         self._update_slice_rep()
         self.roi_updated()
 

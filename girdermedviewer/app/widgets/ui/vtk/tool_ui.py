@@ -9,7 +9,7 @@ from trame_server.utils.typed_state import TypedState
 from ...utils import Button
 from .tools.place_point_ui import PlacePointUI
 from .tools.place_roi_ui import PlaceROIUI
-from .views_state import ViewsState
+from .views_ui import ViewsState
 
 logger = logging.getLogger(__name__)
 
