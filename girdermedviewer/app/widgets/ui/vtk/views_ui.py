@@ -9,7 +9,7 @@ from undo_stack import Signal
 from vtk import vtkRenderWindow
 
 from ...utils import Button
-from .tools.point_selector_ui import PointState
+from ..point_selector_ui import PointState
 
 logger = logging.getLogger(__name__)
 

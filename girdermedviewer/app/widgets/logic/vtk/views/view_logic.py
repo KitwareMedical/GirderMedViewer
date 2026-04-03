@@ -66,7 +66,7 @@ class ViewLogic(BaseLogic[ViewState], Generic[T, U], ABC):
         pass
 
     @abstractmethod
-    def add_mesh(self, data_id: str, data: vtkImageData, display_properties: MeshDisplay) -> None:
+    def add_mesh(self, data_id: str, data: vtkImageData, display_properties: MeshDisplay, subtype: SceneObjectSubtype) -> None:
         pass
 
     def remove_volume(self, data_id: str, only_data: Any | None = None) -> None:

@@ -29,6 +29,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
     def __init__(self, server: Server) -> None:
         super().__init__(server, ViewsState)
         self.view_logics: dict[ViewType, ViewLogic[VolumeHandler]] = {}
+        self.center = None
 
         self.volume_preset_parser = get_volume_preset_parser()
         self.color_preset_parser = get_color_preset_parser()
@@ -111,9 +112,11 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic.reset()
         self.update_views()
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay) -> None:
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay, subtype: SceneObjectSubtype
+    ):
         for view_logic in self.views:
-            view_logic.add_mesh(data_id, poly_data, display_properties)
+            view_logic.add_mesh(data_id, poly_data, display_properties, subtype)
 
         self._on_object_added()
 
@@ -139,6 +142,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
             self.data.are_sliders_visible = True
+            self.center = image_data.GetCenter()
             self.primary_volume_added(image_data)
 
     def remove_volume(self, data_id: str, only_data: Any = None) -> None:

@@ -35,7 +35,7 @@ class ThreeDViewLogic(ViewLogic[MeshThreedHandler, VolumeThreeDHandler]):
         self.volume_handler.add_volume(data_id, image_data)
         self.volume_handler.apply_data_display(data_id, data_display)
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay) -> None:
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay, _subtype: SceneObjectSubtype) -> None:
         self.mesh_handler.add_mesh(data_id, poly_data)
         self.mesh_handler.apply_data_display(data_id, data_display)
 
