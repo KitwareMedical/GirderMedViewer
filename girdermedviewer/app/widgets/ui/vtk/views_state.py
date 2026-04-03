@@ -20,6 +20,8 @@ class SliderState:
 class ViewsState:
     position: tuple[float] | None = None
     normals: tuple[tuple[float]] | None = None
+    is_viewer_disabled: bool = True
+    are_sliders_visible: bool = False
     are_obliques_visible: bool = False
     is_position_menu_visible: bool = False
     fullscreen: ViewType | None = None

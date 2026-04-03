@@ -1,5 +1,11 @@
 from .app_utils import AppConfig, debounce, is_valid_url
-from .components_utils import Button, GlobalStyle, LayerButton, LoadingButton, Text
+from .components_utils import (
+    Button,
+    GlobalStyle,
+    LayerButton,
+    LoadingButton,
+    Text,
+)
 from .girder_utils import (
     CacheMode,
     FileFetcher,

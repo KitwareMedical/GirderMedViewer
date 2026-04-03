@@ -19,7 +19,6 @@ class ViewSliderUI(v3.VSlider):
 
     def __init__(self, typed_state: TypedState[SliderState], **kwargs):
         super().__init__(
-            v_if=(f"{typed_state.name.value} != null",),
             classes="slice-slider",
             hide_details=True,
             direction="vertical",
@@ -66,6 +65,7 @@ class ViewUI(vtk.VtkRemoteView):
             if self.type != ViewType.THREED:
                 self.slider_ui = ViewSliderUI(
                     self._typed_state.get_sub_state(self._typed_state.name.slider_state),
+                    v_if=(self._views_state.name.are_sliders_visible,),
                     start=self.ctrl.start_animation,
                     end=self.ctrl.stop_animation,
                 )

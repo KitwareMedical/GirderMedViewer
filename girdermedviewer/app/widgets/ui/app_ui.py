@@ -17,7 +17,6 @@ from .vtk.views_ui import ViewsUI
 @dataclass
 class AppState:
     is_drawer_visible: bool = True
-    is_viewer_disabled: bool = True
     is_browser_dialog_visible: bool = False
 
 
@@ -73,7 +72,7 @@ class AppUI:
                 self.girder_connection_ui = GirderConnectionUI()
 
             with self.layout.tool_strip:
-                self.tool_ui = ToolUI(disabled=self.name.is_viewer_disabled)
+                self.tool_ui = ToolUI()
 
             with self.layout.viewer:
                 self.views_ui = ViewsUI()

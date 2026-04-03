@@ -53,12 +53,12 @@ class VolumeTwoDHandler(ObjectHandler):
         remove_prop = not (self._is_primary_volume(data_id) and self._has_multiple_primary_volumes())
         super().unregister_data(data_id, only_data, remove_prop)
 
-    def add_primary_volume(self, data_id, image_data: vtkImageData, orientation, obliques: bool):
-        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, orientation.value, obliques=obliques)
+    def add_primary_volume(self, data_id: str, image_data: vtkImageData, orientation: int, obliques: bool):
+        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, orientation, obliques=obliques)
         self.register_data(data_id, reslice_image_viewer)
 
-    def add_secondary_volume(self, data_id, image_data, orientation):
-        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, orientation.value)
+    def add_secondary_volume(self, data_id: str, image_data: vtkImageData, orientation: int):
+        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, orientation)
         self.register_data(data_id, actor)
 
     def set_volume_visibility(self, data_id: str, visible: bool) -> bool:
@@ -118,30 +118,29 @@ class VolumeTwoDHandler(ObjectHandler):
     def set_volume_normal_color(
         self,
         data_id: str,
-        _show_arrows: bool,
-        _arrow_length: bool,
-        _arrow_width: bool,
+        show_arrows: bool,
+        arrow_length: bool,
+        arrow_width: bool,
+        orientation: int,
     ) -> bool:
         logger.debug(f"set_volume_normal_color({data_id})")
         modified = False
         glyph_actors = self.get_glyph_actors(data_id)
-        if _show_arrows and len(glyph_actors) == 0:
-            glyph_actor = render_volume_as_vector_field(
-                self.get_image_data(data_id), self.renderer, self.orientation.value
-            )
+        if show_arrows and len(glyph_actors) == 0:
+            glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer, orientation)
             self.register_data(data_id, glyph_actor)
             glyph_actors = [glyph_actor]
             modified = True
         # FIXME: add a convenient function to set visibility of any actor
         for glyph_actor in glyph_actors:
-            modified = set_actor_visibility(glyph_actor, _show_arrows) or modified
-            modified = set_vector_field_arrow_length(glyph_actor, _arrow_length) or modified
-            modified = set_vector_field_arrow_thickness(glyph_actor, _arrow_width) or modified
+            modified = set_actor_visibility(glyph_actor, show_arrows) or modified
+            modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
+            modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
         for image_slice in self.get_image_slices(data_id):
-            modified = set_actor_visibility(image_slice, not _show_arrows) or modified
+            modified = set_actor_visibility(image_slice, not show_arrows) or modified
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None:
-            modified = set_actor_visibility(reslice_image_viewer, not _show_arrows) or modified
+            modified = set_actor_visibility(reslice_image_viewer, not show_arrows) or modified
         return modified
 
     def get_reslice_image_viewer(self, data_id=None):

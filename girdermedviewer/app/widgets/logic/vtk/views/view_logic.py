@@ -68,8 +68,8 @@ class ViewLogic(BaseLogic[ViewState]):
         if self.volume_handler is None:
             return
         self.volume_handler.unregister_data(data_id, only_data)
-        self.update()
 
     def remove_mesh(self, data_id, only_data=None):
+        if self.mesh_handler is None:
+            return
         self.mesh_handler.unregister_data(data_id, only_data)
-        self.update()

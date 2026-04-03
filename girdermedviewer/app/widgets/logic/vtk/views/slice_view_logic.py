@@ -74,31 +74,18 @@ class SliceViewLogic(ViewLogic):
     def add_volume(self, data_id, image_data, layer: VolumeLayer):
         if layer == VolumeLayer.PRIMARY:
             self.volume_handler.add_primary_volume(
-                data_id, image_data, self.orientation, self._views_state.data.are_obliques_visible
+                data_id, image_data, self.orientation.value, self._views_state.data.are_obliques_visible
             )
             self._set_reslice_interaction()
-            self.update()
         elif layer == VolumeLayer.SECONDARY:
-            self.volume_handler.add_secondary_volume(data_id, image_data, self.orientation)
-            self.update()
+            self.volume_handler.add_secondary_volume(data_id, image_data, self.orientation.value)
 
     def add_mesh(self, data_id, poly_data):
         self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation)
-        self.update()
 
     def init_roi(self, roi: PlaceROILogic):
         self.mesh_handler.add_mesh_in_slice(roi._id, roi.slice_rep, self.orientation)
         self.mesh_handler.set_mesh_visibility(roi._id, False)
-        self.update()
-
-    def remove_volume(self, data_id, only_data=None):
-        super().remove_volume(data_id, only_data)
-
-        if not self.volume_handler.has_primary_volume():
-            self._views_state.data.normals = None
-            self._views_state.data.are_obliques_visible = False
-            if not self.volume_handler.has_secondary_volume():
-                self._views_state.data.position = None
 
     def flush(self):
         if SliceViewLogic.DEBOUNCED_FLUSH:

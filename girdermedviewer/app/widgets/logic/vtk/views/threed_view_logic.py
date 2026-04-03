@@ -19,11 +19,9 @@ class ThreeDViewLogic(ViewLogic):
 
     def add_volume(self, data_id, image_data, _layer: VolumeLayer):
         self.volume_handler.add_volume(data_id, image_data)
-        self.update()
 
     def add_mesh(self, data_id, poly_data):
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)
-        self.update()
 
     def init_roi(self, roi: PlaceROILogic):
         roi.box_widget.SetInteractor(self.renderer.GetRenderWindow().GetInteractor())
