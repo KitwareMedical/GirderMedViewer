@@ -1,11 +1,19 @@
 import logging
 from collections.abc import Callable
+from pathlib import Path
 
 from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
 
-from ....utils import DataArray, MeshColoringMode, debounce, supported_mesh_extensions
+from ....utils import (
+    DataArray,
+    MeshColoringMode,
+    debounce,
+    is_streamline_file,
+    supported_mesh_extensions,
+)
 from ...vtk.views_logic import ViewsLogic
+from ..filters.streamline_filter_logic import StreamlineFilterLogic
 from ..objects.mesh_object_logic import MeshObjectLogic
 from .object_handler import ObjectHandler
 
@@ -91,6 +99,9 @@ class MeshHandler(ObjectHandler):
     def supported_extensions(self) -> tuple[str]:
         return supported_mesh_extensions()
 
+    def is_streamline_file(self, file_path: Path) -> bool:
+        return is_streamline_file(file_path)
+
     def _connect_mesh_logic_to_display_handler(self, mesh_logic: MeshObjectLogic):
         mesh_logic.display.watch(("opacity",), self._display_handler.update_opacity(mesh_logic))
         mesh_logic.display.watch(("active_array_id",), self._display_handler.update_active_array(mesh_logic))
@@ -101,9 +112,16 @@ class MeshHandler(ObjectHandler):
         )
         mesh_logic.scene_object.watch(("is_visible",), self._display_handler.update_visibility(mesh_logic))
 
+        if isinstance(mesh_logic, StreamlineFilterLogic):
+            mesh_logic.filter_updated.connect(self.views_logic.update_views)
+
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.object_logics[mesh_logic._id] = mesh_logic
         self._connect_mesh_logic_to_display_handler(mesh_logic)
+        if isinstance(mesh_logic, StreamlineFilterLogic) and self.views_logic.center is not None:
+            mesh_logic.align_data(self.views_logic.center)
+            mesh_logic.init_filter()
+
         self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data, mesh_logic.display)
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:

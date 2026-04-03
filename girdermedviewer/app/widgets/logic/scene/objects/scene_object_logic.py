@@ -90,10 +90,12 @@ class SceneObjectLogic(BaseLogic[None]):
         self,
         server: Server,
         scene_object: SceneObject,
+        filter_type: FilterType = FilterType.UNDEFINED,
     ) -> None:
         super().__init__(server, None)
         self._id = scene_object._id
         self.scene_object = scene_object
+        self.scene_object.filter_type = filter_type
         self.object_data = None
         self.input_id = None
         self.soft_input_id = None

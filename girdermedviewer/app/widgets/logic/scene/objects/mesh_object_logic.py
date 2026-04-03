@@ -1,6 +1,7 @@
 import logging
 
 from trame_dataclass.v2 import StateDataModel, Sync, TypeValidation
+from vtk import vtkPolyData
 
 from ....utils import (
     DataArray,
@@ -63,14 +64,15 @@ class MeshObjectLogic(SceneObjectLogic):
             array_min_max=array_min_max,
         )
 
-    def _populate_data_arrays(self) -> None:
+    def _populate_data_arrays(self, object_data: vtkPolyData | None) -> None:
         data_arrays = []
-        point_data = self.object_data.GetPointData()
+        object_data = object_data or self.object_data
+        point_data = object_data.GetPointData()
         for i in range(point_data.GetNumberOfArrays()):
             arr = point_data.GetArray(i)
             data_arrays.append(self._create_data_array(arr, DataArrayType.POINT))
 
-        cell_data = self.object_data.GetCellData()
+        cell_data = object_data.GetCellData()
         for i in range(cell_data.GetNumberOfArrays()):
             arr = cell_data.GetArray(i)
             data_arrays.append(self._create_data_array(arr, DataArrayType.CELL))

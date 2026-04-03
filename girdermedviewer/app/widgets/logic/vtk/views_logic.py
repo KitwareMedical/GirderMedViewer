@@ -10,9 +10,11 @@ from ...ui import ToolState, ToolType, ToolUI, ViewsState, ViewsUI, ViewType
 from ...utils import (
     SceneObjectSubtype,
     VolumeLayer,
+    get_aligned_poly_data,
     get_color_preset_parser,
     get_volume_preset_parser,
 )
+from ..scene.filters.streamline_filter_logic import StreamlineFilterLogic
 from ..scene.objects.volume_object_logic import VolumeDisplay
 from .place_roi_logic import PlaceROILogic
 from .segmentation_effect_logic import SegmentationEffectLogic
@@ -103,7 +105,13 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic.reset()
         self.update_views()
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay) -> None:
+    def add_streamlines(self, data_id: str, stream_line_logic: StreamlineFilterLogic):
+        if self.center is not None:
+            stream_line_logic.object_data = get_aligned_poly_data(stream_line_logic.object_data, self.center)
+        stream_line_logic.init_filter()
+        self.add_mesh(data_id, stream_line_logic.object_filter.GetOutput())
+
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay):
         for view_logic in self.views:
             view_logic.add_mesh(data_id, poly_data, display_properties)
         self.update_views()
@@ -128,6 +136,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.data.are_obliques_visible = True
             self.data.are_sliders_visible = True
             self.data.is_viewer_disabled = False
+            self.center = image_data.GetCenter()
             self.roi_logic.set_default_bounds(image_data.GetBounds())
             self.segmentation_logic.set_paint_effects(self.slice_views)
 
@@ -151,7 +160,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.data.are_obliques_visible = False
             self.data.is_viewer_disabled = True
             if not has_secondary_volume:
-                self.data.position.pos_x, self.data.position.pos_y, self.data.position.pos_z = None, None, None
+                self.data.position.x, self.data.position.y, self.data.position.z = None, None, None
                 self.data.are_sliders_visible = False
                 self._tool_state.data.active_tool = ToolType.UNDEFINED
 

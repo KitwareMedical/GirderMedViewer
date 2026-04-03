@@ -13,6 +13,7 @@ from vtk import (
     vtkColorSeries,
     vtkCutter,
     vtkDiscretizableColorTransferFunction,
+    vtkExtractGeometry,
     vtkGlyph3DMapper,
     vtkImageData,
     vtkImageGaussianSmooth,
@@ -20,11 +21,11 @@ from vtk import (
     vtkImageResliceMapper,
     vtkImageSlice,
     vtkMath,
-    vtkMatrix4x4,
     vtkMetaImageReader,
     vtkNIFTIImageReader,
     vtkNrrdReader,
     vtkPiecewiseFunction,
+    vtkPolyData,
     vtkPolyDataMapper,
     vtkResliceCursor,
     vtkResliceCursorLineRepresentation,
@@ -33,7 +34,7 @@ from vtk import (
     vtkSmartVolumeMapper,
     vtkSTLReader,
     vtkTransform,
-    vtkTransformFilter,
+    vtkTransformPolyDataFilter,
     vtkVolume,
     vtkVolumeProperty,
     vtkXMLImageDataReader,
@@ -627,6 +628,30 @@ def render_mesh_in_slice(poly_data, axis, renderer):
     return actor
 
 
+def get_aligned_poly_data(poly_data: vtkPolyData, center):
+    poly_data_bounds = poly_data.GetBounds()
+    poly_data_center = [
+        (poly_data_bounds[0] + poly_data_bounds[1]) / 2,
+        (poly_data_bounds[2] + poly_data_bounds[3]) / 2,
+        (poly_data_bounds[4] + poly_data_bounds[5]) / 2,
+    ]
+    translation = [
+        center[0] - poly_data_center[0],
+        center[1] - poly_data_center[1],
+        center[2] - poly_data_center[2],
+    ]
+
+    transform = vtkTransform()
+    transform.Translate(translation)
+
+    tf = vtkTransformPolyDataFilter()
+    tf.SetInputData(poly_data)
+    tf.SetTransform(transform)
+    tf.Update()
+
+    return tf.GetOutput()
+
+
 def set_mesh_visibility(actor: vtkActor, visible):
     if actor.GetVisibility() == visible:
         return False
@@ -821,39 +846,66 @@ def load_volume(file_path):
     raise Exception(f"File format is not handled for {file_path}")
 
 
-def load_mesh(file_path):
-    """Read a file and return a vtkPolyData object"""
-    logger.info(f"Loading mesh {file_path}")
-
-    def invert_xy(reader):
-        matrix = vtkMatrix4x4()
-        matrix.SetElement(0, 0, -1)
-        matrix.SetElement(1, 1, -1)
-
-        transform = vtkTransform()
-        transform.SetMatrix(matrix)
-        transform.Inverse()
-
-        transform_filter = vtkTransformFilter()
-        transform_filter.SetInputConnection(reader.GetOutputPort())
-        transform_filter.SetTransform(transform)
-        transform_filter.Update()
-
-        return transform_filter.GetOutput()
-
+def preload_mesh(file_path):
     if file_path.endswith(".stl"):
         reader = vtkSTLReader()
         reader.SetFileName(file_path)
         reader.Update()
-        return invert_xy(reader)
+        return reader
 
     if file_path.endswith(".vtp"):
         reader = vtkXMLPolyDataReader()
         reader.SetFileName(file_path)
         reader.Update()
-        return invert_xy(reader)
+        return reader
 
     raise Exception(f"File format is not handled for {file_path}")
+
+
+def load_mesh(file_path):
+    """Read a file and return a vtkPolyData object"""
+    logger.info(f"Loading mesh {file_path}")
+
+    reader = preload_mesh(file_path)
+
+    # # Invert x and y
+    # matrix = vtkMatrix4x4()
+    # matrix.SetElement(0, 0, -1)
+    # matrix.SetElement(1, 1, -1)
+
+    # transform = vtkTransform()
+    # transform.SetMatrix(matrix)
+    # transform.Inverse()
+
+    # transform_filter = vtkTransformFilter()
+    # transform_filter.SetInputConnection(reader.GetOutputPort())
+    # transform_filter.SetTransform(transform)
+    # transform_filter.Update()
+
+    # return transform_filter.GetOutput()
+
+    return reader.GetOutput()
+
+
+def create_streamline_filter(file_path, sphere) -> vtkExtractGeometry:
+    poly_data = load_mesh(file_path)
+    extract_filter = vtkExtractGeometry()
+    extract_filter.SetInputData(poly_data)
+    extract_filter.SetImplicitFunction(sphere)
+    extract_filter.ExtractInsideOn()
+    extract_filter.ExtractBoundaryCellsOn()
+
+    return extract_filter
+
+
+def is_streamline_file(file_path) -> bool:
+    reader = preload_mesh(file_path)
+    polydata = reader.GetOutput()
+    n_lines = polydata.GetNumberOfLines()
+    line_perc = n_lines / (
+        n_lines + polydata.GetNumberOfVerts() + polydata.GetNumberOfPolys() + polydata.GetNumberOfStrips()
+    )
+    return line_perc > 0.95
 
 
 color_series = vtkColorSeries()

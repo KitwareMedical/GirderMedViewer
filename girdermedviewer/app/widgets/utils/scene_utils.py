@@ -21,6 +21,7 @@ class SegmentationEffectType(DataclassEnum):
 class FilterType(DataclassEnum):
     SEGMENTATION = "segmentation"
     GAUSSIAN_BLUR = "gaussian blur"
+    STREAMLINE = "streamline"
     UNDEFINED = None
 
 
@@ -46,6 +47,7 @@ class SceneObjectSubtype(DataclassEnum):
 ICONS_MAP = {
     FilterType.SEGMENTATION: "mdi-shape",
     FilterType.GAUSSIAN_BLUR: "mdi-blur",
+    FilterType.STREAMLINE: "mdi-asterisk",
     SceneObjectType.MESH: "mdi-vector-polyline",
     SceneObjectType.VOLUME: "mdi-grid",
 }

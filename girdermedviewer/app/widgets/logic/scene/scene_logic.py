@@ -14,6 +14,7 @@ from ..base_logic import BaseLogic
 from ..vtk.views_logic import ViewsLogic
 from .filters import FILTER_MAP
 from .filters.segmentation_filter_logic import SegmentationFilterLogic
+from .filters.streamline_filter_logic import StreamlineFilterLogic
 from .handlers.mesh_handler import MeshHandler
 from .handlers.object_handler import ObjectHandler
 from .handlers.segmentation_handler import SegmentationHandler
@@ -76,6 +77,8 @@ class SceneLogic(BaseLogic[SceneState]):
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if self.mesh_handler.supports_file(file_path):
+            if self.mesh_handler.is_streamline_file(file_path):
+                return StreamlineFilterLogic(self.server, scene_object)
             return MeshObjectLogic(self.server, scene_object)
         if self.volume_handler.supports_file(file_path):
             return VolumeObjectLogic(self.server, scene_object)
@@ -88,15 +91,14 @@ class SceneLogic(BaseLogic[SceneState]):
         if filter_object_logic_type is None:
             raise ValueError(f"No logic associated to filter type: {filter_type.value}")
 
-        filter_object = SceneObject(
-            self.server, name=f"{input_object_logic.scene_object.name}_{filter_type.value}", filter_type=filter_type
-        )
+        filter_object = SceneObject(self.server, name=f"{input_object_logic.scene_object.name}_{filter_type.value}")
         self.add_object(filter_object)
 
         return filter_object_logic_type(
             original_logic=input_object_logic,
             server=self.server,
             scene_object=filter_object,
+            filter_type=filter_type,
         )
 
     def _cancel_load(self, object_id: str) -> None:
