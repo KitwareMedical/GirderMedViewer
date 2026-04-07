@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from vtk import vtkImageData, vtkImageSlice, vtkResliceImageViewer
+from vtk import vtkImageData, vtkImageSlice, vtkResliceImageViewer, vtkDiscretizableColorTransferFunction, vtkPiecewiseFunction
 
 from ....utils import (
     ColorPresetParser,
@@ -53,12 +53,12 @@ class VolumeTwoDHandler(ObjectHandler):
         remove_prop = not (self._is_primary_volume(data_id) and self._has_multiple_primary_volumes())
         super().unregister_data(data_id, only_data, remove_prop)
 
-    def add_primary_volume(self, data_id: str, image_data: vtkImageData, orientation: int, obliques: bool):
-        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, orientation, obliques=obliques)
+    def add_primary_volume(self, data_id: str, image_data: vtkImageData, orientation: int):
+        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, orientation)
         self.register_data(data_id, reslice_image_viewer)
 
     def add_secondary_volume(self, data_id: str, image_data: vtkImageData, orientation: int):
-        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, orientation)
+        actor = render_volume_as_overlay_in_slice(image_data, axis=orientation)
         self.register_data(data_id, actor)
 
     def set_volume_visibility(self, data_id: str, visible: bool) -> bool:
@@ -143,7 +143,7 @@ class VolumeTwoDHandler(ObjectHandler):
             modified = set_actor_visibility(reslice_image_viewer, not show_arrows) or modified
         return modified
 
-    def get_reslice_image_viewer(self, data_id=None):
+    def get_reslice_image_viewer(self, data_id=None) -> vtkResliceImageViewer | None:
         """
         Return the primary volume image viewer if any.
         :param data_id if provided returns only if it matches data_id.
@@ -152,9 +152,32 @@ class VolumeTwoDHandler(ObjectHandler):
         data = [self.get_data(id) for id in ids if self._is_primary_volume(id)]
         return data[0] if len(data) > 0 else None
 
-    def get_image_slices(self, data_id=None):
+    def get_image_slices(self, data_id=None) -> list[vtkImageSlice]:
         ids = [data_id] if data_id in self.object_data else self.object_data.keys()
         return [self.get_data(id) for id in ids if self._is_secondary_volume(id)]
+
+    def set_segment_color(self, data_id, segment_id: int, color: str):
+        # color format: #rrggbb
+        color_value = [
+            int(color[1:3], base=16) / 255.0,
+            int(color[3:5], base=16) / 255.0,
+            int(color[5:7], base=16) / 255.0
+        ]
+        for image_slice in self.get_image_slices(data_id):
+            lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
+            value = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            lut.GetNodeValue(segment_id, value)
+            value[1:4] = color_value
+            lut.SetNodeValue(segment_id, value)
+
+    def set_segment_visibility(self, data_id, segment_id: int, visible: bool):
+        for image_slice in self.get_image_slices(data_id):
+            lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
+            of: vtkPiecewiseFunction = lut.GetScalarOpacityFunction()
+            value = [0.0, 0.0, 0.0, 0.0]
+            of.GetNodeValue(segment_id, value)
+            value[1] = float(visible)
+            of.SetNodeValue(segment_id, value)
 
 
 class VolumeThreeDHandler(ObjectHandler):

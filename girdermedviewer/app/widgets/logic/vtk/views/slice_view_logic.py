@@ -79,6 +79,7 @@ class SliceViewLogic(ViewLogic):
     def set_ui(self, ui: ViewUI):
         super().set_ui(ui)
         ui.slider_ui.slice_updated.connect(self.set_slice)
+        ui.view_hovered.connect(self.on_hover)
 
     def reset(self):
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
@@ -88,9 +89,7 @@ class SliceViewLogic(ViewLogic):
 
     def add_volume(self, data_id, image_data, layer: VolumeLayer):
         if layer == VolumeLayer.PRIMARY:
-            self.volume_handler.add_primary_volume(
-                data_id, image_data, self.orientation.value, self._views_state.data.are_obliques_visible
-            )
+            self.volume_handler.add_primary_volume(data_id, image_data, self.orientation.value)
             self._set_reslice_interaction()
         elif layer == VolumeLayer.SECONDARY:
             self.volume_handler.add_secondary_volume(data_id, image_data, self.orientation.value)
@@ -205,3 +204,16 @@ class SliceViewLogic(ViewLogic):
         modified = set_reslice_window_level(self.volume_handler.get_reslice_image_viewer(), window_level)
         if modified:
             self.update()
+
+    def on_hover(self, events: list[dict[str, float]]):
+        """events = [{'x': x, 'y': y, 'z': z}, ...]"""
+        from vtk import vtkRenderWindowInteractor
+
+        viewer = self.volume_handler.get_reslice_image_viewer()
+        if viewer is None:
+            return
+        for event in events:
+            interactor: vtkRenderWindowInteractor = viewer.GetInteractor()
+            interactor.SetEventInformation(int(event["x"]), int(event["y"]))
+            interactor.MouseMoveEvent()
+        self.update_requested()

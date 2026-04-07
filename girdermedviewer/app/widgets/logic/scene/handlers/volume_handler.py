@@ -7,9 +7,6 @@ from trame_server.core import Server
 from girdermedviewer.app.widgets.utils.scene_utils import VolumeObjectType
 
 from ....utils import VolumeLayer, debounce, supported_volume_extensions
-from ...vtk.views.slice_view_logic import SliceViewLogic
-from ...vtk.views.threed_view_logic import ThreeDViewLogic
-from ...vtk.views.view_logic import ViewLogic
 from ...vtk.views_logic import ViewsLogic
 from ..filters.segmentation_filter_logic import SegmentationFilterLogic
 from ..objects.volume_object_logic import VolumeObjectLogic
@@ -19,21 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 class VolumeDisplayHandler:
-    def __init__(self, view_logics: list[ViewLogic]):
-        self.view_logics = view_logics
-
-    @property
-    def twod_views(self) -> list[SliceViewLogic]:
-        return [view for view in self.view_logics if isinstance(view, SliceViewLogic)]
-
-    @property
-    def threed_views(self) -> list[ThreeDViewLogic]:
-        return [view for view in self.view_logics if isinstance(view, ThreeDViewLogic)]
+    def __init__(self, views_logic: ViewsLogic):
+        self.views_logic = views_logic
 
     def update_threed_visibility(self, volume_id: str) -> Callable:
         @debounce(0.05)
         def _update_threed_visibility(visible: bool) -> None:
-            for view in self.threed_views:
+            for view in self.views_logic.threed_views:
                 modified = view.volume_handler.set_volume_visibility(volume_id, visible)
                 if modified:
                     view.update()
@@ -41,13 +30,13 @@ class VolumeDisplayHandler:
         return _update_threed_visibility
 
     def update_twod_visibility(self, volume_id: str, visible: bool) -> None:
-        for view in self.twod_views:
+        for view in self.views_logic.slice_views:
             modified = view.volume_handler.set_volume_visibility(volume_id, visible)
             if modified:
                 view.update()
 
     def update_active_primary_volume(self, volume_id: str, image_data) -> None:
-        for view in self.twod_views:
+        for view in self.views_logic.slice_views:
             modified = view.add_volume(volume_id, image_data, VolumeLayer.PRIMARY)
             if modified:
                 view.update()
@@ -57,7 +46,7 @@ class VolumeDisplayHandler:
         def _update_opacity(opacity: float) -> None:
             if opacity < 0:
                 return
-            for view in self.twod_views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.set_volume_opacity(volume_id, opacity)
                 if modified:
                     view.update()
@@ -67,7 +56,7 @@ class VolumeDisplayHandler:
     def update_threed_coloring(self, volume_id: str) -> Callable:
         @debounce(0.05)
         def _update_threed_coloring(threed_preset_name: str, threed_preset_vr_shift: list[float]) -> None:
-            for view in self.threed_views:
+            for view in self.views_logic.threed_views:
                 modified = view.volume_handler.set_volume_preset(
                     volume_id,
                     threed_preset_name,
@@ -81,7 +70,7 @@ class VolumeDisplayHandler:
     def update_twod_coloring(self, volume_id: str) -> Callable:
         @debounce(0.05)
         def _update_twod_coloring(twod_preset_name: str, twod_preset_is_inverted: bool) -> None:
-            for view in self.twod_views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.set_volume_scalar_color_preset(
                     volume_id,
                     twod_preset_name,
@@ -95,7 +84,7 @@ class VolumeDisplayHandler:
     def update_normal_coloring(self, volume_id: str) -> Callable:
         @debounce(0.05)
         def _update_normal_coloring(show_arrows: bool, arrow_length: float, arrow_width: float) -> None:
-            for view in self.twod_views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.set_volume_normal_color(
                     volume_id,
                     show_arrows,
@@ -105,7 +94,7 @@ class VolumeDisplayHandler:
                 )
                 if modified:
                     view.update()
-            for view in self.threed_views:
+            for view in self.views_logic.threed_views:
                 modified = view.volume_handler.set_volume_normal_color(
                     volume_id,
                     show_arrows,
@@ -120,7 +109,7 @@ class VolumeDisplayHandler:
     def update_window_level(self, volume_id: str) -> Callable:
         @debounce(0.05)
         def _update_window_level(window_level: list[float]) -> None:
-            for view in self.twod_views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.set_volume_window_level_min_max(volume_id, window_level)
                 if modified:
                     view.update()
@@ -131,7 +120,7 @@ class VolumeDisplayHandler:
 class VolumeHandler(ObjectHandler):
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, views_logic)
-        self.display_handler = VolumeDisplayHandler(self.view_logics)
+        self.display_handler = VolumeDisplayHandler(self.views_logic)
         self.views_logic.window_level_changed.connect(self._update_active_primary_window_level)
 
     @property
@@ -293,36 +282,41 @@ class VolumeHandler(ObjectHandler):
 
 
 class SegmentationDisplayHandler:
-    def __init__(self, view_logics: list[ViewLogic]):
-        self.view_logics = view_logics
+    def __init__(self, views_logic: ViewsLogic):
+        self.views_logic = views_logic
 
-    def update_opacity(self, _labelmap_id: str):
-        def _update_opacity(opacity: float):
-            # TODO Alexy
-            pass
+    def update_opacity(self, labelmap_id: str):
+        @debounce(0.05)
+        def _update_opacity(opacity: float) -> None:
+            if opacity < 0:
+                return
+            for view in self.views_logic.slice_views:
+                modified = view.volume_handler.set_volume_opacity(labelmap_id, opacity)
+                if modified:
+                    view.update()
 
         return _update_opacity
 
     def update_visibility(self, labelmap_id: str):
         def _update_visibility(visible: bool):
-            for view in self.view_logics:
+            for view in self.views_logic.views:
                 modified = view.volume_handler.set_volume_visibility(labelmap_id, visible)
                 if modified:
                     view.update()
 
         return _update_visibility
 
-    def update_segment_color(self, _labelmap_id: str, _segment_id: str):
+    def update_segment_color(self, labelmap_id: str, segment_id: int):
         def _update_segment_color(color: str) -> None:
-            # TODO Alexy
-            pass
+            for view in self.views_logic.slice_views:
+                view.volume_handler.set_segment_color(labelmap_id, segment_id, color)
 
         return _update_segment_color
 
-    def update_segment_visibility(self, _labelmap_id: str, _ssegment_id: str):
+    def update_segment_visibility(self, labelmap_id: str, segment_id: int):
         def _update_segment_visbility(visible: bool) -> None:
-            # TODO Alexy
-            pass
+            for view in self.views_logic.slice_views:
+                view.volume_handler.set_segment_visibility(labelmap_id, segment_id, visible)
 
         return _update_segment_visbility
 
@@ -330,7 +324,7 @@ class SegmentationDisplayHandler:
 class SegmentationHandler(ObjectHandler):
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, views_logic)
-        self.display_handler = SegmentationDisplayHandler(self.view_logics)
+        self.display_handler = SegmentationDisplayHandler(views_logic)
 
     @property
     def supported_extensions(self) -> tuple[str]:
@@ -362,22 +356,35 @@ class SegmentationHandler(ObjectHandler):
             ("is_visible",), self.display_handler.update_visibility(seg_filter_logic._id)
         )
 
-    def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> str:
+    def select_segment_in_labelmap(
+        self, seg_filter_logic: SegmentationFilterLogic, segment_id: str | None = None
+    ) -> None:
+        if len(seg_filter_logic.segments) > 0:
+            if segment_id is None:
+                segment_id = seg_filter_logic.segments[-1]._id
+                segment_value = seg_filter_logic.segments[-1].value
+            else:
+                segment_value = seg_filter_logic.get_segment_value(segment_id)
+
+            self.data.active_segment_id = segment_id
+            self.views_logic.segmentation_logic.set_active_segment(seg_filter_logic.object_data, segment_value)
+        else:
+            self.data.active_segment_id = None
+            self.views_logic.segmentation_logic.set_active_segment(None, 0)
+
+    def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> None:
         new_segment = seg_filter_logic.create_segment()
-        new_segment.watch(("color",), self.display_handler.update_segment_color(seg_filter_logic._id, new_segment._id))
+        new_segment.watch(("color",), self.display_handler.update_segment_color(seg_filter_logic._id, new_segment.value))
         new_segment.watch(
-            ("is_visible",), self.display_handler.update_segment_visibility(seg_filter_logic._id, new_segment._id)
+            ("is_visible",), self.display_handler.update_segment_visibility(seg_filter_logic._id, new_segment.value)
         )
-        self.data.active_segment_id = new_segment._id
-        return new_segment._id
+        self.select_segment_in_labelmap(seg_filter_logic)
 
     def delete_segment_from_labelmap(self, seg_filter_logic: SegmentationFilterLogic, deleted_segment_id: str) -> None:
         deleted_segment = get_instance(deleted_segment_id)
         deleted_segment.clear_watchers()
+        self.views_logic.segmentation_logic.clear_segment(deleted_segment.value)
         seg_filter_logic.delete_segment(deleted_segment_id)
 
         if deleted_segment_id == self.data.active_segment_id:
-            self.data.active_segment_id = (
-                seg_filter_logic.segments[0]._id if len(seg_filter_logic.segments) > 0 else None
-            )
-        return seg_filter_logic.segments[0]._id if len(seg_filter_logic.segments) > 0 else None
+            self.select_segment_in_labelmap(seg_filter_logic)

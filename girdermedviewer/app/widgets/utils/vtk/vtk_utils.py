@@ -12,6 +12,7 @@ from vtk import (
     vtkBox,
     vtkColorSeries,
     vtkCutter,
+    vtkDiscretizableColorTransferFunction,
     vtkGlyph3DMapper,
     vtkImageData,
     vtkImageGaussianSmooth,
@@ -23,6 +24,7 @@ from vtk import (
     vtkMetaImageReader,
     vtkNIFTIImageReader,
     vtkNrrdReader,
+    vtkPiecewiseFunction,
     vtkPolyDataMapper,
     vtkResliceCursor,
     vtkResliceCursorLineRepresentation,
@@ -190,6 +192,17 @@ def set_reslice_opacity(_reslice_image_viewer, opacity):
     # return True
 
 
+def realign_axes(reslice_image_viewer: vtkResliceImageViewer):
+    """Forces viewer's axes to predefined normals and view ups"""
+    cursor: vtkResliceCursor = reslice_image_viewer.GetResliceCursor()
+    cursor.GetPlane(0).SetNormal(-1, 0, 0)
+    cursor.SetXViewUp(0, 0, 1)
+    cursor.GetPlane(1).SetNormal(0, 1, 0)
+    cursor.SetYViewUp(0, 0, 1)
+    cursor.GetPlane(2).SetNormal(0, 0, -1)
+    cursor.SetZViewUp(0, 1, 0)
+
+
 def reset_reslice(reslice_image_viewer):
     reslice_cursor = get_reslice_cursor(reslice_image_viewer)
     image_data = get_image_data(reslice_image_viewer)
@@ -197,13 +210,7 @@ def reset_reslice(reslice_image_viewer):
         center = image_data.center
         reslice_cursor.SetCenter(center)
     # reslice_image_viewer.GetResliceCursorWidget().ResetResliceCursor()
-    reslice_cursor.GetPlane(0).SetNormal(-1, 0, 0)
-    reslice_cursor.SetXViewUp(0, 0, 1)
-    reslice_cursor.GetPlane(1).SetNormal(0, 1, 0)
-    reslice_cursor.SetYViewUp(0, 0, 1)
-    reslice_cursor.GetPlane(2).SetNormal(0, 0, -1)
-    reslice_cursor.SetZViewUp(0, 1, 0)
-
+    realign_axes(reslice_image_viewer)
     reslice_image_viewer.GetRenderer().ResetCameraScreenSpace(0.8)
 
 
@@ -363,30 +370,51 @@ def render_volume_in_slice(image_data, renderer, axis=2, obliques=True):
     return reslice_image_viewer
 
 
-def render_volume_as_overlay_in_slice(image_data, renderer, axis=2, opacity=0.8):
+def render_volume_as_overlay_in_slice(image_data, axis=2, layer=1, opacity=0.8):
     reslice_image_viewer = get_reslice_image_viewer(axis)
     reslice_cursor = get_reslice_cursor(reslice_image_viewer)
 
-    imageMapper = vtkImageResliceMapper()
-    imageMapper.SetInputData(image_data)
-    imageMapper.SetSlicePlane(reslice_cursor.GetPlane(axis))
+    window: vtkRenderWindow = reslice_image_viewer.GetRenderWindow()
+    if window.GetNumberOfLayers() < layer + 1:
+      window.SetNumberOfLayers(layer + 1)
+      main_renderer = window.GetRenderers().GetFirstRenderer()
+      overlay_renderer = vtkRenderer()
+      overlay_renderer.SetActiveCamera(main_renderer.GetActiveCamera())
+      overlay_renderer.SetLayer(layer)
+      overlay_renderer.SetPreserveDepthBuffer(1)
+      window.AddRenderer(overlay_renderer)
 
+    image_mapper = vtkImageResliceMapper()
+    image_mapper.SetInputData(image_data)
+    image_mapper.SetSlicePlane(reslice_cursor.GetPlane(axis))
     image_slice = vtkImageSlice()
-    image_slice.SetMapper(imageMapper)
-    slice_property = image_slice.GetProperty()
+    image_slice.SetMapper(image_mapper)
 
-    # actor.GetProperty().SetLookupTable(ColorTransferFunction)
+    # This enable coloring the segments in the slice views
+    ctf = vtkDiscretizableColorTransferFunction()
+    ctf.AddRGBPoint(0.0, 0.0, 0.0, 0.0) # assign 0(empty) to black
+    of = vtkPiecewiseFunction()
+    of.AddPoint(0.0, 0.0) # 0 (empty) is fully transparent
+    for i in range(1, 256):
+        # anything >=1 will be white and opaque by default
+        ctf.AddRGBPoint(float(i), 1.0, 1.0, 1.0)
+        of.AddPoint(float(i), 1.0)
+    ctf.SetScalarOpacityFunction(of)
+    ctf.EnableOpacityMappingOn()
+
+    slice_property = image_slice.GetProperty()
+    slice_property.SetLookupTable(ctf)
     slice_property.SetInterpolationTypeToNearest()
 
     set_slice_opacity(image_slice, opacity)
 
     # vtkResliceImageViewer computes the default color window/level.
     # here we need to do it manually
-    range = image_data.GetScalarRange()
-    set_slice_window_level(image_slice, [(range[1] - range[0]) / 2.0, (range[0] + range[1]) / 2.0])
+    scalar_range = image_data.GetScalarRange()
+    set_slice_window_level(image_slice, [(scalar_range[1] - scalar_range[0]) / 2.0, (scalar_range[0] + scalar_range[1]) / 2.0])
 
+    renderer: vtkRenderer = window.GetRenderers().GetItemAsObject(layer)
     renderer.AddActor(image_slice)
-
     # Fit volume to viewport
     renderer.ResetCameraScreenSpace(0.8)
 

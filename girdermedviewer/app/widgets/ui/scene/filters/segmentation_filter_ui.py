@@ -28,6 +28,7 @@ class SegmentList(v3.VList):
     """
 
     delete_segment_clicked = Signal(str, str)
+    segment_clicked = Signal(str, str)
 
     def __init__(self, obj_id: str, active_segment_id: str, segments: str, **kwargs) -> None:
         super().__init__(classes="segment-list", **kwargs)
@@ -46,7 +47,7 @@ class SegmentList(v3.VList):
                 key="i",
                 value="segment",
                 active=(f"segment._id === {self._active_segment_id}",),
-                click=f"{self._active_segment_id} = segment._id;",
+                click=(self.segment_clicked, f"[{self._obj_id}, segment._id]"),
             ),
         ):
             with (
@@ -81,6 +82,7 @@ class SegmentList(v3.VList):
 class SegmentationFilterUI(html.Div):
     add_segment_clicked = Signal(str)
     delete_segment_clicked = Signal(str, str)
+    segment_clicked = Signal(str, str)
 
     def __init__(self, obj_id: str, obj_filter_prop: str, **kwargs):
         super().__init__(**kwargs)
@@ -126,3 +128,4 @@ class SegmentationFilterUI(html.Div):
             segments=self.segments,
         )
         self.segment_list.delete_segment_clicked.connect(self.delete_segment_clicked)
+        self.segment_list.segment_clicked.connect(self.segment_clicked)

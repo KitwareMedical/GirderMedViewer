@@ -65,8 +65,15 @@ class ViewSliderUI(v3.VSlider):
 
 
 class ViewUI(vtk.VtkRemoteView):
+    view_hovered = Signal(dict[str, dict[str, float]])  # Send hover positions
+
     def __init__(self, view_type: ViewType, **kwargs):
         renderer, render_window = create_rendering_pipeline()
+
+        if view_type != ViewType.THREED:
+            kwargs["picking_modes"] = ("picking_modes", ["hover"])
+            kwargs["hover"] = (self._on_hover, "[$event]")
+
         super().__init__(
             render_window,
             interactive_quality=80,
@@ -102,6 +109,9 @@ class ViewUI(vtk.VtkRemoteView):
                     end=self.ctrl.stop_animation,
                 )
 
+    def _on_hover(self, *args, **_kwargs):
+        self.view_hovered([event["position"] for event in args])
+
     def toggle_fullscreen(self):
         self._views_state.data.fullscreen = None if self._views_state.data.fullscreen else self.type
 
@@ -113,10 +123,6 @@ class ViewsUI(v3.VContainer):
         self.view_uis: dict[ViewType, ViewUI] = {}
 
         self._build_quad_view()
-
-    def update_views(self):
-        for view_ui in self.view_uis.values():
-            view_ui.update()
 
     def _build_quad_view(self):
         with self, html.Div(classes="quad-view"):

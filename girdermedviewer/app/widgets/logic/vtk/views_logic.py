@@ -32,9 +32,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
         self._tool_state = TypedState(self.state, ToolState)
         self._tool_state.bind_changes({self._tool_state.name.active_tool: self._on_tool_change})
 
-        self.roi_logic = PlaceROILogic(self.server)
-        self.segmentation_logic = SegmentationEffectLogic(self.server)
-
         for view_type in ViewType:
             view_logic_type = ThreeDViewLogic if view_type == ViewType.THREED else SliceViewLogic
             self.view_logics[view_type] = view_logic_type(
@@ -45,16 +42,41 @@ class ViewsLogic(BaseLogic[ViewsState]):
             )
             self.view_logics[view_type].window_level_changed.connect(self.window_level_changed)
 
+        self.roi_logic = PlaceROILogic(self.server)
+        self.segmentation_logic = SegmentationEffectLogic(self.server)
+
+    @property
+    def views(self) -> list[ViewLogic]:
+        return list(self.view_logics.values())
+
+    @property
+    def slice_views(self) -> list[SliceViewLogic]:
+        return [view for view in self.view_logics.values() if isinstance(view, SliceViewLogic)]
+
+    @property
+    def threed_views(self) -> list[ThreeDViewLogic]:
+        return [view for view in self.view_logics.values() if isinstance(view, ThreeDViewLogic)]
+
     def _on_tool_change(self, active_tool: ToolType):
         self.roi_logic.enable_widget(active_tool == ToolType.PLACE_ROI)
-        for view_logic in self.view_logics.values():
+        for view_logic in self.views:
             if isinstance(view_logic, SliceViewLogic):
                 view_logic.mesh_handler.set_mesh_visibility(self.roi_logic._id, active_tool == ToolType.PLACE_ROI)
         self.update_views()
 
+    def update_views(self):
+        for view in self.views:
+            view.update()
+
+    def update_slice_views(self):
+        for view in self.slice_views:
+            view.update()
+
+    def update_threed_views(self):
+        for view in self.threed_views:
+            view.update()
+
     def set_ui(self, ui: ViewsUI, tool_ui: ToolUI):
-        # Link VtkRemoteView update method
-        self.update_views = ui.update_views
         self.roi_logic.roi_updated.connect(self.update_views)
 
         # Connect logics to UI
@@ -62,6 +84,8 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic = self.view_logics.get(view_type)
             if view_logic is not None:
                 view_logic.set_ui(view_ui)
+                if isinstance(view_logic, SliceViewLogic):
+                    view_logic.update_requested.connect(self.update_slice_views)
         self.roi_logic.set_ui(tool_ui.place_roi_ui)
 
         # Init ROI
@@ -89,17 +113,18 @@ class ViewsLogic(BaseLogic[ViewsState]):
         layer: VolumeLayer,
         volume_type: VolumeObjectType = VolumeObjectType.UNDEFINED,
     ):
+        for view_logic in self.view_logics.values():
+            view_logic.add_volume(data_id, image_data, layer)
+
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
             self.data.are_sliders_visible = True
             self.data.is_viewer_disabled = False
             self.roi_logic.set_default_bounds(image_data.GetBounds())
+            self.segmentation_logic.set_paint_effects(self.slice_views)
 
         if volume_type == VolumeObjectType.LABELMAP:
             self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
-
-        for view_logic in self.view_logics.values():
-            view_logic.add_volume(data_id, image_data, layer)
         self.update_views()
 
     def remove_volume(self, data_id: str, only_data=None):

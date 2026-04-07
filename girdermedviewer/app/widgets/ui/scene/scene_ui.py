@@ -181,6 +181,7 @@ class SceneUI(html.Div):
     delete_clicked = Signal(str)
     add_segment_clicked = Signal(str)
     delete_segment_clicked = Signal(str, str)
+    segment_clicked = Signal(str, str)
     visibility_clicked = Signal(str)
     overlay_clicked = Signal(str)
 
@@ -197,6 +198,7 @@ class SceneUI(html.Div):
         self.object_ui.filter_toolbar.filter_clicked.connect(self.filter_clicked)
         self.object_ui.filter_ui.segmentation_filter.add_segment_clicked.connect(self.add_segment_clicked)
         self.object_ui.filter_ui.segmentation_filter.delete_segment_clicked.connect(self.delete_segment_clicked)
+        self.object_ui.filter_ui.segmentation_filter.segment_clicked.connect(self.segment_clicked)
 
     def _build_ui(self):
         with self, self._scene.provide_as("scene"):

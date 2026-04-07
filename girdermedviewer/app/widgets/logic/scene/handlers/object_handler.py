@@ -6,7 +6,6 @@ from trame_server.core import Server
 
 from ....ui import SceneState
 from ...base_logic import BaseLogic
-from ...vtk.views.view_logic import ViewLogic
 from ...vtk.views_logic import ViewsLogic
 from ..objects.scene_object_logic import SceneObjectLogic
 
@@ -18,10 +17,6 @@ class ObjectHandler(BaseLogic[SceneState]):
         super().__init__(server, SceneState)
         self.object_logics: dict[str, SceneObjectLogic] = {}
         self.views_logic = views_logic
-
-    @property
-    def view_logics(self) -> list[ViewLogic]:
-        return list(self.views_logic.view_logics.values())
 
     @property
     @abstractmethod

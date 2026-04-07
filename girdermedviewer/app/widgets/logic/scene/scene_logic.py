@@ -156,6 +156,12 @@ class SceneLogic(BaseLogic[SceneState]):
             return
         self.segmentation_handler.delete_segment_from_labelmap(seg_filter_logic, deleted_segment_id)
 
+    def _select_segment(self, seg_filter_logic_id: str, selected_segment_id: str) -> None:
+        seg_filter_logic = self.object_logics.get(seg_filter_logic_id)
+        if not isinstance(seg_filter_logic, SegmentationFilterLogic):
+            return
+        self.segmentation_handler.select_segment_in_labelmap(seg_filter_logic, selected_segment_id)
+
     def add_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)
         if scene_object in self.scene.objects:
@@ -220,3 +226,4 @@ class SceneLogic(BaseLogic[SceneState]):
         ui.overlay_clicked.connect(self.toggle_object_overlay)
         ui.add_segment_clicked.connect(self._add_segment)
         ui.delete_segment_clicked.connect(self._delete_segment)
+        ui.segment_clicked.connect(self._select_segment)
