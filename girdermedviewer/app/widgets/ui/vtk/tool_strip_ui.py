@@ -4,8 +4,8 @@ from trame.widgets import html
 from trame_server.utils.typed_state import TypedState
 
 from ...utils import Button
-from .base_view import ViewState
 from .position_menu import PositionMenu
+from .views_ui import ViewsState
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +16,15 @@ class ToolStripUI(html.Div):
             classes="tools-strip",
             **kwargs,
         )
-        self._typed_state = TypedState(self.state, ViewState)
+        self._views_state = TypedState(self.state, ViewsState)
 
         with self:
             Button(
                 click=self._toggle_obliques_visibility,
                 disabled=(disabled,),
-                color=(f"{self._typed_state.name.are_obliques_visible} && !{disabled} ? 'primary' : 'undefined'",),
+                color=(f"{self._views_state.name.are_obliques_visible} && !{disabled} ? 'primary' : 'undefined'",),
                 icon="mdi-cube-scan",
-                tooltip=(f"{self._typed_state.name.are_obliques_visible} ? 'Hide obliques' : 'Show obliques'",),
+                tooltip=(f"{self._views_state.name.are_obliques_visible} ? 'Hide obliques' : 'Show obliques'",),
                 variant="text",
                 size="default",
             )
@@ -40,14 +40,14 @@ class ToolStripUI(html.Div):
 
             PositionMenu(
                 disabled=(disabled,),
-                color=(f"{self._typed_state.name.is_position_menu_visible} && !{disabled} ? 'primary' : 'undefined'",),
+                color=(f"{self._views_state.name.is_position_menu_visible} && !{disabled} ? 'primary' : 'undefined'",),
                 icon="mdi-target",
                 tooltip=(
-                    f"{self._typed_state.name.is_position_menu_visible} ? 'Hide position dialog' : 'Show position dialog'",
+                    f"{self._views_state.name.is_position_menu_visible} ? 'Hide position dialog' : 'Show position dialog'",
                 ),
                 variant="text",
                 size="default",
             )
 
     def _toggle_obliques_visibility(self):
-        self._typed_state.data.are_obliques_visible = not self._typed_state.data.are_obliques_visible
+        self._views_state.data.are_obliques_visible = not self._views_state.data.are_obliques_visible

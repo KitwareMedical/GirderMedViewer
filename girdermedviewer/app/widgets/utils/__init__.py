@@ -9,11 +9,11 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-
+from .scene_utils import FilterType, SceneObjectType, VolumeLayer
 from .vtk.preset_utils import (
+    ColorPresetParser,
     DataArray,
     DataArrayType,
-    ColorPresetParser,
     MeshColoringMode,
     Preset,
     PresetParser,
@@ -22,8 +22,10 @@ from .vtk.preset_utils import (
     get_volume_preset_parser,
 )
 from .vtk.vtk_utils import (
+    ViewType,
     create_gaussian_filter,
     create_rendering_pipeline,
+    get_image_data,
     get_number_of_slices,
     get_position_from_slice_index,
     get_random_color,
@@ -43,8 +45,8 @@ from .vtk.vtk_utils import (
     reset_3D,
     reset_reslice,
     set_actor_visibility,
-    set_mesh_solid_color,
     set_mesh_opacity,
+    set_mesh_solid_color,
     set_mesh_visibility,
     set_oblique_visibility,
     set_reslice_center,
@@ -61,18 +63,6 @@ from .vtk.vtk_utils import (
     supported_mesh_extensions,
     supported_volume_extensions,
 )
-
-from .vtk.vtk_utils import (
-    get_image_data,
-    get_number_of_slices,
-    get_position_from_slice_index,
-    get_random_color,
-    create_gaussian_filter,
-    create_rendering_pipeline,
-)
-
-from .scene_utils import FilterType, SceneObjectType, VolumeLayer
-
 
 __all__ = [
     "AppConfig",
@@ -95,6 +85,7 @@ __all__ = [
     "PresetParser",
     "SceneObjectType",
     "Text",
+    "ViewType",
     "VolumeColoringMode",
     "VolumeLayer",
     "VolumePresetParser",

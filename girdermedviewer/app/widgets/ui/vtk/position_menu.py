@@ -4,7 +4,7 @@ from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 
 from ...utils import Button
-from .base_view import ViewState
+from .views_ui import ViewsState
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class PositionMenu(Button):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._typed_state = TypedState(self.state, ViewState)
+        self._typed_state = TypedState(self.state, ViewsState)
         self._build_ui()
 
     def _build_ui(self) -> None:

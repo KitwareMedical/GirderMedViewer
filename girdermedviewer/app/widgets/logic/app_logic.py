@@ -10,6 +10,7 @@ from ..utils import AppConfig, GirderConfig
 from .base_logic import BaseLogic
 from .girder import GirderLogic
 from .scene import SceneLogic
+from .vtk.views_logic import ViewsLogic
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +20,17 @@ class AppLogic(BaseLogic[AppState]):
         super().__init__(server, AppState)
         self._load_app_config()
 
-        self._scene_logic = SceneLogic(self.server)
+        self._views_logic = ViewsLogic(self.server)
+        self._scene_logic = SceneLogic(self.server, self._views_logic)
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
-
         self._scene_logic.object_added_to_views.connect(self._on_scene_changed)
         self._scene_logic.object_removed_from_views.connect(self._on_scene_changed)
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
-        self._scene_logic.set_view_ui(ui.view_ui)
         self._scene_logic.set_ui(ui.scene_ui)
+        self._views_logic.set_ui(ui.views_ui)
 
     def _load_app_config(self, config_file_path: Path | None = None) -> None:
         """
