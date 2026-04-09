@@ -1,12 +1,11 @@
 from trame.widgets import html
 
-from ....utils import Text
-from ..objects.object_components import PropertySlider
+from ....utils import Slider, Text
 
 
-class GaussianSigmaSlider(PropertySlider):
+class GaussianSigmaSlider(Slider):
     def __init__(self, model: str, **kwargs):
-        super().__init__(v_model=(model,), min=0, max=10, step=1, thumb_label=True, **kwargs)
+        super().__init__(v_model=(model,), min=0, max=10, step=1, **kwargs)
 
 
 class GaussianFilterUI(html.Div):

@@ -9,6 +9,7 @@ from trame_server.utils.typed_state import TypedState
 from ...utils import Button
 from .tools.place_point_ui import PlacePointUI
 from .tools.place_roi_ui import PlaceROIUI
+from .tools.segmentation_effect_ui import SegmentationEffectUI
 from .views_ui import ViewsState
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class ToolType(Enum):
     UNDEFINED = 0
     PLACE_POINT = 1
     PLACE_ROI = 2
+    SEGMENTATION_EFFECT = 3
 
 
 @dataclass
@@ -61,6 +63,13 @@ class ToolUI(html.Div):
                 tooltip="Place ROI",
             )
 
+            self._build_tool_button(
+                click=lambda: self._activate_tool(ToolType.SEGMENTATION_EFFECT),
+                is_colored=self._is_tool_active(ToolType.SEGMENTATION_EFFECT),
+                icon="mdi-shape",
+                tooltip="Segmentation tool",
+            )
+
     def _toggle_obliques_visibility(self):
         self._views_state.data.are_obliques_visible = not self._views_state.data.are_obliques_visible
 
@@ -88,3 +97,6 @@ class ToolUI(html.Div):
             v3.VDivider(v_if=(f"!{self._is_tool_active(ToolType.UNDEFINED)}",))
             self.place_point_ui = PlacePointUI(v_if=(self._is_tool_active(ToolType.PLACE_POINT),))
             self.place_roi_ui = PlaceROIUI(v_if=(self._is_tool_active(ToolType.PLACE_ROI),))
+            self.segmentation_effect_ui = SegmentationEffectUI(
+                v_if=(self._is_tool_active(ToolType.SEGMENTATION_EFFECT),)
+            )

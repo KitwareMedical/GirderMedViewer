@@ -1,10 +1,9 @@
 from trame.widgets import html
 
-from ....utils import Text
-from .object_components import PropertySlider
+from ....utils import Slider, Text
 
 
-class OpacitySlider(PropertySlider):
+class OpacitySlider(Slider):
     def __init__(self, **kwargs):
         super().__init__(min=0, max=1, step=0.1, **kwargs)
 

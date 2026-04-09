@@ -7,10 +7,12 @@ from ...logic.base_logic import BaseLogic
 from ...ui import ToolState, ToolType, ToolUI, ViewsState, ViewsUI, ViewType
 from ...utils import (
     VolumeLayer,
+    VolumeObjectType,
     get_color_preset_parser,
     get_volume_preset_parser,
 )
 from .place_roi_logic import PlaceROILogic
+from .segmentation_effect_logic import SegmentationEffectLogic
 from .views.slice_view_logic import SliceViewLogic
 from .views.threed_view_logic import ThreeDViewLogic
 from .views.view_logic import ViewLogic
@@ -31,6 +33,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         self._tool_state.bind_changes({self._tool_state.name.active_tool: self._on_tool_change})
 
         self.roi_logic = PlaceROILogic(self.server)
+        self.segmentation_logic = SegmentationEffectLogic(self.server)
 
         for view_type in ViewType:
             view_logic_type = ThreeDViewLogic if view_type == ViewType.THREED else SliceViewLogic
@@ -79,12 +82,22 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic.remove_mesh(data_id, only_data)
         self.update_views()
 
-    def add_volume(self, data_id: str, image_data: vtkImageData, layer: VolumeLayer):
+    def add_volume(
+        self,
+        data_id: str,
+        image_data: vtkImageData,
+        layer: VolumeLayer,
+        volume_type: VolumeObjectType = VolumeObjectType.UNDEFINED,
+    ):
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
             self.data.are_sliders_visible = True
             self.data.is_viewer_disabled = False
             self.roi_logic.set_default_bounds(image_data.GetBounds())
+
+        if volume_type == VolumeObjectType.LABELMAP:
+            self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
+
         for view_logic in self.view_logics.values():
             view_logic.add_volume(data_id, image_data, layer)
         self.update_views()

@@ -9,6 +9,9 @@ from trame.widgets.vuetify3 import (
     VIcon,
     VNumberInput,
     VProgressCircular,
+    VRangeSlider,
+    VSelect,
+    VSlider,
     VTextField,
     VTooltip,
 )
@@ -87,6 +90,8 @@ class LoadingButton(Button):
                 size=20,
                 width=3,
             )
+
+
 class ColorPicker(VColorPicker):
     def __init__(self, **kwargs):
         super().__init__(
@@ -143,6 +148,34 @@ class NumberInput(VNumberInput):
             inset=kwargs.pop("inset", True),
             **kwargs,
         )
+
+
+class Slider(VSlider):
+    def __init__(self, **kwargs):
+        super().__init__(
+            step=kwargs.pop("step", 1e-3),
+            hide_details=kwargs.pop("hide_details", True),
+            thumb_size=kwargs.pop("thumb_size", 16),
+            track_size=kwargs.pop("track_size", 2),
+            thumb_label=kwargs.pop("thumb_label", "hover"),
+            **kwargs,
+        )
+
+
+class RangeSlider(VRangeSlider):
+    def __init__(self, **kwargs):
+        super().__init__(
+            step=kwargs.pop("step", 1e-3),
+            hide_details=kwargs.pop("hide_details", True),
+            thumb_size=kwargs.pop("thumb_size", 16),
+            track_size=kwargs.pop("track_size", 2),
+            **kwargs,
+        )
+
+
+class Selector(VSelect):
+    def __init__(self, **kwargs):
+        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="comfortable", **kwargs)
 
 
 class GlobalStyle(Style):

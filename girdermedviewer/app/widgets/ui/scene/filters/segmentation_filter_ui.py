@@ -1,31 +1,10 @@
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
-from trame_dataclass.v2 import Provider
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ....utils import Button, ColorPicker, SegmentationEffectType, Text, TextField
-from ..objects.object_components import PropertySlider
+from ....utils import Button, ColorPicker, Text, TextField
 from ..scene_state import SceneState
-
-
-class PaintEraseEffectUI(html.Div):
-    def __init__(self, paint_erase_prop: str, **kwargs):
-        super().__init__(**kwargs)
-        self._paint_erase_prop = paint_erase_prop
-
-        with self:
-            Text("Brush size", subtitle=True)
-            with (
-                PropertySlider(v_model=(f"{self._paint_erase_prop}.brush_size",)),
-                v3.Template(v_slot_append=True),
-            ):
-                Button(
-                    icon="mdi-sphere",
-                    tooltip="Sphere brush",
-                    click=f"{self._paint_erase_prop}.use_sphere_brush = !{self._paint_erase_prop}.use_sphere_brush",
-                    active=(f"{self._paint_erase_prop}.use_sphere_brush",),
-                )
 
 
 class SegmentColorDialog(v3.VDialog):
@@ -120,14 +99,6 @@ class SegmentationFilterUI(html.Div):
     def active_segment_id(self) -> str:
         return self._scene_state.name.active_segment_id
 
-    @property
-    def active_effect(self) -> str:
-        return f"{self._filter_prop}.active_effect"
-
-    @property
-    def active_effect_prop_id(self) -> str:
-        return f"{self._filter_prop}.active_effect_prop_id"
-
     def _build_ui(self):
         with self:
             with html.Div(v_if=(f"{self.segments}?.length > 0",)):
@@ -139,10 +110,6 @@ class SegmentationFilterUI(html.Div):
                         icon="mdi-plus",
                         click=(self.add_segment_clicked, f"[{self._obj_id}]"),
                     )
-                v3.VDivider(classes="my-2")
-                self._build_effect_buttons()
-                v3.VDivider(classes="my-2")
-                self._build_effect_uis()
 
             with html.Div(v_else=True, classes="d-flex justify-center"):
                 Button(
@@ -152,38 +119,6 @@ class SegmentationFilterUI(html.Div):
                     variant="tonal",
                 )
 
-    def _build_effect_button(self, effect_type: SegmentationEffectType, **kwargs):
-        Button(
-            tooltip=effect_type.value,
-            active=(self._is_active_effect(effect_type),),
-            click=self._set_active_effect(effect_type),
-            **kwargs,
-        )
-
-    def _build_effect_buttons(self):
-        with html.Div(classes="d-flex justify-space-between"):
-            self._build_effect_button(
-                icon="mdi-cursor-default",
-                effect_type=SegmentationEffectType.UNDEFINED,
-            )
-            self._build_effect_button(
-                icon="mdi-brush",
-                effect_type=SegmentationEffectType.PAINT,
-            )
-            self._build_effect_button(
-                icon="mdi-eraser",
-                effect_type=SegmentationEffectType.ERASE,
-            )
-
-    def _build_effect_uis(self):
-        with Provider(name="active_effect_prop", instance=(self.active_effect_prop_id,)):
-            PaintEraseEffectUI(
-                v_if=(
-                    f"{self._is_active_effect(SegmentationEffectType.PAINT)} || {self._is_active_effect(SegmentationEffectType.ERASE)}",
-                ),
-                paint_erase_prop="active_effect_prop",
-            )
-
     def _build_segment_list(self):
         self.segment_list = SegmentList(
             obj_id=self._obj_id,
@@ -191,9 +126,3 @@ class SegmentationFilterUI(html.Div):
             segments=self.segments,
         )
         self.segment_list.delete_segment_clicked.connect(self.delete_segment_clicked)
-
-    def _is_active_effect(self, effect_type: SegmentationEffectType) -> str:
-        return f"{self.active_effect} === '{effect_type.value}'"
-
-    def _set_active_effect(self, effect_type: SegmentationEffectType) -> str:
-        return f"{self.active_effect} = '{effect_type.value}'"

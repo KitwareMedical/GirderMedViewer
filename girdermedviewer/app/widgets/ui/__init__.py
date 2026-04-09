@@ -5,6 +5,10 @@ from .scene.scene_ui import SceneState, SceneUI
 from .vtk.tool_ui import ToolState, ToolType, ToolUI
 from .vtk.tools.place_roi_ui import PlaceROIState, PlaceROIUI
 from .vtk.tools.point_selector_ui import PointState
+from .vtk.tools.segmentation_effect_ui import (
+    SegmentationEffectState,
+    SegmentationEffectUI,
+)
 from .vtk.views_ui import ViewsState, ViewState, ViewsUI, ViewType, ViewUI
 
 __all__ = [
@@ -20,6 +24,8 @@ __all__ = [
     "PointState",
     "SceneState",
     "SceneUI",
+    "SegmentationEffectState",
+    "SegmentationEffectUI",
     "ToolState",
     "ToolType",
     "ToolUI",

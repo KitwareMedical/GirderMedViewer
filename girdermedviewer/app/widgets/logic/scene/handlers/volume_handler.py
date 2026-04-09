@@ -4,6 +4,8 @@ from collections.abc import Callable
 from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
 
+from girdermedviewer.app.widgets.utils.scene_utils import VolumeObjectType
+
 from ....utils import VolumeLayer, debounce, supported_volume_extensions
 from ...vtk.views.slice_view_logic import SliceViewLogic
 from ...vtk.views.threed_view_logic import ThreeDViewLogic
@@ -338,8 +340,9 @@ class SegmentationHandler(ObjectHandler):
         self.object_logics[seg_filter_logic._id] = seg_filter_logic
         self._connect_labelmap_to_display_handler(seg_filter_logic)
 
-        for view in self.view_logics:
-            view.add_volume(seg_filter_logic._id, seg_filter_logic.object_data, VolumeLayer.SECONDARY)
+        self.views_logic.add_volume(
+            seg_filter_logic._id, seg_filter_logic.object_data, VolumeLayer.SECONDARY, VolumeObjectType.LABELMAP
+        )
 
     def remove_object_from_views(self, seg_filter_logic: SegmentationFilterLogic) -> None:
         self.unregister_object_from_views(seg_filter_logic)
@@ -348,8 +351,7 @@ class SegmentationHandler(ObjectHandler):
         seg_filter_logic.display.clear_watchers()
         self.object_logics.pop(seg_filter_logic._id)
 
-        for view in self.view_logics:
-            view.remove_volume(seg_filter_logic._id)
+        self.views_logic.remove_volume(seg_filter_logic._id)
 
     def set_object_visibility(self, seg_filter_logic: SegmentationFilterLogic, visible: bool) -> None:
         seg_filter_logic.scene_object.is_visible = visible
