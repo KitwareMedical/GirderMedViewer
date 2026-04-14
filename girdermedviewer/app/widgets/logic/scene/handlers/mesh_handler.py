@@ -105,8 +105,7 @@ class MeshHandler(ObjectHandler):
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.object_logics[mesh_logic._id] = mesh_logic
         self._connect_mesh_logic_to_display_handler(mesh_logic)
-        for view in self.view_logics:
-            view.add_mesh(mesh_logic._id, mesh_logic.object_data)
+        self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data)
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
         mesh_logic.display.clear_watchers()

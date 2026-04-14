@@ -1,5 +1,7 @@
 import logging
 
+from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
+
 from ....utils import (
     VolumeLayer,
     reset_3D,
@@ -22,6 +24,10 @@ class ThreeDViewLogic(ViewLogic):
     def add_mesh(self, data_id, poly_data):
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)
         self.update()
+
+    def init_roi(self, roi: PlaceROILogic):
+        roi.box_widget.SetInteractor(self.renderer.GetRenderWindow().GetInteractor())
+        roi.box_widget.SetCurrentRenderer(self.renderer)
 
     def reset(self):
         reset_3D(self.renderer)

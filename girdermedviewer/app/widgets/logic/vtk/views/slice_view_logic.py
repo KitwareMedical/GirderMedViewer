@@ -1,6 +1,8 @@
 import logging
 from enum import Enum
 
+from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
+
 from ....ui import ViewUI
 from ....utils import (
     ViewType,
@@ -71,7 +73,6 @@ class SliceViewLogic(ViewLogic):
 
     def add_volume(self, data_id, image_data, layer: VolumeLayer):
         if layer == VolumeLayer.PRIMARY:
-            self._views_state.data.are_obliques_visible = True
             self.volume_handler.add_primary_volume(
                 data_id, image_data, self.orientation, self._views_state.data.are_obliques_visible
             )
@@ -83,6 +84,11 @@ class SliceViewLogic(ViewLogic):
 
     def add_mesh(self, data_id, poly_data):
         self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation)
+        self.update()
+
+    def init_roi(self, roi: PlaceROILogic):
+        self.mesh_handler.add_mesh_in_slice(roi._id, roi.slice_rep, self.orientation)
+        self.mesh_handler.set_mesh_visibility(roi._id, False)
         self.update()
 
     def remove_volume(self, data_id, only_data=None):

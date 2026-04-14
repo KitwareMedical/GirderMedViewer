@@ -199,9 +199,7 @@ class VolumeHandler(ObjectHandler):
             self._set_active_primary_volume_id(volume_logic._id)
 
         volume_logic.scene_object.is_visible = True
-
-        for view in self.view_logics:
-            view.add_volume(volume_logic._id, volume_logic.object_data, layer)
+        self.views_logic.add_volume(volume_logic._id, volume_logic.object_data, layer)
 
     def _reload_as_primary_volume(self, volume_logic: VolumeObjectLogic) -> None:
         self._unregister_object_from_views(volume_logic)
