@@ -1,7 +1,7 @@
 from trame.widgets import html
 from undo_stack import Signal
 
-from ....utils import Button, FilterType, SceneObjectType
+from ....utils import ICONS_MAP, Button, FilterType, SceneObjectType
 from .gaussian_filter_ui import GaussianFilterUI
 
 
@@ -17,17 +17,17 @@ class FilterToolbarUI(html.Div):
 
     def _build_ui(self):
         with self:
-            self._build_filter_button(FilterType.GAUSSIAN_BLUR, SceneObjectType.VOLUME, icon="mdi-blur")
+            self._build_filter_button(FilterType.GAUSSIAN_BLUR, SceneObjectType.VOLUME)
 
-    def _build_filter_button(self, filter_type: FilterType, scene_object_type: SceneObjectType, **kwargs):
+    def _build_filter_button(self, filter_type: FilterType, scene_object_type: SceneObjectType):
         def _filter_clicked(obj_id):
             self.filter_clicked(obj_id, filter_type)
 
         Button(
             v_if=(self._is_obj_type(scene_object_type)),
-            tooltip=filter_type.value,
             click=(_filter_clicked, f"[{self._obj_id}]"),
-            **kwargs,
+            icon=ICONS_MAP.get(filter_type),
+            tooltip=filter_type.value,
         )
 
     def _is_obj_type(self, scene_object_type: SceneObjectType) -> str:

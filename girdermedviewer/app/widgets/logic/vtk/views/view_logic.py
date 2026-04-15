@@ -5,8 +5,6 @@ from trame_server.core import Server
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from girdermedviewer.app.widgets.logic.vtk.place_roi_logic import PlaceROILogic
-
 from ....ui import ViewsState, ViewState, ViewType, ViewUI
 from ....utils import (
     ColorPresetParser,
@@ -18,6 +16,7 @@ from ..handlers.volume_handler import (
     VolumeThreeDHandler,
     VolumeTwoDHandler,
 )
+from ..place_roi_logic import PlaceROILogic
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +67,8 @@ class ViewLogic(BaseLogic[ViewState]):
         if self.volume_handler is None:
             return
         self.volume_handler.unregister_data(data_id, only_data)
-        self.update()
 
     def remove_mesh(self, data_id, only_data=None):
+        if self.mesh_handler is None:
+            return
         self.mesh_handler.unregister_data(data_id, only_data)
-        self.update()

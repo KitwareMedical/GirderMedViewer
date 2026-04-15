@@ -35,8 +35,6 @@ class Scene(StateDataModel):
 
 
 class SceneLogic(BaseLogic[SceneState]):
-    object_added_to_views = Signal(str, bool)
-    object_removed_from_views = Signal(str, bool)
     object_added = Signal(str)
     object_removed = Signal(str, str)
     object_load_canceled = Signal(str)
@@ -114,7 +112,6 @@ class SceneLogic(BaseLogic[SceneState]):
             object_handler.unregister_object_from_views(object_logic)
         else:
             object_handler.remove_object_from_views(object_logic)
-        self.object_removed_from_views(object_id, len(self.scene.objects) > 0)
 
     def _remove_object(self, object_id: str) -> None:
         scene_object = get_instance(object_id)
@@ -139,9 +136,9 @@ class SceneLogic(BaseLogic[SceneState]):
     def _add_object_to_views(self, object_logic: SceneObjectLogic) -> None:
         self._get_object_handler(object_logic).add_object_to_views(object_logic)
         object_logic.set_loading_status(False)
+        object_logic.set_icon()
 
         self.object_logics[object_logic._id] = object_logic
-        self.object_added_to_views(object_logic._id, len(self.scene.objects) > 0)
 
     def add_object(self, scene_object: SceneObject) -> None:
         scene_object.gui = SceneObjectGUI(self.server)

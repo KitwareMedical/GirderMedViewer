@@ -2,13 +2,6 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 
 
-class NumberInput(v3.VNumberInput):
-    def __init__(self, **kwargs):
-        super().__init__(
-            control_variant="stacked", density="compact", flat=True, hide_details=True, variant="solo-filled", **kwargs
-        )
-
-
 class Selector(v3.VSelect):
     def __init__(self, **kwargs):
         super().__init__(flat=True, hide_details=True, variant="solo-filled", density="comfortable", **kwargs)

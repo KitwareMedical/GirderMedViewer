@@ -23,8 +23,6 @@ class AppLogic(BaseLogic[AppState]):
         self._scene_logic = SceneLogic(self.server, self._views_logic)
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
-        self._scene_logic.object_added_to_views.connect(self._on_scene_changed)
-        self._scene_logic.object_removed_from_views.connect(self._on_scene_changed)
 
     def set_ui(self, ui: AppUI) -> None:
         self._girder_logic.set_ui(ui)
@@ -55,6 +53,3 @@ class AppLogic(BaseLogic[AppState]):
             url: GirderConfig(url=url, **config) for url, config in config_dict.items() if url.startswith("http")
         }
         self.app_config = AppConfig(**app_config)
-
-    def _on_scene_changed(self, _, has_objects: bool):
-        self.data.is_viewer_disabled = not has_objects

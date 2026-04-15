@@ -72,13 +72,43 @@ class ViewsLogic(BaseLogic[ViewsState]):
     def add_mesh(self, data_id: str, poly_data: vtkPolyData):
         for view_logic in self.view_logics.values():
             view_logic.add_mesh(data_id, poly_data)
+        self.update_views()
+
+    def remove_mesh(self, data_id: str, only_data=None):
+        for view_logic in self.view_logics.values():
+            view_logic.remove_mesh(data_id, only_data)
+        self.update_views()
 
     def add_volume(self, data_id: str, image_data: vtkImageData, layer: VolumeLayer):
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
+            self.data.are_sliders_visible = True
+            self.data.is_viewer_disabled = False
             self.roi_logic.set_default_bounds(image_data.GetBounds())
         for view_logic in self.view_logics.values():
             view_logic.add_volume(data_id, image_data, layer)
+        self.update_views()
+
+    def remove_volume(self, data_id: str, only_data=None):
+        has_primary_volume = False
+        has_secondary_volume = False
+        for view_logic in self.view_logics.values():
+            view_logic.remove_volume(data_id, only_data)
+
+            if isinstance(view_logic, SliceViewLogic):
+                has_primary_volume = view_logic.volume_handler.has_primary_volume() or has_primary_volume
+                has_secondary_volume = view_logic.volume_handler.has_secondary_volume() or has_secondary_volume
+
+        if not has_primary_volume:
+            self.data.normals = None
+            self.data.are_obliques_visible = False
+            self.data.is_viewer_disabled = True
+            if not has_secondary_volume:
+                self.data.position.pos_x, self.data.position.pos_y, self.data.position.pos_z = None, None, None
+                self.data.are_sliders_visible = False
+                self._tool_state.data.active_tool = ToolType.UNDEFINED
+
+        self.update_views()
 
     def _init_roi(self):
         for view_logic in self.view_logics.values():

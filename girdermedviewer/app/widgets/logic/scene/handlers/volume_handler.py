@@ -97,6 +97,7 @@ class VolumeDisplayHandler:
                     show_arrows,
                     arrow_length,
                     arrow_width,
+                    view.orientation.value,
                 )
                 if modified:
                     view.update()
@@ -202,11 +203,11 @@ class VolumeHandler(ObjectHandler):
         self.views_logic.add_volume(volume_logic._id, volume_logic.object_data, layer)
 
     def _reload_as_primary_volume(self, volume_logic: VolumeObjectLogic) -> None:
-        self._unregister_object_from_views(volume_logic)
+        self.views_logic.remove_volume(volume_logic._id)
         self._add_volume_to_views(volume_logic, VolumeLayer.PRIMARY)
 
     def _reload_as_secondary_volume(self, volume_logic: VolumeObjectLogic) -> None:
-        self._unregister_object_from_views(volume_logic)
+        self.views_logic.remove_volume(volume_logic._id)
         self._remove_from_primary_volumes(volume_logic._id)
         self._add_volume_to_views(volume_logic, VolumeLayer.SECONDARY)
 
@@ -246,10 +247,6 @@ class VolumeHandler(ObjectHandler):
 
         self._add_volume_to_views(volume_logic, layer)
 
-    def _unregister_object_from_views(self, volume_logic: VolumeObjectLogic) -> None:
-        for view in self.view_logics:
-            view.remove_volume(volume_logic._id)
-
     def unregister_object_from_views(self, volume_logic: VolumeObjectLogic) -> None:
         volume_logic.display.clear_watchers()
         self.object_logics.pop(volume_logic._id)
@@ -257,7 +254,7 @@ class VolumeHandler(ObjectHandler):
         if self._is_primary_volume(volume_logic._id):
             self._remove_from_primary_volumes(volume_logic._id)
 
-        self._unregister_object_from_views(volume_logic)
+        self.views_logic.remove_volume(volume_logic._id)
 
     def remove_object_from_views(self, volume_logic: VolumeObjectLogic) -> None:
         self.unregister_object_from_views(volume_logic)

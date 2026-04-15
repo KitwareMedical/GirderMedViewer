@@ -1,5 +1,12 @@
 from .app_utils import AppConfig, debounce, is_valid_url
-from .components_utils import Button, GlobalStyle, LoadingButton, Text
+from .components_utils import (
+    Button,
+    GlobalStyle,
+    LayerButton,
+    LoadingButton,
+    NumberInput,
+    Text,
+)
 from .girder_utils import (
     CacheMode,
     FileFetcher,
@@ -9,7 +16,7 @@ from .girder_utils import (
     are_same_paths,
     format_date,
 )
-from .scene_utils import FilterType, SceneObjectType, VolumeLayer
+from .scene_utils import ICONS_MAP, FilterType, SceneObjectType, VolumeLayer
 from .vtk.preset_utils import (
     ColorPresetParser,
     DataArray,
@@ -22,7 +29,6 @@ from .vtk.preset_utils import (
     get_volume_preset_parser,
 )
 from .vtk.vtk_utils import (
-    ViewType,
     create_gaussian_filter,
     create_rendering_pipeline,
     get_image_data,
@@ -65,6 +71,7 @@ from .vtk.vtk_utils import (
 )
 
 __all__ = [
+    "ICONS_MAP",
     "AppConfig",
     "AppLayout",
     "AppState",
@@ -79,13 +86,14 @@ __all__ = [
     "GirderConfig",
     "GirderItem",
     "GlobalStyle",
+    "LayerButton",
     "LoadingButton",
     "MeshColoringMode",
+    "NumberInput",
     "Preset",
     "PresetParser",
     "SceneObjectType",
     "Text",
-    "ViewType",
     "VolumeColoringMode",
     "VolumeLayer",
     "VolumePresetParser",

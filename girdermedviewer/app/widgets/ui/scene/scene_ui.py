@@ -7,7 +7,14 @@ from trame_dataclass.v2 import Provider, get_instance
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ...utils import Button, FilterType, LoadingButton, SceneObjectType, Text
+from ...utils import (
+    Button,
+    FilterType,
+    LayerButton,
+    LoadingButton,
+    SceneObjectType,
+    Text,
+)
 from .filters.filter_ui import FilterToolbarUI, FilterUI
 from .objects.object_display_ui import SceneObjectDisplayUI
 from .objects.object_info_ui import SceneObjectInfoUI
@@ -52,27 +59,28 @@ class SceneObjectUI(v3.VExpansionPanel):
 
     def _build_ui(self):
         with self:
-            with v3.VExpansionPanelTitle(color=(f"{self._is_active_primary_volume()} ? 'primary' : 'undefined'",)):
-                Text("{{ " + self.obj + ".name }}", classes="text-header")
+            with v3.VExpansionPanelTitle(classes="item-card-title", v_if=(f"{self.obj}.gui.loading",)):
+                Text("{{ " + self.obj + ".name }}", classes="text-header font-weight-medium")
                 with v3.Template(v_slot_actions="{ expanded }"):
                     LoadingButton(
-                        v_if=(f"{self.obj}.gui.loading",),
                         tooltip="Cancel",
-                        click_native_stop=(self.load_canceled, f"[{self.obj}._id]"),
+                        click_stop=(self.load_canceled, f"[{self.obj}._id]"),
                     )
-                    with html.Div(v_else=True):
-                        Button(
-                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
-                            click_native_stop=(self.overlay_clicked, f"[{self.obj}._id]"),
-                            color=(f"!{self._is_primary_volume()} ? 'primary' : 'undefined'",),
-                            icon="mdi-layers",
-                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
-                        )
-                        Button(
-                            click_native_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
-                            icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                            tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
-                        )
+
+            with v3.VExpansionPanelTitle(classes="item-card-title", v_else=True):
+                v3.VIcon(icon=(f"{self.obj}.gui.icon",))
+                Text("{{ " + self.obj + ".name }}", classes="text-header font-weight-medium")
+                v3.VChip(
+                    v_if=(self._is_active_primary_volume(),),
+                    color="primary",
+                    text="main",
+                )
+                with v3.Template(v_slot_actions="{ expanded }"):
+                    Button(
+                        click_stop=(self.visibility_clicked, f"[{self.obj}._id]"),
+                        icon=(f"{self.obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        tooltip=(f"{self.obj}.is_visible ? 'Hide' : 'Show'",),
+                    )
 
             with v3.VExpansionPanelText(v_if=(f"!{self.obj}.gui.loading",)), v3.VCard():
                 with (
@@ -162,13 +170,19 @@ class SceneObjectUI(v3.VExpansionPanel):
 
                 with v3.VCardActions(classes="justify-space-between"):
                     self.filter_toolbar = FilterToolbarUI(obj_id=f"{self.obj}._id", obj_type=f"{self.obj}.object_type")
-
-                    Button(
-                        icon="mdi-delete",
-                        tooltip="Delete",
-                        color="error",
-                        click=(self.delete_clicked, f"[{self.obj}._id]"),
-                    )
+                    with html.Div(classes="d-flex"):
+                        LayerButton(
+                            v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),
+                            main_layer=(self._is_primary_volume(),),
+                            tooltip=(f"{self._is_primary_volume()} ? 'Set as overlay' : 'Set as main'",),
+                            click=(self.overlay_clicked, f"[{self.obj}._id]"),
+                        )
+                        Button(
+                            icon="mdi-delete",
+                            tooltip="Delete",
+                            color="error",
+                            click=(self.delete_clicked, f"[{self.obj}._id]"),
+                        )
 
 
 class SceneUI(html.Div):

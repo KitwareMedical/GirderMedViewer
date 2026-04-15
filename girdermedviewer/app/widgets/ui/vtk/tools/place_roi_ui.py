@@ -1,13 +1,13 @@
 import logging
-from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
-from ....utils import Button, Text
+from ....utils import Button
+from .point_selector_ui import PointSelectorUI, PointState
 
 logger = logging.getLogger(__name__)
 
@@ -15,31 +15,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PlaceROIState:
     is_roi_locked: bool = False
-    roi_bounds: tuple[float] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-
-
-class BoundSelector(html.Div):
-    def __init__(self, model_value: str, update_model_value: Callable, max: bool = False, **kwargs) -> None:
-        super().__init__(classes="point-selector")
-        axis = "2 * axis" + (" + 1" if max else "")
-        kwargs["model_value"] = (f"parseFloat({model_value}[{axis}]).toFixed(2)",)
-        kwargs["update_modelValue"] = (update_model_value, f"[$event, {axis}]")
-        with self:
-            Text(text="Max" if max else "Min")
-            v3.VTextField(
-                v_for=(
-                    "(field, axis) in \
-                    [{ prefix: 'X', color: 'red'  }, \
-                    { prefix: 'Y', color: 'green' }, \
-                    { prefix: 'Z', color: 'blue' }]",
-                ),
-                classes="mx-1 position-selector",
-                prefix=("field.prefix",),
-                base_color=("field.color",),
-                type="number",
-                density="compact",
-                **kwargs,
-            )
+    min_roi_bounds: PointState = field(default_factory=PointState)
+    max_roi_bounds: PointState = field(default_factory=PointState)
 
 
 class PlaceROIUI(html.Div):
@@ -54,11 +31,11 @@ class PlaceROIUI(html.Div):
         with (
             self,
             v3.VCard(variant="flat", title="Place ROI"),
-            v3.VCardText(),
+            v3.VCardText(classes="tool-card"),
         ):
-            with BoundSelector(
-                model_value=self._typed_state.name.roi_bounds,
-                update_model_value=self.set_bounds,
+            with PointSelectorUI(
+                self._typed_state.get_sub_state(self._typed_state.name.min_roi_bounds),
+                title="Min",
                 disabled=(self._typed_state.name.is_roi_locked,),
             ):
                 Button(
@@ -67,23 +44,17 @@ class PlaceROIUI(html.Div):
                     icon="mdi-lock",
                     tooltip=(f"{self._typed_state.name.is_roi_locked} ? 'Unlock' : 'Lock'",),
                 )
-            with BoundSelector(
-                model_value=self._typed_state.name.roi_bounds,
-                update_model_value=self.set_bounds,
-                max=True,
+            with PointSelectorUI(
+                self._typed_state.get_sub_state(self._typed_state.name.max_roi_bounds),
+                title="Max",
                 disabled=(self._typed_state.name.is_roi_locked,),
             ):
                 Button(
                     click=self.reset_clicked,
                     disabled=(self._typed_state.name.is_roi_locked,),
                     icon="mdi-autorenew",
+                    tooltip="Reset",
                 )
 
     def _toggle_roi_interaction(self):
         self._typed_state.data.is_roi_locked = not self._typed_state.data.is_roi_locked
-
-    def set_bounds(self, value: str, index: str) -> None:
-        if value:
-            old_position = list(self._typed_state.data.roi_bounds)
-            old_position[int(index)] = float(value)
-            self._typed_state.data.roi_bounds = tuple(old_position)
