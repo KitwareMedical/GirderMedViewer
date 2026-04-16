@@ -43,7 +43,7 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
             for effect in self._paint_effects:
                 effect.disable_brush()
         elif not self._segmentation_editor.active_segment:
-            self.data.active_effect = SegmentationEffectType.UNDEFINED
+            self.deactivate_effects()
         else:
             self.data.active_effect_prop_id = self.paint_erase_effect_prop._id
 
@@ -74,9 +74,12 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
 
     def set_active_segment(self, object_data: vtkImageData | None, segment_value: int) -> None:
         if object_data is None:
-            self.data.active_effect = SegmentationEffectType.UNDEFINED
+            self.deactivate_effects()
         self._segmentation_editor.labelmap = object_data
         self._segmentation_editor.active_segment = segment_value
 
     def clear_segment(self, object_data: vtkImageData, segment_value: int):
         self._segmentation_editor.clear_segment(object_data, segment_value)
+
+    def deactivate_effects(self):
+        self.data.active_effect = SegmentationEffectType.UNDEFINED

@@ -62,6 +62,10 @@ class ViewsLogic(BaseLogic[ViewsState]):
         for view_logic in self.views:
             if isinstance(view_logic, SliceViewLogic):
                 view_logic.mesh_handler.set_mesh_visibility(self.roi_logic._id, active_tool == ToolType.PLACE_ROI)
+
+        if active_tool != ToolType.SEGMENTATION_EFFECT:
+            self.segmentation_logic.deactivate_effects()
+
         self.update_views()
 
     def update_views(self):
