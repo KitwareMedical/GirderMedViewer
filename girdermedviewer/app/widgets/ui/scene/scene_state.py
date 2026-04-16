@@ -5,5 +5,6 @@ from dataclasses import dataclass, field
 class SceneState:
     scene_id: str | None = None
     active_segment_id: str | None = None
+    active_labelmap_id: str | None = None
     active_primary_volume_id: str | None = None
     primary_volume_ids: list[str] = field(default_factory=list)

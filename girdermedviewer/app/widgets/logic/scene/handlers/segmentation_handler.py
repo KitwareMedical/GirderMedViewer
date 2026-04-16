@@ -90,6 +90,9 @@ class SegmentationHandler(ObjectHandler):
 
         self.views_logic.remove_volume(seg_filter_logic._id)
 
+        if self.data.active_labelmap_id == seg_filter_logic._id:
+            self.select_segment_in_labelmap(None)
+
     def set_object_visibility(self, seg_filter_logic: SegmentationFilterLogic, visible: bool) -> None:
         seg_filter_logic.scene_object.is_visible = visible
 
@@ -100,9 +103,9 @@ class SegmentationHandler(ObjectHandler):
         )
 
     def select_segment_in_labelmap(
-        self, seg_filter_logic: SegmentationFilterLogic, segment_id: str | None = None
+        self, seg_filter_logic: SegmentationFilterLogic | None, segment_id: str | None = None
     ) -> None:
-        if len(seg_filter_logic.segments) > 0:
+        if seg_filter_logic is not None and len(seg_filter_logic.segments) > 0:
             if segment_id is None:
                 segment_id = seg_filter_logic.segments[-1]._id
                 segment_value = seg_filter_logic.segments[-1].value
@@ -110,9 +113,11 @@ class SegmentationHandler(ObjectHandler):
                 segment_value = SegmentationHandler._get_segment_from_id(segment_id).value
 
             self.data.active_segment_id = segment_id
+            self.data.active_labelmap_id = seg_filter_logic._id
             self.views_logic.segmentation_logic.set_active_segment(seg_filter_logic.object_data, segment_value)
         else:
             self.data.active_segment_id = None
+            self.data.active_labelmap_id = None
             self.views_logic.segmentation_logic.set_active_segment(None, 0)
 
     def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> None:

@@ -41,6 +41,9 @@ class SceneObjectUI(v3.VExpansionPanel):
     def _is_primary_volume(self) -> str:
         return f"{self._typed_state.name.primary_volume_ids}.includes({self._obj}._id)"
 
+    def _is_active_labelmap(self) -> str:
+        return f"({self._typed_state.name.active_labelmap_id} === {self._obj}._id)"
+
     def _is_active_primary_volume(self) -> str:
         return f"({self._typed_state.name.active_primary_volume_id} === {self._obj}._id)"
 
@@ -58,7 +61,10 @@ class SceneObjectUI(v3.VExpansionPanel):
                     )
 
             with v3.VExpansionPanelTitle(classes="item-card-title", v_else=True):
-                v3.VIcon(icon=(f"{self._obj}.gui.icon",))
+                v3.VIcon(
+                    icon=(f"{self._obj}.gui.icon",),
+                    color=(f"{self._is_active_labelmap()} ? 'primary' : 'undefined'",),
+                )
                 Text("{{ " + self._obj + ".name }}", classes="text-header font-weight-medium")
                 v3.VChip(
                     v_if=(self._is_active_primary_volume(),),

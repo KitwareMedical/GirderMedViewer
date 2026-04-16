@@ -16,6 +16,7 @@ class SegmentProperties(StateDataModel):
 
 
 class SegmentationFilterProperties(StateDataModel):
+    is_active = Sync(bool, False)
     segments = Sync(list[SegmentProperties], list, has_dataclass=True)
 
 
