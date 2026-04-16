@@ -2,7 +2,7 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import SceneObjectType, VolumeObjectType
+from ....utils import SceneObjectSubtype, SceneObjectType
 from .object_display_color_ui import (
     MeshDisplayColorUI,
     VolumeDisplayNormalColorUI,
@@ -13,11 +13,21 @@ from .object_display_opacity_ui import ObjectDisplayOpacityUI
 
 
 class VolumeDisplayUI(html.Div):
-    def __init__(self, obj_display: str, disabled: str, has_opacity: str, twod_presets: str, threed_presets: str, **kwargs):
+    def __init__(
+        self,
+        obj_display: str,
+        obj_subtype: str,
+        disabled: str,
+        has_opacity: str,
+        twod_presets: str,
+        threed_presets: str,
+        **kwargs,
+    ):
         super().__init__(
             **kwargs,
         )
         self.display = obj_display
+        self.subtype = obj_subtype
         self.disabled = disabled
         self.has_opacity = has_opacity
         self.twod_presets = twod_presets
@@ -26,19 +36,25 @@ class VolumeDisplayUI(html.Div):
 
     def _build_ui(self) -> None:
         with self:
-            with html.Div(v_if=(self._is_volume_type(VolumeObjectType.SCALAR),)):
+            with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.SCALAR),)):
                 VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
                 v3.VDivider(classes="display-property-divider")
                 VolumeDisplayTwoDColorUI(self.display, self.twod_presets)
 
-            with html.Div(v_if=(self._is_volume_type(VolumeObjectType.VECTOR),)):
+            with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.VECTOR),)):
                 VolumeDisplayNormalColorUI(self.display)
-            with html.Div(v_if=(self.has_opacity,),):
-                v3.VDivider(v_if=(f"!{self._is_volume_type(VolumeObjectType.LABELMAP)}",), classes="display-property-divider")
+
+            with html.Div(
+                v_if=(self.has_opacity,),
+            ):
+                v3.VDivider(
+                    v_if=(f"!{self._is_volume_subtype(SceneObjectSubtype.LABELMAP)}",),
+                    classes="display-property-divider",
+                )
                 ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
 
-    def _is_volume_type(self, volume_type: VolumeObjectType) -> str:
-        return f"{self.display}.volume_type === '{volume_type.value}'"
+    def _is_volume_subtype(self, subtype: SceneObjectSubtype) -> str:
+        return f"{self.subtype} === '{subtype.value}'"
 
 
 class MeshDisplayUI(html.Div):
@@ -67,6 +83,7 @@ class SceneObjectDisplayUI(html.Div):
         with self, Provider(name="display", instance=(f"{self.obj}.display",)):
             VolumeDisplayUI(
                 obj_display="display",
+                obj_subtype=f"{self.obj}.object_subtype",
                 disabled=disabled,
                 has_opacity=has_opacity,
                 twod_presets=color_presets,

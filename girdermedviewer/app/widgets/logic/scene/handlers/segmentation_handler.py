@@ -4,8 +4,7 @@ from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
 
 from ....utils import (
-    VolumeLayer,
-    VolumeObjectType,
+    SceneObjectSubtype,
     debounce,
     supported_volume_extensions,
 )
@@ -78,7 +77,7 @@ class SegmentationHandler(ObjectHandler):
         self._connect_labelmap_to_display_handler(seg_filter_logic)
 
         self.views_logic.add_volume(
-            seg_filter_logic._id, seg_filter_logic.object_data, VolumeLayer.SECONDARY, VolumeObjectType.LABELMAP
+            seg_filter_logic._id, seg_filter_logic.object_data, seg_filter_logic.layer, SceneObjectSubtype.LABELMAP
         )
 
     def remove_object_from_views(self, seg_filter_logic: SegmentationFilterLogic) -> None:

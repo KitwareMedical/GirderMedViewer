@@ -5,9 +5,8 @@ from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 from trame_server.utils.typed_state import TypedState
 
-from girdermedviewer.app.widgets.ui.scene.scene_state import SceneState
-
 from ....utils import Button, SegmentationEffectType, Slider, Text
+from ...scene.scene_state import SceneState
 
 
 @dataclass

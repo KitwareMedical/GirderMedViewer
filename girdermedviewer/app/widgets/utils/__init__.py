@@ -24,10 +24,10 @@ from .girder_utils import (
 from .scene_utils import (
     ICONS_MAP,
     FilterType,
+    SceneObjectSubtype,
     SceneObjectType,
     SegmentationEffectType,
     VolumeLayer,
-    VolumeObjectType,
 )
 from .vtk.preset_utils import (
     ColorPresetParser,
@@ -106,6 +106,7 @@ __all__ = [
     "Preset",
     "PresetParser",
     "RangeSlider",
+    "SceneObjectSubtype",
     "SceneObjectType",
     "SegmentationEffectType",
     "Selector",
@@ -114,7 +115,6 @@ __all__ = [
     "TextField",
     "VolumeColoringMode",
     "VolumeLayer",
-    "VolumeObjectType",
     "VolumePresetParser",
     "are_same_paths",
     "create_gaussian_filter",

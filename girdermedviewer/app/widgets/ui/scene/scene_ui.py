@@ -11,6 +11,7 @@ from ...utils import (
     FilterType,
     LayerButton,
     LoadingButton,
+    SceneObjectSubtype,
     SceneObjectType,
     Text,
 )
@@ -35,14 +36,20 @@ class SceneObjectUI(v3.VExpansionPanel):
         self._scene = scene
         self._build_ui()
 
-    def _is_volume(self) -> str:
-        return f"({self._obj}.object_type === '{SceneObjectType.VOLUME.value}')"
-
-    def _is_primary_volume(self) -> str:
-        return f"{self._typed_state.name.primary_volume_ids}.includes({self._obj}._id)"
+    def _is_labelmap(self) -> str:
+        return f"({self._obj}.object_subtype === '{SceneObjectSubtype.LABELMAP.value}')"
 
     def _is_active_labelmap(self) -> str:
         return f"({self._typed_state.name.active_labelmap_id} === {self._obj}._id)"
+
+    def _is_volume(self, include_labelmap: bool = False) -> str:
+        is_volume = f"({self._obj}.object_type === '{SceneObjectType.VOLUME.value}')"
+        if include_labelmap:
+            return f"({is_volume})"
+        return f"({is_volume} && !{self._is_labelmap()})"
+
+    def _is_primary_volume(self) -> str:
+        return f"{self._typed_state.name.primary_volume_ids}.includes({self._obj}._id)"
 
     def _is_active_primary_volume(self) -> str:
         return f"({self._typed_state.name.active_primary_volume_id} === {self._obj}._id)"
@@ -162,10 +169,13 @@ class SceneObjectUI(v3.VExpansionPanel):
                     with v3.VWindowItem(value="metadata", v_if=(f"{self._obj}.metadata",)):
                         SceneObjectMetadataUI(obj_metadata=f"{self._obj}.metadata")
 
-                with v3.VCardActions(classes="justify-space-between"):
+                with v3.VCardActions():
                     self.filter_toolbar = FilterToolbarUI(
-                        obj_id=f"{self._obj}._id", obj_type=f"{self._obj}.object_type"
+                        v_if=(f"!{self._is_labelmap()}",),
+                        obj_id=f"{self._obj}._id",
+                        obj_type=f"{self._obj}.object_type",
                     )
+                    v3.VSpacer()
                     with html.Div(classes="d-flex"):
                         LayerButton(
                             v_if=(f"{self._is_volume()} && !{self._is_active_primary_volume()}",),

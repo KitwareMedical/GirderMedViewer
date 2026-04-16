@@ -1,16 +1,15 @@
 import logging
 
 from trame_dataclass.v2 import (
-    FieldEncoder,
     StateDataModel,
     Sync,
     TypeValidation,
 )
 
 from ....utils import (
+    SceneObjectSubtype,
     SceneObjectType,
     VolumeLayer,
-    VolumeObjectType,
     load_volume,
 )
 from .scene_object_logic import SceneObjectLogic, ThreeDColor, TwoDColor
@@ -25,11 +24,6 @@ class NormalColor(StateDataModel):
 
 
 class VolumeDisplay(StateDataModel):
-    volume_type = Sync(
-        VolumeObjectType,
-        VolumeObjectType.UNDEFINED,
-        convert=FieldEncoder(encoder=VolumeObjectType.encoder, decoder=VolumeObjectType.decoder),
-    )
     scalar_range = Sync(list[float])
     window_level = Sync(list[float])
     threed_color = Sync(ThreeDColor, has_dataclass=True)
@@ -49,7 +43,6 @@ class BaseVolumeObjectLogic(SceneObjectLogic):
             self.server,
         )
         self.scene_object.display = self.display._id
-        self.volume_type: VolumeObjectType | None = None
 
 
 class VolumeObjectLogic(BaseVolumeObjectLogic):
@@ -64,10 +57,10 @@ class VolumeObjectLogic(BaseVolumeObjectLogic):
     def _init_display_properties(self):
         if self.object_data is not None:
             # Init volume type
-            self.display.volume_type = (
-                VolumeObjectType.VECTOR
+            self.scene_object.object_subtype = (
+                SceneObjectSubtype.VECTOR
                 if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1
-                else VolumeObjectType.SCALAR
+                else SceneObjectSubtype.SCALAR
             )
 
             self.scalar_range = list(self.object_data.GetScalarRange())

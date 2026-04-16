@@ -1,9 +1,7 @@
 from trame_dataclass.v2 import ServerOnly, StateDataModel, Sync
 from vtk import VTK_UNSIGNED_CHAR
 
-from girdermedviewer.app.widgets.utils.scene_utils import VolumeLayer
-
-from ....utils import VolumeObjectType, get_random_color
+from ....utils import SceneObjectSubtype, VolumeLayer, get_random_color
 from ..objects.volume_object_logic import BaseVolumeObjectLogic, VolumeObjectLogic
 
 
@@ -28,7 +26,7 @@ class SegmentationFilterLogic(BaseVolumeObjectLogic):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.volume_type: VolumeObjectType.LABELMAP
+        self.scene_object.object_subtype = SceneObjectSubtype.LABELMAP
         self.layer = VolumeLayer.SECONDARY
 
         self.segment_count = 1

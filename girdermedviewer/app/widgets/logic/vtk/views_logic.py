@@ -6,8 +6,8 @@ from vtk import vtkImageData, vtkPolyData
 from ...logic.base_logic import BaseLogic
 from ...ui import ToolState, ToolType, ToolUI, ViewsState, ViewsUI, ViewType
 from ...utils import (
+    SceneObjectSubtype,
     VolumeLayer,
-    VolumeObjectType,
     get_color_preset_parser,
     get_volume_preset_parser,
 )
@@ -111,7 +111,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         data_id: str,
         image_data: vtkImageData,
         layer: VolumeLayer,
-        volume_type: VolumeObjectType = VolumeObjectType.UNDEFINED,
+        subtype: SceneObjectSubtype = SceneObjectSubtype.UNDEFINED,
     ):
         for view_logic in self.view_logics.values():
             view_logic.add_volume(data_id, image_data, layer)
@@ -123,7 +123,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.roi_logic.set_default_bounds(image_data.GetBounds())
             self.segmentation_logic.set_paint_effects(self.slice_views)
 
-        if volume_type == VolumeObjectType.LABELMAP:
+        if subtype == SceneObjectSubtype.LABELMAP:
             self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
         self.update_views()
 

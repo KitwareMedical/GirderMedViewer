@@ -36,7 +36,7 @@ class VolumeLayer(DataclassEnum):
     UNDEFINED = None
 
 
-class VolumeObjectType(DataclassEnum):
+class SceneObjectSubtype(DataclassEnum):
     SCALAR = "scalar_volume"
     VECTOR = "vector_volume"
     LABELMAP = "labelmap_volume"
