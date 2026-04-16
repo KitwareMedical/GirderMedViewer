@@ -16,7 +16,8 @@ from .filters import FILTER_MAP
 from .filters.segmentation_filter_logic import SegmentationFilterLogic
 from .handlers.mesh_handler import MeshHandler
 from .handlers.object_handler import ObjectHandler
-from .handlers.volume_handler import SegmentationHandler, VolumeHandler
+from .handlers.segmentation_handler import SegmentationHandler
+from .handlers.volume_handler import VolumeHandler
 from .objects.mesh_object_logic import MeshObjectLogic
 from .objects.scene_object_logic import SceneObject, SceneObjectGUI, SceneObjectLogic
 from .objects.volume_object_logic import VolumeObjectLogic
