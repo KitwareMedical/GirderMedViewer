@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 
 class PlacePointUI(v3.VCard):
     def __init__(self, **kwargs) -> None:
-        super().__init__(variant="flat", title="Place Point", **kwargs)
+        super().__init__(classes="tool-card", title="Place Point", variant="flat", **kwargs)
         self._typed_state = TypedState(self.state, ViewsState)
         self._build_ui()
 
     def _build_ui(self) -> None:
         with (
             self,
-            v3.VCardText(classes="tool-card"),
+            v3.VCardText(),
         ):
             PointSelectorUI(self._typed_state.get_sub_state(self._typed_state.name.position))

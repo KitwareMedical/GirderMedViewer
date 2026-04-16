@@ -204,18 +204,18 @@ class LabelMapEditor:
 
         self._labelmap.Modified()
 
-    def clear_segment(self, id: int):
+    def clear_segment(self, labelmap: vtkImageData, id: int):
         """Set to 0 all values equal to current segment id"""
-        labelmap = _vtk_image_to_np(self.labelmap)
-        modifier_labelmap = labelmap == id
+        labelmap_array = _vtk_image_to_np(labelmap)
+        modifier_labelmap = labelmap_array == id
         self._apply_modifier_labelmap_to_labelmap(
-            labelmap,
+            labelmap_array,
             modifier_labelmap,
             0,
             id,
-            LabelMapOverwriteMode.AllSegments # AllSegment is faster and fine in this case
+            LabelMapOverwriteMode.AllSegments,  # AllSegment is faster and fine in this case
         )
-        self._labelmap.Modified()
+        labelmap.Modified()
 
     def _apply_modifier_labelmap_to_labelmap(
         self,

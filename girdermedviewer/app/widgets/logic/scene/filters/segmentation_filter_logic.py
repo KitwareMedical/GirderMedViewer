@@ -1,4 +1,4 @@
-from trame_dataclass.v2 import ServerOnly, StateDataModel, Sync, get_instance
+from trame_dataclass.v2 import ServerOnly, StateDataModel, Sync
 from vtk import VTK_UNSIGNED_CHAR
 
 from girdermedviewer.app.widgets.utils.scene_utils import VolumeLayer
@@ -46,10 +46,6 @@ class SegmentationFilterLogic(BaseVolumeObjectLogic):
     @property
     def segments(self) -> list[SegmentProperties]:
         return self.scene_object_filter.segments
-
-    def get_segment_value(self, segment_id: str) -> int:
-        segment: SegmentProperties = get_instance(segment_id)
-        return segment.value
 
     def create_segment(self) -> SegmentProperties:
         new_segment = SegmentProperties(

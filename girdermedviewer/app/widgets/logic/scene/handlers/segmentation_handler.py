@@ -10,7 +10,10 @@ from ....utils import (
     supported_volume_extensions,
 )
 from ...vtk.views_logic import ViewsLogic
-from ..filters.segmentation_filter_logic import SegmentationFilterLogic
+from ..filters.segmentation_filter_logic import (
+    SegmentationFilterLogic,
+    SegmentProperties,
+)
 from .object_handler import ObjectHandler
 
 logger = logging.getLogger(__name__)
@@ -65,6 +68,11 @@ class SegmentationHandler(ObjectHandler):
     def supported_extensions(self) -> tuple[str]:
         return supported_volume_extensions()
 
+    @staticmethod
+    def _get_segment_from_id(segment_id: str) -> SegmentProperties:
+        segment: SegmentProperties = get_instance(segment_id)
+        return segment
+
     def add_object_to_views(self, seg_filter_logic: SegmentationFilterLogic):
         self.object_logics[seg_filter_logic._id] = seg_filter_logic
         self._connect_labelmap_to_display_handler(seg_filter_logic)
@@ -99,7 +107,7 @@ class SegmentationHandler(ObjectHandler):
                 segment_id = seg_filter_logic.segments[-1]._id
                 segment_value = seg_filter_logic.segments[-1].value
             else:
-                segment_value = seg_filter_logic.get_segment_value(segment_id)
+                segment_value = SegmentationHandler._get_segment_from_id(segment_id).value
 
             self.data.active_segment_id = segment_id
             self.views_logic.segmentation_logic.set_active_segment(seg_filter_logic.object_data, segment_value)
@@ -118,9 +126,9 @@ class SegmentationHandler(ObjectHandler):
         self.select_segment_in_labelmap(seg_filter_logic)
 
     def delete_segment_from_labelmap(self, seg_filter_logic: SegmentationFilterLogic, deleted_segment_id: str) -> None:
-        deleted_segment = get_instance(deleted_segment_id)
+        deleted_segment = SegmentationHandler._get_segment_from_id(deleted_segment_id)
         deleted_segment.clear_watchers()
-        self.views_logic.segmentation_logic.clear_segment(deleted_segment.value)
+        self.views_logic.segmentation_logic.clear_segment(seg_filter_logic.object_data, deleted_segment.value)
         seg_filter_logic.delete_segment(deleted_segment_id)
 
         if deleted_segment_id == self.data.active_segment_id:
