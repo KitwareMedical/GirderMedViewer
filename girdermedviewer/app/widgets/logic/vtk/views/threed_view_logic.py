@@ -16,8 +16,9 @@ class ThreeDViewLogic(ViewLogic):
         super().__init__(*args, **kwargs)
         self.volume_handler = VolumeThreeDHandler(self.volume_preset_parser)
 
-    def add_volume(self, data_id, image_data, _layer: VolumeLayer, _is_labelmap: bool):
-        self.volume_handler.add_volume(data_id, image_data)
+    def add_volume(self, data_id, image_data, layer: VolumeLayer, _is_labelmap: bool):
+        if layer == VolumeLayer.PRIMARY:
+            self.volume_handler.add_volume(data_id, image_data)
 
     def add_mesh(self, data_id, poly_data):
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)

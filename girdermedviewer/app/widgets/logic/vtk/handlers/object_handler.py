@@ -24,12 +24,18 @@ class ObjectHandler:
         self.object_data[data_id].append(data)
 
     def unregister_data(self, data_id, only_data=None, remove=True):
-        for obj in list(self.object_data.get(data_id, [])):
-            if only_data is None or obj == only_data:
-                if remove:
-                    remove_prop(self.renderer, obj)
-                self.object_data[data_id].remove(obj)
-        if len(list(self.object_data.get(data_id, []))) == 0:
+        objects = self.object_data.get(data_id)
+        if not objects:
+            return
+
+        obj_to_remove = [obj for obj in objects if only_data is None or obj == only_data]
+        for obj in obj_to_remove:
+            if remove:
+                remove_prop(self.renderer, obj)
+
+        self.object_data[data_id] = [obj for obj in objects if obj not in obj_to_remove]
+
+        if not self.object_data[data_id]:
             self.object_data.pop(data_id)
 
     def get_data(self, data_id):
