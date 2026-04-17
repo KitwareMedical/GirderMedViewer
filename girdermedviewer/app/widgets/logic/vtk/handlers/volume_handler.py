@@ -30,7 +30,7 @@ from ....utils import (
     set_vector_field_sampling,
     set_volume_visibility,
 )
-from .mesh_handler import ObjectHandler
+from .object_handler import ObjectHandler
 
 logger = logging.getLogger(__name__)
 
