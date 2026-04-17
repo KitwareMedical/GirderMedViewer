@@ -161,12 +161,14 @@ def get_reslice_window_level(reslice_image_viewer):
 
 
 def set_reslice_visibility(reslice_image_viewer: vtkResliceImageViewer, visible: bool) -> bool:
-    alpha = (float(visible), float(visible))
-    lut = reslice_image_viewer.GetWindowLevel().GetLookupTable()
-    if lut.GetAlphaRange() == alpha:
-        return False
-    lut.SetAlphaRange(*alpha)
-    lut.Build()
+    opacity = float(visible)
+    lut = reslice_image_viewer.GetLookupTable()
+    n = lut.GetNumberOfTableValues()
+    for i in range(n):
+        r, g, b, old_opacity = lut.GetTableValue(i)
+        if old_opacity == opacity:
+            return False
+        lut.SetTableValue(i, r, g, b, opacity)
     return True
 
 
@@ -174,15 +176,6 @@ def set_reslice_opacity(_reslice_image_viewer, opacity):
     if opacity != 1:
         logger.warning("not implemented")
     return False
-    # reslice_representation = get_reslice_cursor_representation(reslice_image_viewer)
-    # if reslice_representation is None:
-    #     return False
-    # reslice_actor = reslice_representation.GetImageActor() => should be GetTexturedActor
-    # reslice_property = reslice_actor.GetProperty()
-    # if reslice_property.GetOpacity() == opacity:
-    #     return False
-    # reslice_property.SetOpacity(opacity)
-    # return True
 
 
 def realign_axes(reslice_image_viewer: vtkResliceImageViewer):

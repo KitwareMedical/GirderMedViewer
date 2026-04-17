@@ -4,7 +4,7 @@ import sys
 from trame.app import TrameApp
 from trame_server import Server
 
-from girdermedviewer.app.widgets import AppLayout, AppLogic, AppUI
+from .widgets import AppLayout, AppLogic, AppUI
 
 
 class MedViewerApp(TrameApp):

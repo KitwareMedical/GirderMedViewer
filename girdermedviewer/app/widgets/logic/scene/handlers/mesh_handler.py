@@ -39,10 +39,8 @@ class MeshDisplayHandler:
     def update_solid_coloring(self, mesh_id: str) -> Callable:
         @debounce(0.05)
         def _update_solid_coloring(color: str) -> None:
-            hex = color.lstrip("#")
-            color_tuple = tuple(float(int(hex[i : i + 2], 16)) / 255.0 for i in (0, 2, 4))
             for view in self.views_logic.views:
-                modified = view.mesh_handler.set_mesh_solid_color(mesh_id, color_tuple)
+                modified = view.mesh_handler.set_mesh_solid_color(mesh_id, color)
                 if modified:
                     view.update()
 
@@ -103,7 +101,7 @@ class MeshHandler(ObjectHandler):
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.object_logics[mesh_logic._id] = mesh_logic
         self._connect_mesh_logic_to_display_handler(mesh_logic)
-        self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data)
+        self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data, mesh_logic.display)
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
         mesh_logic.display.clear_watchers()

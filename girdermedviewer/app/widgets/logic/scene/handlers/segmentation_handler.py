@@ -77,7 +77,11 @@ class SegmentationHandler(ObjectHandler):
         self._connect_labelmap_to_display_handler(seg_filter_logic)
 
         self.views_logic.add_volume(
-            seg_filter_logic._id, seg_filter_logic.object_data, seg_filter_logic.layer, SceneObjectSubtype.LABELMAP
+            seg_filter_logic._id,
+            seg_filter_logic.object_data,
+            seg_filter_logic.display,
+            seg_filter_logic.layer,
+            SceneObjectSubtype.LABELMAP,
         )
 
     def remove_object_from_views(self, seg_filter_logic: SegmentationFilterLogic) -> None:

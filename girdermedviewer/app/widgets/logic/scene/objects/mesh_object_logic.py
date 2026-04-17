@@ -1,6 +1,6 @@
 import logging
 
-from trame_dataclass.v2 import StateDataModel, Sync
+from trame_dataclass.v2 import StateDataModel, Sync, TypeValidation
 
 from ....utils import (
     DataArray,
@@ -25,7 +25,7 @@ class MeshDisplay(StateDataModel):
     active_array_id = Sync(str)
     solid_color = Sync(str)
     array_color = Sync(ArrayColor, has_dataclass=True)
-    opacity = Sync(float, 1.0)
+    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
 class MeshObjectLogic(SceneObjectLogic):

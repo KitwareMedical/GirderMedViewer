@@ -30,7 +30,7 @@ class VolumeDisplay(StateDataModel):
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
-    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
+    opacity = Sync(float, 0.5, type_checking=TypeValidation.SKIP)
 
 
 class BaseVolumeObjectLogic(SceneObjectLogic):
@@ -51,18 +51,17 @@ class VolumeObjectLogic(BaseVolumeObjectLogic):
         super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display.threed_color = ThreeDColor(self.server)
-        self.display.twod_color = TwoDColor(self.server)
-        self.display.normal_color = NormalColor(self.server)
         self.scalar_range: list[float] = []
 
     def _init_display_properties(self):
         if self.object_data is not None:
             # Init volume type
-            self.scene_object.object_subtype = (
-                SceneObjectSubtype.VECTOR
-                if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1
-                else SceneObjectSubtype.SCALAR
-            )
+            if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1:
+                self.scene_object.object_subtype = SceneObjectSubtype.VECTOR
+                self.display.normal_color = NormalColor(self.server)
+            else:
+                self.scene_object.object_subtype = SceneObjectSubtype.SCALAR
+                self.display.twod_color = TwoDColor(self.server)
 
             self.scalar_range = list(self.object_data.GetScalarRange())
             # Init window level

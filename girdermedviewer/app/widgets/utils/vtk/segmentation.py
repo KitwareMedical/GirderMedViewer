@@ -30,7 +30,7 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderWindowInteractor,
 )
 
-from girdermedviewer.app.widgets.utils.vtk.vtk_utils import realign_axes
+from .vtk_utils import realign_axes
 
 
 def _vtk_image_to_np(image: vtkImageData) -> np.ndarray:

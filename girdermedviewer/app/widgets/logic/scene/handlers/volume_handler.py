@@ -16,7 +16,6 @@ class VolumeDisplayHandler:
         self.views_logic = views_logic
 
     def update_threed_visibility(self, volume_id: str) -> Callable:
-        @debounce(0.05)
         def _update_threed_visibility(visible: bool) -> None:
             for view in self.views_logic.threed_views:
                 modified = view.volume_handler.set_volume_visibility(volume_id, visible)
@@ -28,12 +27,6 @@ class VolumeDisplayHandler:
     def update_twod_visibility(self, volume_id: str, visible: bool) -> None:
         for view in self.views_logic.slice_views:
             modified = view.volume_handler.set_volume_visibility(volume_id, visible)
-            if modified:
-                view.update()
-
-    def update_active_primary_volume(self, volume_id: str, image_data) -> None:
-        for view in self.views_logic.slice_views:
-            modified = view.add_volume(volume_id, image_data, VolumeLayer.PRIMARY)
             if modified:
                 view.update()
 
@@ -173,13 +166,15 @@ class VolumeHandler(ObjectHandler):
         volume_logic.display.threed_color.watch(
             ("name", "vr_shift"), self.display_handler.update_threed_coloring(volume_logic._id)
         )
-        volume_logic.display.twod_color.watch(
-            ("name", "is_inverted"), self.display_handler.update_twod_coloring(volume_logic._id)
-        )
-        volume_logic.display.normal_color.watch(
-            ("show_arrows", "sampling", "arrow_length", "arrow_width"),
-            self.display_handler.update_normal_coloring(volume_logic._id),
-        )
+        if volume_logic.display.twod_color is not None:
+            volume_logic.display.twod_color.watch(
+                ("name", "is_inverted"), self.display_handler.update_twod_coloring(volume_logic._id)
+            )
+        elif volume_logic.display.normal_color is not None:
+            volume_logic.display.normal_color.watch(
+                ("show_arrows", "sampling", "arrow_length", "arrow_width"),
+                self.display_handler.update_normal_coloring(volume_logic._id),
+            )
         volume_logic.scene_object.watch(
             ("is_visible",), self.display_handler.update_threed_visibility(volume_logic._id)
         )
@@ -191,7 +186,7 @@ class VolumeHandler(ObjectHandler):
             self._set_active_primary_volume_id(volume_logic._id)
 
         volume_logic.scene_object.is_visible = True
-        self.views_logic.add_volume(volume_logic._id, volume_logic.object_data, layer)
+        self.views_logic.add_volume(volume_logic._id, volume_logic.object_data, volume_logic.display, layer)
 
     def _reload_as_primary_volume(self, volume_logic: VolumeObjectLogic) -> None:
         self.views_logic.remove_volume(volume_logic._id)
@@ -272,8 +267,7 @@ class VolumeHandler(ObjectHandler):
 
     def set_object_visibility(self, volume_logic: VolumeObjectLogic, visible: bool) -> None:
         if self._is_primary_volume(volume_logic._id) and not self._is_active_volume(volume_logic._id) and visible:
-            self._set_active_primary_volume_id(volume_logic._id)
-            self.display_handler.update_active_primary_volume(volume_logic._id, volume_logic.object_data)
+            self._reload_as_primary_volume(volume_logic)
         else:
             volume_logic.scene_object.is_visible = visible
             self.display_handler.update_twod_visibility(volume_logic._id, visible)
