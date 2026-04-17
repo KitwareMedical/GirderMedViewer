@@ -87,8 +87,10 @@ class SliceViewLogic(ViewLogic):
             reset_reslice(reslice_image_viewer)
             self.update()
 
-    def add_volume(self, data_id, image_data, layer: VolumeLayer):
-        if layer == VolumeLayer.PRIMARY:
+    def add_volume(self, data_id, image_data, layer: VolumeLayer, is_labelmap: bool):
+        if is_labelmap and layer == VolumeLayer.SECONDARY:
+            self.volume_handler.add_labelmap(data_id, image_data, self.orientation.value)
+        elif layer == VolumeLayer.PRIMARY:
             self.volume_handler.add_primary_volume(data_id, image_data, self.orientation.value)
             self._set_reslice_interaction()
         elif layer == VolumeLayer.SECONDARY:

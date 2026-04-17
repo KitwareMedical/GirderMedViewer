@@ -1,11 +1,18 @@
 import logging
 from typing import Any
 
-from vtk import vtkImageData, vtkImageSlice, vtkResliceImageViewer, vtkDiscretizableColorTransferFunction, vtkPiecewiseFunction
+from vtk import (
+    vtkDiscretizableColorTransferFunction,
+    vtkImageData,
+    vtkImageSlice,
+    vtkPiecewiseFunction,
+    vtkResliceImageViewer,
+)
 
 from ....utils import (
     ColorPresetParser,
     VolumePresetParser,
+    render_labelmap_as_overlay_in_slice,
     render_volume_as_overlay_in_slice,
     render_volume_as_vector_field,
     render_volume_in_3D,
@@ -58,7 +65,11 @@ class VolumeTwoDHandler(ObjectHandler):
         self.register_data(data_id, reslice_image_viewer)
 
     def add_secondary_volume(self, data_id: str, image_data: vtkImageData, orientation: int):
-        actor = render_volume_as_overlay_in_slice(image_data, axis=orientation)
+        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, axis=orientation)
+        self.register_data(data_id, actor)
+
+    def add_labelmap(self, data_id: str, image_data: vtkImageData, orientation: int):
+        actor = render_labelmap_as_overlay_in_slice(image_data, axis=orientation)
         self.register_data(data_id, actor)
 
     def set_volume_visibility(self, data_id: str, visible: bool) -> bool:
@@ -161,7 +172,7 @@ class VolumeTwoDHandler(ObjectHandler):
         color_value = [
             int(color[1:3], base=16) / 255.0,
             int(color[3:5], base=16) / 255.0,
-            int(color[5:7], base=16) / 255.0
+            int(color[5:7], base=16) / 255.0,
         ]
         for image_slice in self.get_image_slices(data_id):
             lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()

@@ -65,12 +65,13 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
         self._brush_model.shape = BrushShape.Sphere if use_sphere_brush else BrushShape.Cylinder
 
     def set_paint_effects(self, slice_views: list[SliceViewLogic]) -> None:
-        self._paint_effects = [
-            SegmentPaintEffect2D(
-                view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
-            )
-            for view in slice_views
-        ]
+        if not self._paint_effects:  # FIXME: needed to add this to not recreate SegmentPaintEffect2D
+            self._paint_effects = [
+                SegmentPaintEffect2D(
+                    view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
+                )
+                for view in slice_views
+            ]
 
     def set_active_segment(self, object_data: vtkImageData | None, segment_value: int) -> None:
         if object_data is None:
