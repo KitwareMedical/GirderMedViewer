@@ -4,10 +4,8 @@ from collections.abc import Callable
 from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
 
-from girdermedviewer.app.widgets.logic.vtk.views_logic import ViewsLogic
-
 from ....utils import DataArray, MeshColoringMode, debounce, supported_mesh_extensions
-from ...vtk.views.view_logic import ViewLogic
+from ...vtk.views_logic import ViewsLogic
 from ..objects.mesh_object_logic import MeshDisplay, MeshObjectLogic
 from .object_handler import ObjectHandler
 
@@ -15,13 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 class MeshDisplayHandler:
-    def __init__(self, view_logics: list[ViewLogic]):
-        self.view_logics = view_logics
+    def __init__(self, views_logic: ViewsLogic):
+        self.views_logic = views_logic
 
     def update_visibility(self, mesh_id: str) -> Callable:
         @debounce(0.05)
         def _update_visibility(visible: bool) -> None:
-            for view in self.view_logics:
+            for view in self.views_logic.views:
                 modified = view.mesh_handler.set_mesh_visibility(mesh_id, visible)
                 if modified:
                     view.update()
@@ -31,7 +29,7 @@ class MeshDisplayHandler:
     def update_opacity(self, mesh_id: str) -> Callable:
         @debounce(0.05)
         def _update_opacity(opacity: float) -> None:
-            for view in self.view_logics:
+            for view in self.views_logic.views:
                 modified = view.mesh_handler.set_mesh_opacity(mesh_id, opacity)
                 if modified:
                     view.update()
@@ -43,7 +41,7 @@ class MeshDisplayHandler:
         def _update_solid_coloring(color: str) -> None:
             hex = color.lstrip("#")
             color_tuple = tuple(float(int(hex[i : i + 2], 16)) / 255.0 for i in (0, 2, 4))
-            for view in self.view_logics:
+            for view in self.views_logic.views:
                 modified = view.mesh_handler.set_mesh_solid_color(mesh_id, color_tuple)
                 if modified:
                     view.update()
@@ -54,7 +52,7 @@ class MeshDisplayHandler:
         @debounce(0.05)
         def _update_array_coloring(name: str, is_inverted: bool, scalar_range: list[float]) -> None:
             active_array = get_instance(mesh_display.active_array_id)
-            for view in self.view_logics:
+            for view in self.views_logic.views:
                 modified = view.mesh_handler.set_mesh_array_color(
                     mesh_id,
                     active_array,
@@ -84,7 +82,7 @@ class MeshDisplayHandler:
 class MeshHandler(ObjectHandler):
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, views_logic)
-        self.display_handler = MeshDisplayHandler(self.view_logics)
+        self.display_handler = MeshDisplayHandler(views_logic)
 
     @property
     def supported_extensions(self) -> tuple[str]:

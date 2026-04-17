@@ -2,12 +2,31 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import Button, MeshColoringMode, NumberInput, Text
-from .object_components import (
-    PresetSelector,
-    PropertyRangeSlider,
+from ....utils import (
+    Button,
+    ColorPicker,
+    MeshColoringMode,
+    NumberInput,
+    RangeSlider,
     Selector,
+    Text,
 )
+
+
+class PresetSelector(Selector):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self:
+            with (
+                v3.Template(v_slot_item="{ props }"),
+                v3.VListItem(v_bind="props"),
+                v3.Template(v_slot_prepend=""),
+            ):
+                v3.VImg(v_if=("props.data",), src=("props.data",), height=64, width=64, classes="mr-2")
+
+            with v3.Template(v_slot_selection="{item}"):
+                v3.VImg(v_if=("item.props.data",), src=("item.props.data",), height=32, width=32, classes="mr-2")
+                html.Span("{{ item.title }}")
 
 
 class ArraySelector(Selector):
@@ -53,12 +72,7 @@ class MeshDisplayColorUI(html.Div):
                 with html.Div(
                     v_if=(f"active_array.coloring_mode == {MeshColoringMode.SOLID.value}",),
                 ):
-                    v3.VColorPicker(
-                        v_model=(f"{self.display}.solid_color",),
-                        elevation=0,
-                        modes=("['rgb']",),
-                        style="width: 100%",
-                    )
+                    ColorPicker(v_model=(f"{self.display}.solid_color",))
 
                 with Provider(
                     v_if=(f"active_array.coloring_mode == {MeshColoringMode.ARRAY.value}",),
@@ -81,8 +95,9 @@ class MeshDisplayColorUI(html.Div):
                             )
                     with html.Div(classes="display-property-setting"):
                         Text("Range", classes="text-subtitle")
-                        PropertyRangeSlider(
-                            range_min_max="active_array.array_min_max",
+                        RangeSlider(
+                            min=("active_array.array_min_max[0]",),
+                            max=("active_array.array_min_max[1]",),
                             v_model="array_color.array_range",
                         )
 
@@ -108,8 +123,10 @@ class VolumeDisplayThreeDColorUI(html.Div):
             )
             with html.Div(classes="display-property-setting"):
                 Text("Volume Rendering Shift", classes="text-subtitle")
-                PropertyRangeSlider(
-                    range_min_max=f"{self.display}.scalar_range", v_model=(f"{self.display}.threed_color.vr_shift",)
+                RangeSlider(
+                    v_model=(f"{self.display}.threed_color.vr_shift",),
+                    min=(f"{self.display}.scalar_range[0]",),
+                    max=(f"{self.display}.scalar_range[1]",),
                 )
 
 
@@ -126,9 +143,10 @@ class VolumeWindowLevelUI(html.Div):
         with self:
             Text("Window / level", classes="text-subtitle")
             with (
-                PropertyRangeSlider(
-                    range_min_max=f"{self.display}.scalar_range",
+                RangeSlider(
                     v_model=f"{self.display}.window_level",
+                    min=(f"{self.display}.scalar_range[0]",),
+                    max=(f"{self.display}.scalar_range[1]",),
                 ),
                 v3.Template(v_slot_append=True),
             ):

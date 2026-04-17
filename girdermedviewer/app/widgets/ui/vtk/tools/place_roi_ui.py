@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass, field
 
-from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
@@ -19,18 +18,17 @@ class PlaceROIState:
     max_roi_bounds: PointState = field(default_factory=PointState)
 
 
-class PlaceROIUI(html.Div):
+class PlaceROIUI(v3.VCard):
     reset_clicked = Signal()
 
     def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(variant="flat", title="Place ROI", **kwargs)
         self._typed_state = TypedState(self.state, PlaceROIState)
         self._build_ui()
 
     def _build_ui(self) -> None:
         with (
             self,
-            v3.VCard(variant="flat", title="Place ROI"),
             v3.VCardText(classes="tool-card"),
         ):
             with PointSelectorUI(

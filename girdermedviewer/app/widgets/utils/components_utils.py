@@ -5,9 +5,14 @@ from trame.widgets.html import Div, Span
 from trame.widgets.vuetify3 import (
     VAvatar,
     VBtn,
+    VColorPicker,
     VIcon,
     VNumberInput,
     VProgressCircular,
+    VRangeSlider,
+    VSelect,
+    VSlider,
+    VTextField,
     VTooltip,
 )
 
@@ -87,6 +92,27 @@ class LoadingButton(Button):
             )
 
 
+class ColorPicker(VColorPicker):
+    def __init__(self, **kwargs):
+        super().__init__(
+            elevation=kwargs.pop("elevation", 0),
+            mode=kwargs.pop("mode", "rgb"),
+            style=kwargs.pop("style", "width: 100%;"),
+            **kwargs,
+        )
+
+
+class TextField(VTextField):
+    def __init__(self, **kwargs):
+        super().__init__(
+            variant="solo",
+            hide_details=True,
+            flat=True,
+            bg_color="transparent",
+            **kwargs,
+        )
+
+
 class LayerIcon(VIcon):
     def __init__(self, inactive: bool = False, gap: bool = False, **kwargs):
         kwargs["icon"] = kwargs.pop("icon", "mdi-square")
@@ -124,6 +150,34 @@ class NumberInput(VNumberInput):
         )
 
 
+class Slider(VSlider):
+    def __init__(self, **kwargs):
+        super().__init__(
+            step=kwargs.pop("step", 1e-3),
+            hide_details=kwargs.pop("hide_details", True),
+            thumb_size=kwargs.pop("thumb_size", 16),
+            track_size=kwargs.pop("track_size", 2),
+            thumb_label=kwargs.pop("thumb_label", "hover"),
+            **kwargs,
+        )
+
+
+class RangeSlider(VRangeSlider):
+    def __init__(self, **kwargs):
+        super().__init__(
+            step=kwargs.pop("step", 1e-3),
+            hide_details=kwargs.pop("hide_details", True),
+            thumb_size=kwargs.pop("thumb_size", 16),
+            track_size=kwargs.pop("track_size", 2),
+            **kwargs,
+        )
+
+
+class Selector(VSelect):
+    def __init__(self, **kwargs):
+        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="comfortable", **kwargs)
+
+
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
@@ -151,6 +205,7 @@ class GlobalStyle(Style):
             ".position-selector .v-text-field__prefix { font-weight: 700 !important; } "
             ".quad-view { display: flex; gap: 2px; width: 100%; height: 100%; flex-direction: row; flex-wrap: wrap; }"
             ".scene-drawer { overflow: auto; } "
+            ".segment-item .v-list-item__prepend { display: grid; }"
             ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em; }"
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em; }"
             ".tool-card { padding: 0px; }"

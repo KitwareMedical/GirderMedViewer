@@ -1,6 +1,7 @@
 import logging
 
 from trame_dataclass.v2 import (
+    FieldEncoder,
     StateDataModel,
     Sync,
     TypeValidation,
@@ -9,6 +10,7 @@ from trame_dataclass.v2 import (
 from ....utils import (
     SceneObjectType,
     VolumeLayer,
+    VolumeObjectType,
     load_volume,
 )
 from .scene_object_logic import SceneObjectLogic, ThreeDColor, TwoDColor
@@ -23,16 +25,20 @@ class NormalColor(StateDataModel):
 
 
 class VolumeDisplay(StateDataModel):
+    volume_type = Sync(
+        VolumeObjectType,
+        VolumeObjectType.UNDEFINED,
+        convert=FieldEncoder(encoder=VolumeObjectType.encoder, decoder=VolumeObjectType.decoder),
+    )
     scalar_range = Sync(list[float])
     window_level = Sync(list[float])
-    number_of_components = Sync(int)
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
     opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
-class VolumeObjectLogic(SceneObjectLogic):
+class BaseVolumeObjectLogic(SceneObjectLogic):
     volume_range: list[float] = list
     layer: VolumeLayer = VolumeLayer.UNDEFINED
 
@@ -41,25 +47,36 @@ class VolumeObjectLogic(SceneObjectLogic):
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
-            threed_color=ThreeDColor(self.server),
-            twod_color=TwoDColor(self.server),
-            normal_color=NormalColor(self.server),
         )
         self.scene_object.display = self.display._id
+        self.volume_type: VolumeObjectType | None = None
+
+
+class VolumeObjectLogic(BaseVolumeObjectLogic):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.scene_object.object_type = SceneObjectType.VOLUME
+        self.display.threed_color = ThreeDColor(self.server)
+        self.display.twod_color = TwoDColor(self.server)
+        self.display.normal_color = NormalColor(self.server)
+        self.scalar_range: list[float] = []
 
     def _init_display_properties(self):
         if self.object_data is not None:
-            self.volume_range = list(self.object_data.GetScalarRange())
+            # Init volume type
+            self.display.volume_type = (
+                VolumeObjectType.VECTOR
+                if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1
+                else VolumeObjectType.SCALAR
+            )
 
+            self.scalar_range = list(self.object_data.GetScalarRange())
             # Init window level
-            self.display.scalar_range = self.volume_range
-            self.display.number_of_components = self.object_data.GetPointData().GetScalars().GetNumberOfComponents()
-
+            self.display.scalar_range = self.scalar_range
             # Init window level
-            self.display.window_level = self.volume_range
-
+            self.display.window_level = self.scalar_range
             # Init 3D preset range
-            self.display.threed_color.vr_shift = self.volume_range
+            self.display.threed_color.vr_shift = self.scalar_range
 
     def load_object_data(self, file_path: str) -> None:
         self.object_data = load_volume(file_path)

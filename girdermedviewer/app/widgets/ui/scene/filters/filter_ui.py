@@ -1,8 +1,10 @@
 from trame.widgets import html
+from trame_dataclass.v2 import Provider
 from undo_stack import Signal
 
 from ....utils import ICONS_MAP, Button, FilterType, SceneObjectType
 from .gaussian_filter_ui import GaussianFilterUI
+from .segmentation_filter_ui import SegmentationFilterUI
 
 
 class FilterToolbarUI(html.Div):
@@ -18,6 +20,7 @@ class FilterToolbarUI(html.Div):
     def _build_ui(self):
         with self:
             self._build_filter_button(FilterType.GAUSSIAN_BLUR, SceneObjectType.VOLUME)
+            self._build_filter_button(FilterType.SEGMENTATION, SceneObjectType.VOLUME)
 
     def _build_filter_button(self, filter_type: FilterType, scene_object_type: SceneObjectType):
         def _filter_clicked(obj_id):
@@ -35,15 +38,21 @@ class FilterToolbarUI(html.Div):
 
 
 class FilterUI(html.Div):
-    def __init__(self, obj_filter_type: str, obj_filter_prop: str, disabled: str, **kwargs) -> None:
+    def __init__(self, obj: str, disabled: str, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._filter_type = obj_filter_type
+        self._filter_type = f"{obj}.filter_type"
 
-        with self:
+        with self, Provider(name="filter_prop", instance=(f"{obj}.filter_prop_id",)):
             self.gaussian_filter = GaussianFilterUI(
                 v_if=(self._is_filter_active(FilterType.GAUSSIAN_BLUR),),
                 disabled=disabled,
-                obj_filter_prop=obj_filter_prop,
+                obj_filter_prop="filter_prop",
+            )
+
+            self.segmentation_filter = SegmentationFilterUI(
+                v_if=(self._is_filter_active(FilterType.SEGMENTATION),),
+                obj_id=f"{obj}._id",
+                obj_filter_prop="filter_prop",
             )
 
     def _is_filter_active(self, filter_type: FilterType) -> str:

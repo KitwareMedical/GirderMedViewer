@@ -2,7 +2,7 @@ from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_dataclass.v2 import Provider
 
-from ....utils import SceneObjectType
+from ....utils import SceneObjectType, VolumeObjectType
 from .object_display_color_ui import (
     MeshDisplayColorUI,
     VolumeDisplayNormalColorUI,
@@ -26,15 +26,19 @@ class VolumeDisplayUI(html.Div):
 
     def _build_ui(self) -> None:
         with self:
-            with html.Div(v_if=(f"{self.display}.number_of_components == 1",)):
+            with html.Div(v_if=(self._is_volume_type(VolumeObjectType.SCALAR),)):
                 VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
                 v3.VDivider(classes="display-property-divider")
                 VolumeDisplayTwoDColorUI(self.display, self.twod_presets)
-            with html.Div(v_if=(f"{self.display}.number_of_components == 3",)):
+
+            with html.Div(v_if=(self._is_volume_type(VolumeObjectType.VECTOR),)):
                 VolumeDisplayNormalColorUI(self.display)
             with html.Div(v_if=(self.has_opacity,),):
-                v3.VDivider(classes="display-property-divider")
+                v3.VDivider(v_if=(f"!{self._is_volume_type(VolumeObjectType.LABELMAP)}",), classes="display-property-divider")
                 ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
+
+    def _is_volume_type(self, volume_type: VolumeObjectType) -> str:
+        return f"{self.display}.volume_type === '{volume_type.value}'"
 
 
 class MeshDisplayUI(html.Div):
