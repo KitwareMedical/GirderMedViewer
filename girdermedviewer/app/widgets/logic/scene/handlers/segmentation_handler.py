@@ -133,6 +133,7 @@ class SegmentationHandler(ObjectHandler):
         deleted_segment = SegmentationHandler._get_segment_from_id(deleted_segment_id)
         deleted_segment.clear_watchers()
         self.views_logic.segmentation_logic.clear_segment(seg_filter_logic.object_data, deleted_segment.value)
+        self.views_logic.update_slice_views()
         seg_filter_logic.delete_segment(deleted_segment_id)
 
         if deleted_segment_id == self.data.active_segment_id:
