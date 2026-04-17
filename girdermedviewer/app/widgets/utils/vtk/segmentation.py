@@ -4,6 +4,7 @@ from enum import IntEnum
 import numpy as np
 import vtkmodules.util.numpy_support as vtknp
 from numpy.typing import NDArray
+from undo_stack import Signal
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkPoints
 from vtkmodules.vtkCommonDataModel import vtkImageData, vtkPlane, vtkPolyData
 from vtkmodules.vtkCommonExecutionModel import vtkAlgorithmOutput, vtkPolyDataAlgorithm
@@ -407,7 +408,9 @@ class Brush2D:
 class SegmentPaintEffect2D:
     """Setup a segmentation effect in a vtkResliceImageViewer"""
 
-    def __init__(self, viewer: vtkResliceImageViewer, editor: LabelMapEditor, brush_model: BrushModel, layer = 2):
+    update_requested = Signal()
+
+    def __init__(self, viewer: vtkResliceImageViewer, editor: LabelMapEditor, brush_model: BrushModel, layer=2):
         self._viewer = viewer
         self._editor = editor
         self._widget: vtkResliceCursorWidget = self._viewer.GetResliceCursorWidget()
@@ -562,6 +565,7 @@ class SegmentPaintEffect2D:
     def _on_left_released(self, _caller: vtkRenderWindowInteractor, _ev: str) -> bool:
         if self.is_painting():
             self.stop_painting()
+        self.update_requested()
 
     def _on_mouse_move(self, _caller: vtkRenderWindowInteractor, _ev: str) -> bool:
         self._update_brush()

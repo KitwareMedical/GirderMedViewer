@@ -2,6 +2,7 @@ import logging
 
 from trame_dataclass.v2 import StateDataModel, Sync
 from trame_server import Server
+from undo_stack import Signal
 from vtk import vtkImageData
 
 from ...ui import SegmentationEffectState
@@ -25,6 +26,8 @@ class PaintEraseEffectProperties(StateDataModel):
 
 
 class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
+    update_requested = Signal()
+
     def __init__(self, server: Server) -> None:
         super().__init__(server, SegmentationEffectState)
         self.paint_erase_effect_prop = PaintEraseEffectProperties(self.server)
@@ -66,12 +69,12 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
 
     def set_paint_effects(self, slice_views: list[SliceViewLogic]) -> None:
         if not self._paint_effects:  # FIXME: needed to add this to not recreate SegmentPaintEffect2D
-            self._paint_effects = [
-                SegmentPaintEffect2D(
+            for view in slice_views:
+                paint_effect = SegmentPaintEffect2D(
                     view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
                 )
-                for view in slice_views
-            ]
+                self._paint_effects.append(paint_effect)
+                paint_effect.update_requested.connect(self.update_requested)
 
     def set_active_segment(self, object_data: vtkImageData | None, segment_value: int) -> None:
         if object_data is None:

@@ -218,4 +218,5 @@ class SliceViewLogic(ViewLogic):
             interactor: vtkRenderWindowInteractor = viewer.GetInteractor()
             interactor.SetEventInformation(int(event["x"]), int(event["y"]))
             interactor.MouseMoveEvent()
-        self.update_requested()
+
+        self.update()

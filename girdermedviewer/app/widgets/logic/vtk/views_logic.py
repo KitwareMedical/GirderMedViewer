@@ -44,6 +44,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.roi_logic = PlaceROILogic(self.server)
         self.segmentation_logic = SegmentationEffectLogic(self.server)
+        self.segmentation_logic.update_requested.connect(self.update_slice_views)
 
     @property
     def views(self) -> list[ViewLogic]:
@@ -76,10 +77,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
         for view in self.slice_views:
             view.update()
 
-    def update_threed_views(self):
-        for view in self.threed_views:
-            view.update()
-
     def set_ui(self, ui: ViewsUI, tool_ui: ToolUI):
         self.roi_logic.roi_updated.connect(self.update_views)
 
@@ -88,8 +85,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic = self.view_logics.get(view_type)
             if view_logic is not None:
                 view_logic.set_ui(view_ui)
-                if isinstance(view_logic, SliceViewLogic):
-                    view_logic.update_requested.connect(self.update_slice_views)
         self.roi_logic.set_ui(tool_ui.place_roi_ui)
 
         # Init ROI
