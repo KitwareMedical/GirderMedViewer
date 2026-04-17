@@ -47,6 +47,7 @@ from vtkmodules.all import (
     vtkResliceImageViewer,
     vtkWidgetEvent,
 )
+from vtkmodules.vtkRenderingCore import vtkProp
 
 logger = logging.getLogger(__name__)
 
@@ -641,11 +642,12 @@ def render_mesh_in_3D(poly_data, renderer):
     return actor
 
 
-def remove_prop(renderer, prop):
-    if isinstance(prop, vtkVolume):
-        renderer.RemoveVolume(prop)
-    elif isinstance(prop, vtkActor | vtkImageSlice):
-        renderer.RemoveActor(prop)
+def remove_prop(renderer: vtkRenderer, prop: vtkProp | vtkResliceImageViewer):
+    window = renderer.GetRenderWindow()
+
+    if isinstance(prop, vtkProp):
+        for r in window.renderers:
+            r.RemoveViewProp(prop)
     elif isinstance(prop, vtkResliceImageViewer):
         prop.SetupInteractor(None)
         # FIXME: check for leak
