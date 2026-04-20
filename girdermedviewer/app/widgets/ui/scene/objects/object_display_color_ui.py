@@ -147,6 +147,7 @@ class VolumeWindowLevelUI(html.Div):
                     v_model=f"{self.display}.window_level",
                     min=(f"{self.display}.scalar_range[0]",),
                     max=(f"{self.display}.scalar_range[1]",),
+                    disabled=(f"{self.display}.normal_color.show_arrows",),
                 ),
                 v3.Template(v_slot_append=True),
             ):
@@ -154,6 +155,7 @@ class VolumeWindowLevelUI(html.Div):
                     tooltip="Auto Window/Level",
                     icon="mdi-refresh-auto",
                     click=f"{self.display}.window_level = {self.display}.scalar_range",
+                    disabled=(f"{self.display}.normal_color.show_arrows",),
                 )
 
 
@@ -206,12 +208,21 @@ class VolumeDisplayNormalColorUI(html.Div):
                     click=f"{self.display}.normal_color.show_arrows = !{self.display}.normal_color.show_arrows",
                 )
                 NumberInput(
+                    v_model=(f"{self.display}.normal_color.sampling",),
+                    disabled=(f"!{self.display}.normal_color.show_arrows",),
+                    label="Sampling",
+                    min=1,
+                    max=100,
+                    step=(1.0,),
+                    suffix="%",
+                )
+                NumberInput(
                     v_model=(f"{self.display}.normal_color.arrow_length",),
                     disabled=(f"!{self.display}.normal_color.show_arrows",),
                     label="Length",
                     min=0.01,
-                    max=10.0,
-                    step=(0.01,),
+                    max=20.0,
+                    step=(1.0,),
                     precision=2,
                 )
                 NumberInput(

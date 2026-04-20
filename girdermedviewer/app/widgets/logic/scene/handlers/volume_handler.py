@@ -79,11 +79,12 @@ class VolumeDisplayHandler:
 
     def update_normal_coloring(self, volume_id: str) -> Callable:
         @debounce(0.05)
-        def _update_normal_coloring(show_arrows: bool, arrow_length: float, arrow_width: float) -> None:
+        def _update_normal_coloring(show_arrows: bool, sampling: int, arrow_length: float, arrow_width: float) -> None:
             for view in self.views_logic.slice_views:
                 modified = view.volume_handler.set_volume_normal_color(
                     volume_id,
                     show_arrows,
+                    sampling,
                     arrow_length,
                     arrow_width,
                     view.orientation.value,
@@ -94,6 +95,7 @@ class VolumeDisplayHandler:
                 modified = view.volume_handler.set_volume_normal_color(
                     volume_id,
                     show_arrows,
+                    sampling,
                     arrow_length,
                     arrow_width,
                 )
@@ -175,7 +177,7 @@ class VolumeHandler(ObjectHandler):
             ("name", "is_inverted"), self.display_handler.update_twod_coloring(volume_logic._id)
         )
         volume_logic.display.normal_color.watch(
-            ("show_arrows", "arrow_length", "arrow_width"),
+            ("show_arrows", "sampling", "arrow_length", "arrow_width"),
             self.display_handler.update_normal_coloring(volume_logic._id),
         )
         volume_logic.scene_object.watch(
