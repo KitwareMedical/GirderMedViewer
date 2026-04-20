@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 class ViewLogic(BaseLogic[ViewState]):
     window_level_changed = Signal(str)
-    update_requested = Signal()
 
     def __init__(
         self,

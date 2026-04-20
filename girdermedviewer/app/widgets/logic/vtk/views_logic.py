@@ -6,8 +6,8 @@ from vtk import vtkImageData, vtkPolyData
 from ...logic.base_logic import BaseLogic
 from ...ui import ToolState, ToolType, ToolUI, ViewsState, ViewsUI, ViewType
 from ...utils import (
+    SceneObjectSubtype,
     VolumeLayer,
-    VolumeObjectType,
     get_color_preset_parser,
     get_volume_preset_parser,
 )
@@ -44,6 +44,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.roi_logic = PlaceROILogic(self.server)
         self.segmentation_logic = SegmentationEffectLogic(self.server)
+        self.segmentation_logic.update_requested.connect(self.update_slice_views)
 
     @property
     def views(self) -> list[ViewLogic]:
@@ -62,6 +63,10 @@ class ViewsLogic(BaseLogic[ViewsState]):
         for view_logic in self.views:
             if isinstance(view_logic, SliceViewLogic):
                 view_logic.mesh_handler.set_mesh_visibility(self.roi_logic._id, active_tool == ToolType.PLACE_ROI)
+
+        if active_tool != ToolType.SEGMENTATION_EFFECT:
+            self.segmentation_logic.deactivate_effects()
+
         self.update_views()
 
     def update_views(self):
@@ -72,10 +77,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
         for view in self.slice_views:
             view.update()
 
-    def update_threed_views(self):
-        for view in self.threed_views:
-            view.update()
-
     def set_ui(self, ui: ViewsUI, tool_ui: ToolUI):
         self.roi_logic.roi_updated.connect(self.update_views)
 
@@ -84,8 +85,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic = self.view_logics.get(view_type)
             if view_logic is not None:
                 view_logic.set_ui(view_ui)
-                if isinstance(view_logic, SliceViewLogic):
-                    view_logic.update_requested.connect(self.update_slice_views)
         self.roi_logic.set_ui(tool_ui.place_roi_ui)
 
         # Init ROI
@@ -111,10 +110,11 @@ class ViewsLogic(BaseLogic[ViewsState]):
         data_id: str,
         image_data: vtkImageData,
         layer: VolumeLayer,
-        volume_type: VolumeObjectType = VolumeObjectType.UNDEFINED,
+        subtype: SceneObjectSubtype = SceneObjectSubtype.UNDEFINED,
     ):
+        is_labelmap = subtype == SceneObjectSubtype.LABELMAP
         for view_logic in self.view_logics.values():
-            view_logic.add_volume(data_id, image_data, layer)
+            view_logic.add_volume(data_id, image_data, layer, is_labelmap)
 
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
@@ -123,7 +123,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.roi_logic.set_default_bounds(image_data.GetBounds())
             self.segmentation_logic.set_paint_effects(self.slice_views)
 
-        if volume_type == VolumeObjectType.LABELMAP:
+        if is_labelmap:
             self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
         self.update_views()
 

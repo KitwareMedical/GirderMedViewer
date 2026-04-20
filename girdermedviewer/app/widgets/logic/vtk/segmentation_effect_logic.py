@@ -2,6 +2,7 @@ import logging
 
 from trame_dataclass.v2 import StateDataModel, Sync
 from trame_server import Server
+from undo_stack import Signal
 from vtk import vtkImageData
 
 from ...ui import SegmentationEffectState
@@ -25,6 +26,8 @@ class PaintEraseEffectProperties(StateDataModel):
 
 
 class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
+    update_requested = Signal()
+
     def __init__(self, server: Server) -> None:
         super().__init__(server, SegmentationEffectState)
         self.paint_erase_effect_prop = PaintEraseEffectProperties(self.server)
@@ -42,6 +45,8 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
             self.data.active_effect_prop_id = None
             for effect in self._paint_effects:
                 effect.disable_brush()
+        elif not self._segmentation_editor.active_segment:
+            self.deactivate_effects()
         else:
             self.data.active_effect_prop_id = self.paint_erase_effect_prop._id
 
@@ -63,16 +68,22 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
         self._brush_model.shape = BrushShape.Sphere if use_sphere_brush else BrushShape.Cylinder
 
     def set_paint_effects(self, slice_views: list[SliceViewLogic]) -> None:
-        self._paint_effects = [
-            SegmentPaintEffect2D(
-                view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
-            )
-            for view in slice_views
-        ]
+        if not self._paint_effects:  # FIXME: needed to add this to not recreate SegmentPaintEffect2D
+            for view in slice_views:
+                paint_effect = SegmentPaintEffect2D(
+                    view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
+                )
+                self._paint_effects.append(paint_effect)
+                paint_effect.update_requested.connect(self.update_requested)
 
-    def set_active_segment(self, object_data: vtkImageData, segment_value: int) -> None:
+    def set_active_segment(self, object_data: vtkImageData | None, segment_value: int) -> None:
+        if object_data is None:
+            self.deactivate_effects()
         self._segmentation_editor.labelmap = object_data
         self._segmentation_editor.active_segment = segment_value
 
-    def clear_segment(self, segment_value: int):
-        self._segmentation_editor.clear_segment(segment_value)
+    def clear_segment(self, object_data: vtkImageData, segment_value: int):
+        self._segmentation_editor.clear_segment(object_data, segment_value)
+
+    def deactivate_effects(self):
+        self.data.active_effect = SegmentationEffectType.UNDEFINED

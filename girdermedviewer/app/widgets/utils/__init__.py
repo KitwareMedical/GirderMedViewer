@@ -24,10 +24,10 @@ from .girder_utils import (
 from .scene_utils import (
     ICONS_MAP,
     FilterType,
+    SceneObjectSubtype,
     SceneObjectType,
     SegmentationEffectType,
     VolumeLayer,
-    VolumeObjectType,
 )
 from .vtk.preset_utils import (
     ColorPresetParser,
@@ -54,6 +54,7 @@ from .vtk.vtk_utils import (
     load_mesh,
     load_volume,
     remove_prop,
+    render_labelmap_as_overlay_in_slice,
     render_mesh_in_3D,
     render_mesh_in_slice,
     render_volume_as_overlay_in_slice,
@@ -106,6 +107,7 @@ __all__ = [
     "Preset",
     "PresetParser",
     "RangeSlider",
+    "SceneObjectSubtype",
     "SceneObjectType",
     "SegmentationEffectType",
     "Selector",
@@ -114,7 +116,6 @@ __all__ = [
     "TextField",
     "VolumeColoringMode",
     "VolumeLayer",
-    "VolumeObjectType",
     "VolumePresetParser",
     "are_same_paths",
     "create_gaussian_filter",
@@ -135,6 +136,7 @@ __all__ = [
     "load_mesh",
     "load_volume",
     "remove_prop",
+    "render_labelmap_as_overlay_in_slice",
     "render_mesh_in_3D",
     "render_mesh_in_slice",
     "render_volume_as_overlay_in_slice",

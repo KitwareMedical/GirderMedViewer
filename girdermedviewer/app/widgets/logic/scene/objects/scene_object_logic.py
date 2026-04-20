@@ -10,7 +10,7 @@ from trame_dataclass.v2 import (
 from trame_server import Server
 from undo_stack import Signal
 
-from ....utils import ICONS_MAP, FilterType, SceneObjectType
+from ....utils import ICONS_MAP, FilterType, SceneObjectSubtype, SceneObjectType
 from ...base_logic import BaseLogic
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,11 @@ class SceneObject(StateDataModel):
         SceneObjectType,
         SceneObjectType.UNDEFINED,
         convert=FieldEncoder(SceneObjectType.encoder, SceneObjectType.decoder),
+    )
+    object_subtype = Sync(
+        SceneObjectSubtype,
+        SceneObjectSubtype.UNDEFINED,
+        convert=FieldEncoder(SceneObjectSubtype.encoder, SceneObjectSubtype.decoder),
     )
     info = Sync(SceneObjectInfo, has_dataclass=True)
     metadata = Sync(SceneObjectMetadata, has_dataclass=True)

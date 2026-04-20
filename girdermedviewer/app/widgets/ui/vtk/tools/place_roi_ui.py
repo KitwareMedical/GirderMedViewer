@@ -22,14 +22,14 @@ class PlaceROIUI(v3.VCard):
     reset_clicked = Signal()
 
     def __init__(self, **kwargs) -> None:
-        super().__init__(variant="flat", title="Place ROI", **kwargs)
+        super().__init__(classes="tool-card", title="Place ROI", variant="flat", **kwargs)
         self._typed_state = TypedState(self.state, PlaceROIState)
         self._build_ui()
 
     def _build_ui(self) -> None:
         with (
             self,
-            v3.VCardText(classes="tool-card"),
+            v3.VCardText(),
         ):
             with PointSelectorUI(
                 self._typed_state.get_sub_state(self._typed_state.name.min_roi_bounds),

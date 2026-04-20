@@ -18,15 +18,16 @@ from trame.widgets.vuetify3 import (
 
 
 class Text(Div):
-    def __init__(
-        self, text: str, icon: str | None = None, icon_size: int | None = None, uppercase: bool = False, **kwargs
-    ) -> None:
+    def __init__(self, text: str, uppercase: bool = False, **kwargs) -> None:
+        icon_keys = [key for key in kwargs if key.startswith("icon_") or key == "icon"]
+        icon_kwargs = {key.replace("icon_", ""): kwargs.pop(key) for key in icon_keys}
         kwargs["classes"] = " ".join([kwargs.get("classes", ""), "text-uppercase" if uppercase else ""])
         super().__init__(**kwargs)
 
         with self:
-            if icon is not None:
-                VIcon(classes="mr-1", icon=icon, size=icon_size)
+            if icon_kwargs.get("icon"):
+                icon_kwargs["classes"] = "mr-1 " + icon_kwargs.pop("classes", "")
+                VIcon(**icon_kwargs)
             Span(text)
 
 
@@ -208,7 +209,8 @@ class GlobalStyle(Style):
             ".segment-item .v-list-item__prepend { display: grid; }"
             ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em; }"
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em; }"
-            ".tool-card { padding: 0px; }"
+            ".tool-card .v-card-text { padding: 0px; }"
+            ".tool-card .v-card-title { display: flex; justify-content: space-between; align-items: center; }"
             ".tools-strip { display: flex; flex-direction: column; align-items: center; width: 50px; }"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px; } "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px; } "
