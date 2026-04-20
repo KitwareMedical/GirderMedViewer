@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 
-from trame.widgets import html, vtk
+from trame.widgets import html, rca
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
@@ -64,53 +64,47 @@ class ViewSliderUI(v3.VSlider):
         )
 
 
-class ViewUI(vtk.VtkRemoteView):
-    view_hovered = Signal(dict[str, dict[str, float]])  # Send hover positions
-
+class ViewUI(html.Div):
     def __init__(self, view_type: ViewType, **kwargs):
-        renderer, render_window = create_rendering_pipeline()
+        super().__init__(**kwargs)
 
-        if view_type != ViewType.THREED:
-            kwargs["picking_modes"] = ("picking_modes", ["hover"])
-            kwargs["hover"] = (self._on_hover, "[$event]")
+        self.renderer, self.render_window = create_rendering_pipeline()
 
-        super().__init__(
-            render_window,
-            interactive_quality=80,
-            interactive_ratio=1,
-            id=view_type.value,
-            ref=view_type.value,  # avoids recreating a view when UI is rebuilt
-            **kwargs,
-        )
-        self.renderer = renderer
         self.type = view_type
         self._views_state = TypedState(self.state, ViewsState)
         self._typed_state = TypedState(self.state, ViewState, namespace=view_type.value)
 
-        self.ctrl.start_animation.add(self.start_animation)
-        self.ctrl.stop_animation.add(self.stop_animation)
-
         self._build_ui()
 
-    def _build_ui(self):
-        with self, html.Div(classes="view-gutter"), html.Div(classes="view-gutter-content"):
-            Button(
-                click=self.toggle_fullscreen,
-                color="white",
-                icon=(f"{self._views_state.name.fullscreen} == null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit'",),
-                tooltip=(f"{self._views_state.name.fullscreen} == null ? 'Extend to fullscreen' : 'Exit fullscreen'",),
-                variant="text",
-            )
-            if self.type != ViewType.THREED:
-                self.slider_ui = ViewSliderUI(
-                    self._typed_state.get_sub_state(self._typed_state.name.slider_state),
-                    v_if=(self._views_state.name.are_sliders_visible,),
-                    start=self.ctrl.start_animation,
-                    end=self.ctrl.stop_animation,
-                )
+    def update(self):
+        self.view_handler.update()
 
-    def _on_hover(self, *args, **_kwargs):
-        self.view_hovered([event["position"] for event in args])
+    def _build_ui(self):
+        with self:
+            my_rca = rca.RemoteControlledArea(
+                v_if=(f"!{self._views_state.name.is_viewer_disabled}",), display="image", send_mouse_move=True
+            )
+            self.view_handler = my_rca.create_view_handler(
+                self.render_window,
+                encoder="turbo-jpeg",
+            )
+            with html.Div(classes="view-gutter"), html.Div(classes="view-gutter-content"):
+                Button(
+                    click=self.toggle_fullscreen,
+                    color="white",
+                    disabled=(self._views_state.name.is_viewer_disabled,),
+                    icon=(f"{self._views_state.name.fullscreen} == null ? 'mdi-fullscreen' : 'mdi-fullscreen-exit'",),
+                    tooltip=(
+                        f"{self._views_state.name.fullscreen} == null ? 'Extend to fullscreen' : 'Exit fullscreen'",
+                    ),
+                    variant="text",
+                )
+                if self.type != ViewType.THREED:
+                    self.slider_ui = ViewSliderUI(
+                        self._typed_state.get_sub_state(self._typed_state.name.slider_state),
+                        v_if=(self._views_state.name.are_sliders_visible,),
+                        disabled=(self._views_state.name.is_viewer_disabled,),
+                    )
 
     def toggle_fullscreen(self):
         self._views_state.data.fullscreen = None if self._views_state.data.fullscreen else self.type

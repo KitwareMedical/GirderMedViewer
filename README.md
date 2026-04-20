@@ -21,6 +21,45 @@ pip install -e ".[dev]"
 pip install -e ".[dicom]"
 ```
 
+## TurboJPEG optional dependency
+
+Faster Jpeg encoding using TurboJPEG.
+
+**macOS system install**
+
+```
+brew install jpeg-turbo
+```
+
+**Windows install**
+
+Download and install from GitHub:
+https://github.com/libjpeg-turbo/libjpeg-turbo/releases
+
+**Linux install**
+
+```
+# RHEL/CentOS/Fedora
+# YUM doc: https://libjpeg-turbo.org/Downloads/YUM
+
+# Ubuntu
+apt-get install libturbojpeg
+```
+
+### For libjpeg-turbo version 3.x:
+
+```
+source .venv/bin/activate
+pip install PyTurboJPEG
+```
+
+### For libjpeg-turbo version 2.x:
+
+```
+source .venv/bin/activate
+pip install PyTurboJPEG==1.8.3
+```
+
 ## Setup configuration
 
 To configure the application, create an `app.cfg` file based on the provided
