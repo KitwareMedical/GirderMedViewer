@@ -158,7 +158,7 @@ class SceneObjectUI(v3.VExpansionPanel):
                         SceneObjectDisplayUI(
                             obj=self._obj,
                             disabled=self._is_disabled(),
-                            has_opacity=f"!{self._is_primary_volume()}",
+                            is_primary=self._is_primary_volume(),
                             color_presets=f"{self._scene}.color_presets",
                             volume_presets=f"{self._scene}.volume_presets",
                         )
