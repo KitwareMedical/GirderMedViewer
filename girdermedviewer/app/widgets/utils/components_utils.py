@@ -176,7 +176,7 @@ class RangeSlider(VRangeSlider):
 
 class Selector(VSelect):
     def __init__(self, **kwargs):
-        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="comfortable", **kwargs)
+        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="compact", **kwargs)
 
 
 class GlobalStyle(Style):

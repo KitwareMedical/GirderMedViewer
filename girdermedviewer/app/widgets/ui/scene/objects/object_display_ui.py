@@ -17,7 +17,7 @@ class VolumeDisplayUI(html.Div):
         self,
         obj_display: str,
         obj_subtype: str,
-        has_opacity: str,
+        is_primary: str,
         twod_presets: str,
         threed_presets: str,
         **kwargs,
@@ -27,7 +27,7 @@ class VolumeDisplayUI(html.Div):
         )
         self.display = obj_display
         self.subtype = obj_subtype
-        self.has_opacity = has_opacity
+        self.is_primary = is_primary
         self.twod_presets = twod_presets
         self.threed_presets = threed_presets
         self._build_ui()
@@ -35,15 +35,16 @@ class VolumeDisplayUI(html.Div):
     def _build_ui(self) -> None:
         with self:
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.SCALAR),)):
-                VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
-                v3.VDivider(classes="display-property-divider")
+                with html.Div(v_if=(self.is_primary,)):
+                    VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
+                    v3.VDivider(classes="display-property-divider")
                 VolumeDisplayTwoDColorUI(self.display, self.twod_presets)
 
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.VECTOR),)):
                 VolumeDisplayNormalColorUI(self.display)
 
             with html.Div(
-                v_if=(self.has_opacity,),
+                v_if=(f"!{self.is_primary}",),
             ):
                 v3.VDivider(
                     v_if=(f"!{self._is_volume_subtype(SceneObjectSubtype.LABELMAP)}",),
@@ -52,7 +53,7 @@ class VolumeDisplayUI(html.Div):
                 ObjectDisplayOpacityUI(obj_opacity=f"{self.display}.opacity")
 
     def _is_volume_subtype(self, subtype: SceneObjectSubtype) -> str:
-        return f"{self.subtype} === '{subtype.value}'"
+        return f"({self.subtype} === '{subtype.value}')"
 
 
 class MeshDisplayUI(html.Div):
@@ -72,15 +73,27 @@ class MeshDisplayUI(html.Div):
 
 
 class SceneObjectDisplayUI(html.Div):
+<<<<<<< HEAD
     def __init__(self, obj: str, disabled: str, has_opacity: str, color_presets: str, volume_presets: str, **kwargs):
         super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
+=======
+    def __init__(self, obj: str, disabled: str, is_primary: str, color_presets: str, volume_presets: str, **kwargs):
+        super().__init__(
+            **kwargs,
+        )
+>>>>>>> 18735d6 (fix: block 3d preset edition for secondary volumes)
         self.obj = obj
 
         with self, Provider(name="display", instance=(f"{self.obj}.display",)):
             VolumeDisplayUI(
                 obj_display="display",
                 obj_subtype=f"{self.obj}.object_subtype",
+<<<<<<< HEAD
                 has_opacity=has_opacity,
+=======
+                disabled=disabled,
+                is_primary=is_primary,
+>>>>>>> 18735d6 (fix: block 3d preset edition for secondary volumes)
                 twod_presets=color_presets,
                 threed_presets=volume_presets,
                 v_if=(self._is_object_type(SceneObjectType.VOLUME),),
@@ -92,4 +105,4 @@ class SceneObjectDisplayUI(html.Div):
             )
 
     def _is_object_type(self, object_type: SceneObjectType) -> str:
-        return f"{self.obj}.object_type == '{object_type.value}'"
+        return f"({self.obj}.object_type == '{object_type.value}')"

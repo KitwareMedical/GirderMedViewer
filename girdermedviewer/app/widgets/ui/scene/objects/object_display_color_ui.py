@@ -183,6 +183,7 @@ class VolumeDisplayTwoDColorUI(html.Div):
                     v_model=(f"{self.display}.twod_color.is_inverted",),
                     label="Invert",
                     hide_details=True,
+                    density="compact",
                 )
 
             VolumeWindowLevelUI(self.display)
