@@ -72,13 +72,18 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.update_views()
 
+    def _is_view_shown(self, view_logic: ViewLogic) -> bool:
+        return self.data.fullscreen is None or self.data.fullscreen == view_logic.type
+
     def update_views(self) -> None:
         for view in self.views:
-            view.update()
+            if self._is_view_shown(view):
+                view.update()
 
     def update_slice_views(self) -> None:
         for view in self.slice_views:
-            view.update()
+            if self._is_view_shown(view):
+                view.update()
 
     def set_ui(self, ui: ViewsUI, tool_ui: ToolUI):
         self.roi_logic.roi_updated.connect(self.update_views)
