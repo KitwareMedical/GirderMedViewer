@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
 from vtk import (
@@ -38,7 +38,7 @@ from .object_handler import ObjectHandler
 logger = logging.getLogger(__name__)
 
 
-class VolumeHandler(ObjectHandler):
+class VolumeHandler(ObjectHandler, ABC):
     def __init__(self, preset_parser: PresetParser):
         super().__init__()
         self.preset_parser = preset_parser

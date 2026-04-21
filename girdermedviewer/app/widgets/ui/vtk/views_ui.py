@@ -37,7 +37,6 @@ class ViewsState:
     is_viewer_disabled: bool = True
     are_sliders_visible: bool = False
     are_obliques_visible: bool = False
-    is_position_menu_visible: bool = False
     fullscreen: ViewType | None = None
 
 

@@ -21,6 +21,7 @@ class ObjectHandler:
         self.object_data = defaultdict(list)
         self.object_display = defaultdict(list)
         self.renderer: vtkRenderer | None = None
+        self.roi_id: str | None = None
 
     def set_renderer(self, renderer: vtkRenderer) -> None:
         self.renderer = renderer

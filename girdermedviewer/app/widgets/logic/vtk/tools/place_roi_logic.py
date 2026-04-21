@@ -1,32 +1,31 @@
 import logging
 
 from trame_server import Server
-from undo_stack import Signal
 from vtk import vtkBoxRepresentation, vtkBoxWidget2, vtkPolyData
+from vtkmodules.vtkRenderingCore import vtkActor
 
-from ...ui import PlaceROIState, PlaceROIUI, PointState
-from ..base_logic import BaseLogic
+from ....ui import PlaceROIState, PlaceROIUI, PointState
+from ....utils import render_mesh_in_slice, set_mesh_visibility
+from ..views_logic import ViewsLogic
+from .base_tool_logic import BaseToolLogic
 
 logger = logging.getLogger(__name__)
 
 
-class PlaceROILogic(BaseLogic[PlaceROIState]):
-    roi_updated = Signal()
-
-    def __init__(self, server: Server) -> None:
-        super().__init__(server, PlaceROIState)
+class PlaceROILogic(BaseToolLogic[PlaceROIState]):
+    def __init__(self, server: Server, views_logic: ViewsLogic) -> None:
+        super().__init__(server, views_logic, PlaceROIState)
         self._min_bounds_state = self._typed_state.get_sub_state(self.name.min_roi_bounds)
         self._max_bounds_state = self._typed_state.get_sub_state(self.name.max_roi_bounds)
 
-        self._id = "ROI"
+        self.box = vtkBoxRepresentation()
+        self.poly_data = vtkPolyData()
         self.box_widget = vtkBoxWidget2()
+        self.box_actors: list[vtkActor] = []
 
-        self.slice_rep = vtkPolyData()
-        self.threed_rep = vtkBoxRepresentation()
-
-        self.box_widget.SetRepresentation(self.threed_rep)
+        self.box_widget.SetRepresentation(self.box)
         self.box_widget.RotationEnabledOff()
-        self.threed_rep.SetPlaceFactor(1.0)
+        self.box.SetPlaceFactor(1.0)
 
         self._update_slice_rep()
 
@@ -61,12 +60,12 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
             self.box_widget.ProcessEventsOn()
 
     def _update_slice_rep(self) -> None:
-        self.threed_rep.GetPolyData(self.slice_rep)
+        self.box.GetPolyData(self.poly_data)
 
     def _update_from_widget(self, *_args) -> None:
         if self.data.is_roi_locked:
             return
-        new_bounds = self.threed_rep.GetBounds()
+        new_bounds = self.box.GetBounds()
         self._set_bounds(new_bounds)
         self.state.flush()
 
@@ -75,10 +74,10 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
             return
 
         roi_bounds = self._get_bounds()
-        if roi_bounds != self.threed_rep.GetBounds():
-            self.threed_rep.PlaceWidget(roi_bounds)
+        if roi_bounds != self.box.GetBounds():
+            self.box.PlaceWidget(roi_bounds)
         self._update_slice_rep()
-        self.roi_updated()
+        self._views_logic.update_views()
 
     def _reset(self) -> None:
         self._set_bounds(self.default_bounds)
@@ -105,11 +104,24 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
         self.name.is_roi_locked = False
         self._reset()
 
-    def enable_widget(self, enable: bool) -> None:
-        if enable:
+    def set_enabled(self, enabled: bool) -> None:
+        for actor in self.box_actors:
+            set_mesh_visibility(actor, enabled)
+        if enabled:
             self.box_widget.On()
         else:
             self.box_widget.Off()
 
     def set_ui(self, ui: PlaceROIUI) -> None:
         ui.reset_clicked.connect(self._reset)
+
+        for view_logic in self._views_logic.threed_views:
+            self.box_widget.SetInteractor(view_logic.renderer.GetRenderWindow().GetInteractor())
+            self.box_widget.SetCurrentRenderer(view_logic.renderer)
+
+        self.box_actors = []
+        for view_logic in self._views_logic.slice_views:
+            actor = render_mesh_in_slice(self.poly_data, view_logic.orientation.value, view_logic.renderer)
+            self.box_actors.append(actor)
+
+        self.set_enabled(False)

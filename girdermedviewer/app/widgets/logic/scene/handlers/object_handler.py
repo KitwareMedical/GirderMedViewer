@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from trame_server.core import Server
@@ -12,7 +12,7 @@ from ..objects.scene_object_logic import SceneObjectLogic
 logger = logging.getLogger(__name__)
 
 
-class ObjectHandler(BaseLogic[SceneState]):
+class ObjectHandler(BaseLogic[SceneState], ABC):
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, SceneState)
         self.object_logics: dict[str, SceneObjectLogic] = {}

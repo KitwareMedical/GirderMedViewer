@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 
-from vtk import vtkImageData, vtkPolyData, vtkRenderWindowInteractor
+from vtk import vtkImageData, vtkPolyData
 from vtkmodules.vtkInteractionImage import vtkResliceImageViewer
 from vtkmodules.vtkInteractionWidgets import vtkResliceCursorWidget
 
@@ -25,7 +25,6 @@ from ....utils import (
 from ...scene.objects.mesh_object_logic import MeshDisplay
 from ...scene.objects.volume_object_logic import VolumeDisplay
 from ..handlers.volume_handler import VolumeSliceHandler
-from ..place_roi_logic import PlaceROILogic
 from .view_logic import ViewLogic
 
 logger = logging.getLogger(__name__)
@@ -119,10 +118,6 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
         self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)
         self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
 
-    def init_roi(self, roi: PlaceROILogic) -> None:
-        self.mesh_handler.add_mesh_in_slice(roi._id, roi.slice_rep, self.orientation.value)
-        self.mesh_handler.set_mesh_visibility(roi._id, False)
-
     def flush(self) -> None:
         if SliceViewLogic.DEBOUNCED_FLUSH:
             self.ctrl.debounced_flush()
@@ -180,9 +175,9 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
         self.flush()
 
     def on_reslice_cursor_end_interaction(self, *_args) -> None:
-        self.state.flush()  # flush state.position
+        self.flush()  # flush state.position
 
-    @debounce(0.3)
+    @debounce(0.05)
     def _update_slider(self, *_args) -> None:
         range = self.get_slice_range()
         self.data.slider_state.min_value = range[0]

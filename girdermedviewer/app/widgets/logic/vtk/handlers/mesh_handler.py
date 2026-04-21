@@ -93,3 +93,6 @@ class MeshHandler(ObjectHandler):
                 self.preset_parser.apply_preset_to_mesh(actor, array_obj, preset, preset_range, is_inverted) or modified
             )
         return modified
+
+    def has_mesh(self) -> bool:
+        return len(list(self.object_data)) > 0
