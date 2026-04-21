@@ -73,27 +73,16 @@ class MeshDisplayUI(html.Div):
 
 
 class SceneObjectDisplayUI(html.Div):
-<<<<<<< HEAD
-    def __init__(self, obj: str, disabled: str, has_opacity: str, color_presets: str, volume_presets: str, **kwargs):
-        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
-=======
     def __init__(self, obj: str, disabled: str, is_primary: str, color_presets: str, volume_presets: str, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
->>>>>>> 18735d6 (fix: block 3d preset edition for secondary volumes)
+        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
         self.obj = obj
 
         with self, Provider(name="display", instance=(f"{self.obj}.display",)):
             VolumeDisplayUI(
                 obj_display="display",
                 obj_subtype=f"{self.obj}.object_subtype",
-<<<<<<< HEAD
-                has_opacity=has_opacity,
-=======
                 disabled=disabled,
                 is_primary=is_primary,
->>>>>>> 18735d6 (fix: block 3d preset edition for secondary volumes)
                 twod_presets=color_presets,
                 threed_presets=volume_presets,
                 v_if=(self._is_object_type(SceneObjectType.VOLUME),),

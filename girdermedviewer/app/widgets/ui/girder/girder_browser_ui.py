@@ -48,6 +48,7 @@ class GirderBrowserUI(html.Div):
                 disabled=(f"!{self._typed_state.name.is_user_connected}",),
                 icon="mdi-file-plus-outline",
                 tooltip="Browse data",
+                size="default",
             ),
             v3.VDialog(
                 v_model=(self._typed_state.name.is_browser_dialog_visible,),

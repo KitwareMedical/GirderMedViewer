@@ -41,15 +41,14 @@ class AppLayout(VAppLayout):
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
                 permanent=True,
-                width=500,
+                width=510,
             )
 
             self.tool_strip = v3.VNavigationDrawer(
-                classes="tool-strip",
                 disable_resize_watcher=True,
                 disable_route_watcher=True,
                 permanent=True,
-                width=50,
+                width=40,
             )
 
             self.viewer = v3.VMain(classes="d-flex flex-row flex-grow-1")
