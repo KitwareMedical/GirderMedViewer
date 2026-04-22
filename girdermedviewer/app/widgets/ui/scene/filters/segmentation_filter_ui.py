@@ -55,6 +55,7 @@ class SegmentList(v3.VList):
                 Button(
                     icon="mdi-circle",
                     color=("segment.color",),
+                    size="small",
                 ),
             ):
                 SegmentColorDialog(segment="segment", activator="parent")
@@ -66,16 +67,15 @@ class SegmentList(v3.VList):
                 )
 
             with v3.Template(v_slot_append=True):
-                v3.VIcon(
-                    classes="mr-2",
+                Button(
                     icon=("segment.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                    click_native_stop="segment.is_visible = !segment.is_visible;",
-                    __events=[("click_native_stop", "click.native.stop")],
+                    click_stop="segment.is_visible = !segment.is_visible",
+                    size="small",
                 )
-                v3.VIcon(
-                    icon="mdi-delete-outline",
-                    click_native_stop=(self.delete_segment_clicked, f"[{self._obj_id}, segment._id]"),
-                    __events=[("click_native_stop", "click.native.stop")],
+                Button(
+                    icon="mdi-close",
+                    click_stop=(self.delete_segment_clicked, f"[{self._obj_id}, segment._id]"),
+                    size="small",
                 )
 
 

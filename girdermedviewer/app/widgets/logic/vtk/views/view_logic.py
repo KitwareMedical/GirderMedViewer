@@ -10,6 +10,7 @@ from vtk import vtkImageData
 from ....ui import ViewsState, ViewState, ViewType, ViewUI
 from ....utils import (
     ColorPresetParser,
+    SceneObjectSubtype,
     VolumeLayer,
     VolumePresetParser,
 )
@@ -57,7 +58,12 @@ class ViewLogic(BaseLogic[ViewState]):
 
     @abstractmethod
     def add_volume(
-        self, data_id: str, data: vtkImageData, display_properties: VolumeDisplay, layer: VolumeLayer
+        self,
+        data_id: str,
+        data: vtkImageData,
+        display_properties: VolumeDisplay,
+        layer: VolumeLayer,
+        subtype: SceneObjectSubtype,
     ) -> None:
         pass
 

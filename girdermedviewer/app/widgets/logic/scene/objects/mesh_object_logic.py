@@ -42,6 +42,7 @@ class MeshObjectLogic(SceneObjectLogic):
             array_color=ArrayColor(self.server),
         )
         self.scene_object.display = self.display._id
+        self.scene_object.flush()
 
     def load_object_data(self, file_path: str) -> None:
         self.object_data = load_mesh(file_path)

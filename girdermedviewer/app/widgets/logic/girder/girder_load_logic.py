@@ -88,6 +88,7 @@ class GirderLoadLogic(BaseLogic[None]):
             try:
                 await self._fetch_item(task_id, item)
             finally:
+                self.state.flush()
                 self.fetch_tasks.pop(task_id, None)
 
         self.fetch_tasks[task_id] = create_task(_fetch())

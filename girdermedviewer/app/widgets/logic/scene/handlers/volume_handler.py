@@ -190,7 +190,13 @@ class VolumeHandler(ObjectHandler):
             self._add_to_primary_volumes(volume_logic._id)
             self._set_active_primary_volume_id(volume_logic._id)
 
-        self.views_logic.add_volume(volume_logic._id, volume_logic.object_data, volume_logic.display, layer)
+        self.views_logic.add_volume(
+            volume_logic._id,
+            volume_logic.object_data,
+            volume_logic.display,
+            layer,
+            volume_logic.scene_object.object_subtype,
+        )
 
     def _reload_as_primary_volume(self, volume_logic: VolumeObjectLogic) -> None:
         self.views_logic.remove_volume(volume_logic._id)

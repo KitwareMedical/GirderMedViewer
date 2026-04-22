@@ -51,7 +51,6 @@ class Button(VBtn):
         elif icon:
             kwargs["icon"] = True
             kwargs["variant"] = kwargs.get("variant", "text")
-            kwargs["size"] = kwargs.get("size", "small")
         else:
             kwargs["rounded"] = True
             kwargs["color"] = color
@@ -192,7 +191,7 @@ class GlobalStyle(Style):
             ".fullscreen-view { position: relative; width: 100% !important; height: 100% !important; }"
             ".girder-browser { width: 100%; } "
             "html { overflow-y: hidden; } "
-            ".item-card-title { gap: 16px; padding: 12px; } "
+            ".item-card-title { gap: 16px; padding: 12px; height: 64px; } "
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important; }"
             ".layer-btn { position: relative; height: 24px; width: 24px; transform: rotateX(45deg); } "
             ".layer-bottom { position: absolute; top: 4px; left: -1px; } "

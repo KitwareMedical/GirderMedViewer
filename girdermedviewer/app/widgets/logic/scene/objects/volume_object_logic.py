@@ -44,7 +44,7 @@ class BaseVolumeObjectLogic(SceneObjectLogic):
             self.server,
         )
         self.scene_object.display = self.display._id
-
+        self.scene_object.flush()
 
 class VolumeObjectLogic(BaseVolumeObjectLogic):
     def __init__(self, *args, **kwargs) -> None:
@@ -70,7 +70,6 @@ class VolumeObjectLogic(BaseVolumeObjectLogic):
             self.display.window_level = self.scalar_range
             # Init 3D preset range
             self.display.threed_color.vr_shift = self.scalar_range
-
     def load_object_data(self, file_path: str) -> None:
         self.object_data = load_volume(file_path)
         self._init_display_properties()
