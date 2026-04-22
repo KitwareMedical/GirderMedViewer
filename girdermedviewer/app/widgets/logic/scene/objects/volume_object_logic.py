@@ -46,30 +46,31 @@ class BaseVolumeObjectLogic(SceneObjectLogic):
         self.scene_object.display = self.display._id
         self.scene_object.flush()
 
+
 class VolumeObjectLogic(BaseVolumeObjectLogic):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
-        self.display.threed_color = ThreeDColor(self.server)
         self.scalar_range: list[float] = []
 
     def _init_display_properties(self):
         if self.object_data is not None:
+            self.scalar_range = list(self.object_data.GetScalarRange())
+            self.display.twod_color = TwoDColor(self.server)
+            self.display.threed_color = ThreeDColor(self.server, vr_shift=self.scalar_range)
+
             # Init volume type
             if self.object_data.GetPointData().GetScalars().GetNumberOfComponents() > 1:
                 self.scene_object.object_subtype = SceneObjectSubtype.VECTOR
                 self.display.normal_color = NormalColor(self.server)
             else:
                 self.scene_object.object_subtype = SceneObjectSubtype.SCALAR
-                self.display.twod_color = TwoDColor(self.server)
 
-            self.scalar_range = list(self.object_data.GetScalarRange())
             # Init window level
             self.display.scalar_range = self.scalar_range
             # Init window level
             self.display.window_level = self.scalar_range
-            # Init 3D preset range
-            self.display.threed_color.vr_shift = self.scalar_range
+
     def load_object_data(self, file_path: str) -> None:
         self.object_data = load_volume(file_path)
         self._init_display_properties()

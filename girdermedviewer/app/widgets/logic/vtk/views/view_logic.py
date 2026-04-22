@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from trame_server.core import Server
 from trame_server.utils.typed_state import TypedState
@@ -17,17 +17,17 @@ from ....utils import (
 from ...base_logic import BaseLogic
 from ...scene.objects.volume_object_logic import VolumeDisplay
 from ..handlers.mesh_handler import MeshHandler
-from ..handlers.volume_handler import (
-    VolumeSliceHandler,
-    VolumeThreeDHandler,
-)
+from ..handlers.volume_handler import VolumeHandler
 from ..place_roi_logic import PlaceROILogic
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T", bound=VolumeHandler)
 
-class ViewLogic(BaseLogic[ViewState]):
+
+class ViewLogic(BaseLogic[ViewState], Generic[T]):
     window_level_changed = Signal(str)
+    volume_handler: T
 
     def __init__(
         self,
@@ -42,7 +42,6 @@ class ViewLogic(BaseLogic[ViewState]):
         self.color_preset_parser = color_preset_parser
 
         self.mesh_handler = MeshHandler(color_preset_parser)
-        self.volume_handler: VolumeSliceHandler | VolumeThreeDHandler | None = None
 
         self._views_state = TypedState(self.state, ViewsState)
 
@@ -76,11 +75,7 @@ class ViewLogic(BaseLogic[ViewState]):
         pass
 
     def remove_volume(self, data_id: str, only_data: Any | None = None) -> None:
-        if self.volume_handler is None:
-            return
         self.volume_handler.unregister_data(data_id, only_data)
 
     def remove_mesh(self, data_id: str, only_data: Any | None = None) -> None:
-        if self.mesh_handler is None:
-            return
         self.mesh_handler.unregister_data(data_id, only_data)

@@ -17,19 +17,11 @@ class VolumeDisplayHandler:
 
     def update_visibility(self, volume_logic: VolumeObjectLogic, visible: bool) -> None:
         volume_logic.scene_object.is_visible = visible
+        update_glyph = volume_logic.display.normal_color is not None and volume_logic.display.normal_color.show_arrows
         for view in self.views_logic.views:
-            modified = view.volume_handler.set_volume_visibility(volume_logic._id, visible)
+            modified = view.volume_handler.set_volume_visibility(volume_logic._id, visible, update_glyph)
             if modified:
                 view.update()
-
-    def update_threed_visibility(self, volume_logic: VolumeObjectLogic) -> Callable:
-        def _update_threed_visibility(visible: bool) -> None:
-            for view in self.views_logic.threed_views:
-                modified = view.volume_handler.set_volume_visibility(volume_logic._id, visible)
-                if modified:
-                    view.update()
-
-        return _update_threed_visibility
 
     def update_opacity(self, volume_logic: VolumeObjectLogic) -> Callable:
         @debounce(0.05)
@@ -78,18 +70,9 @@ class VolumeDisplayHandler:
         def _update_normal_coloring(show_arrows: bool, sampling: int, arrow_length: float, arrow_width: float) -> None:
             if not volume_logic.is_visible:
                 return
-            for view in self.views_logic.slice_views:
-                modified = view.volume_handler.set_volume_normal_color(
-                    volume_logic._id,
-                    show_arrows,
-                    sampling,
-                    arrow_length,
-                    arrow_width,
-                    view.orientation.value,
-                )
-                if modified:
-                    view.update()
-            for view in self.views_logic.threed_views:
+
+            for view in self.views_logic.views:
+                view.volume_handler.set_volume_visibility(volume_logic._id, not show_arrows)
                 modified = view.volume_handler.set_volume_normal_color(
                     volume_logic._id,
                     show_arrows,
@@ -170,19 +153,19 @@ class VolumeHandler(ObjectHandler):
     def _connect_volume_to_display_handler(self, volume_logic: VolumeObjectLogic):
         volume_logic.display.watch(("opacity",), self._display_handler.update_opacity(volume_logic))
         volume_logic.display.watch(("window_level",), self._display_handler.update_window_level(volume_logic))
-        volume_logic.display.threed_color.watch(
-            ("name", "vr_shift"), self._display_handler.update_threed_coloring(volume_logic)
-        )
-        if volume_logic.display.twod_color is not None:
-            volume_logic.display.twod_color.watch(
-                ("name", "is_inverted"), self._display_handler.update_twod_coloring(volume_logic)
-            )
-        elif volume_logic.display.normal_color is not None:
+
+        if volume_logic.display.normal_color is not None:
             volume_logic.display.normal_color.watch(
                 ("show_arrows", "sampling", "arrow_length", "arrow_width"),
                 self._display_handler.update_normal_coloring(volume_logic),
             )
-        volume_logic.scene_object.watch(("is_visible",), self._display_handler.update_threed_visibility(volume_logic))
+        else:
+            volume_logic.display.threed_color.watch(
+                ("name", "vr_shift"), self._display_handler.update_threed_coloring(volume_logic)
+            )
+            volume_logic.display.twod_color.watch(
+                ("name", "is_inverted"), self._display_handler.update_twod_coloring(volume_logic)
+            )
         volume_logic.updated.connect(self.views_logic.update_views)
 
     def _add_volume_to_views(self, volume_logic: VolumeObjectLogic, layer: VolumeLayer) -> None:
