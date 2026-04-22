@@ -173,8 +173,6 @@ class SceneLogic(BaseLogic[SceneState]):
         self.scene.objects = [*self.scene.objects, scene_object]
         self.object_added(scene_object._id)
 
-        self.state.flush()  # FIXME: need to flush manually
-
     def add_file_object_to_views(self, file_path: str, object_id: str) -> None:
         # Check that object has been created
         scene_object: SceneObject = next((obj for obj in self.scene.objects if obj._id == object_id), None)

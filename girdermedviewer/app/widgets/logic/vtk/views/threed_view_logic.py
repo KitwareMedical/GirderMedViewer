@@ -3,6 +3,7 @@ import logging
 from vtk import vtkImageData, vtkPolyData
 
 from ....utils import (
+    SceneObjectSubtype,
     VolumeLayer,
     reset_3D,
 )
@@ -21,11 +22,21 @@ class ThreeDViewLogic(ViewLogic):
         self.volume_handler = VolumeThreeDHandler(self.volume_preset_parser)
 
     def add_volume(
-        self, data_id: str, image_data: vtkImageData, display_properties: VolumeDisplay, layer: VolumeLayer, _is_labelmap: bool
+        self,
+        data_id: str,
+        image_data: vtkImageData,
+        display_properties: VolumeDisplay,
+        layer: VolumeLayer,
+        subtype: SceneObjectSubtype,
     ) -> None:
-        if layer == VolumeLayer.PRIMARY:
-            self.volume_handler.add_volume(data_id, image_data)
-            self.volume_handler.apply_volume_display_properties(data_id, display_properties)
+        if subtype in [SceneObjectSubtype.LABELMAP, SceneObjectSubtype.SCALAR] and layer == VolumeLayer.SECONDARY:
+            return
+
+        self.volume_handler.add_volume(data_id, image_data)
+        self.volume_handler.apply_volume_display_properties(data_id, display_properties)
+
+        if subtype == SceneObjectSubtype.VECTOR and layer == VolumeLayer.SECONDARY:
+            self.volume_handler.set_volume_visibility(data_id, False)
 
     def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)

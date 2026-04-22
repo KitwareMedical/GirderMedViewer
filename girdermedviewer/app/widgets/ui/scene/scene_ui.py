@@ -64,6 +64,7 @@ class SceneObjectUI(v3.VExpansionPanel):
                 with v3.Template(v_slot_actions="{ expanded }"):
                     LoadingButton(
                         click_stop=(self.load_canceled, f"[{self._obj}._id]"),
+                        size="small",
                         tooltip="Cancel",
                     )
 
@@ -82,6 +83,7 @@ class SceneObjectUI(v3.VExpansionPanel):
                     Button(
                         click_stop=(self.visibility_clicked, f"[{self._obj}._id]"),
                         icon=(f"{self._obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        size="small",
                         tooltip=(f"{self._obj}.is_visible ? 'Hide' : 'Show'",),
                     )
 
@@ -142,7 +144,7 @@ class SceneObjectUI(v3.VExpansionPanel):
 
                 with (
                     v3.VCardText(),
-                    v3.VWindow(v_model=(f"{self._obj}.gui.current_window",), style="overflow: unset;"),
+                    v3.VWindow(v_model=(f"{self._obj}.gui.current_window"), style="overflow: unset;"),
                 ):
                     with (
                         v3.VWindowItem(value="filter", v_if=(f"{self._obj}.filter_type",)),

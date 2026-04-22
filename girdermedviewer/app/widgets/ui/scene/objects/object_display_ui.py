@@ -36,12 +36,18 @@ class VolumeDisplayUI(html.Div):
         with self:
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.SCALAR),)):
                 with html.Div(v_if=(self.is_primary,)):
-                    VolumeDisplayThreeDColorUI(self.display, self.threed_presets)
+                    VolumeDisplayThreeDColorUI(
+                        v_if=(f"{self.display}.threed_color",),
+                        obj_display=self.display,
+                        threed_presets=self.threed_presets,
+                    )
                     v3.VDivider(classes="display-property-divider")
-                VolumeDisplayTwoDColorUI(self.display, self.twod_presets)
+                VolumeDisplayTwoDColorUI(
+                    v_if=(f"{self.display}.twod_color",), obj_display=self.display, twod_presets=self.twod_presets
+                )
 
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.VECTOR),)):
-                VolumeDisplayNormalColorUI(self.display)
+                VolumeDisplayNormalColorUI(v_if=(f"{self.display}.normal_color",), obj_display=self.display)
 
             with html.Div(
                 v_if=(f"!{self.is_primary}",),
@@ -81,7 +87,6 @@ class SceneObjectDisplayUI(html.Div):
             VolumeDisplayUI(
                 obj_display="display",
                 obj_subtype=f"{self.obj}.object_subtype",
-                disabled=disabled,
                 is_primary=is_primary,
                 twod_presets=color_presets,
                 threed_presets=volume_presets,

@@ -31,6 +31,7 @@ class PaintEraseEffectUI(html.Div):
                     tooltip="Sphere brush",
                     click=f"{self._paint_erase_prop}.use_sphere_brush = !{self._paint_erase_prop}.use_sphere_brush",
                     active=(f"{self._paint_erase_prop}.use_sphere_brush",),
+                    size="small",
                 )
 
 

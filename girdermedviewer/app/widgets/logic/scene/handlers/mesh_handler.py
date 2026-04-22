@@ -113,6 +113,3 @@ class MeshHandler(ObjectHandler):
 
     def unregister_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.views_logic.remove_mesh(mesh_logic._id)
-
-    def set_object_visibility(self, mesh_logic: MeshObjectLogic, visible: bool) -> None:
-        mesh_logic.scene_object.is_visible = visible
