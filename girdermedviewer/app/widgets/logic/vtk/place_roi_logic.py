@@ -90,9 +90,9 @@ class PlaceROILogic(BaseLogic[PlaceROIState]):
             (bounds[5] - bounds[4]) / 6,
         )
         center = (
-            bounds[0] / 2 + bounds[1] / 2,
-            bounds[1] / 2 + bounds[2] / 2,
-            bounds[3] / 2 + bounds[4] / 2,
+            (bounds[0] + bounds[1]) / 2,
+            (bounds[2] + bounds[3]) / 2,
+            (bounds[4] + bounds[5]) / 2,
         )
         self.default_bounds = (
             center[0] - one_sixth_size[0],

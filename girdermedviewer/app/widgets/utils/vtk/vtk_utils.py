@@ -319,6 +319,9 @@ def get_reslice_image_viewer(axis=-1) -> vtkResliceImageViewer:
 
     viewers[axis] = reslice_image_viewer
 
+    # (Oblique): Make all vtkResliceImageViewer instance share the same
+    reslice_image_viewer.SetResliceCursor(get_reslice_image_viewer(-1).GetResliceCursor())
+
     return reslice_image_viewer
 
 
@@ -342,9 +345,6 @@ def render_volume_in_slice(image_data, renderer, axis=2, obliques=True):
 
     # (Oblique) Get widget representation
     cursor_rep = vtkResliceCursorLineRepresentation.SafeDownCast(reslice_cursor_widget.GetRepresentation())
-
-    # (Oblique): Make all vtkResliceImageViewer instance share the same
-    reslice_image_viewer.SetResliceCursor(get_reslice_image_viewer(-1).GetResliceCursor())
 
     set_reslice_visibility(reslice_image_viewer, True)
     reset_reslice(reslice_image_viewer)
@@ -556,6 +556,7 @@ def render_mesh_in_slice(poly_data, axis, renderer):
 
     cutter = vtkCutter()
     cutter.SetInputData(poly_data)
+    # Plane will automatically update when the reslice cursor is moved
     cutter.SetCutFunction(reslice_cursor.GetPlane(axis))
 
     mapper = vtkPolyDataMapper()
