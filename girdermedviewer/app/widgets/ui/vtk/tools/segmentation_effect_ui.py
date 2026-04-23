@@ -74,7 +74,9 @@ class SegmentationEffectUI(v3.VCard):
                         text="Select segment",
                     )
 
-            with v3.VCardText():
+            with v3.VCardText(
+                classes=(f"{self.active_segment_id} == null ? 'disabled' : ''",),
+            ):
                 with html.Div(classes="d-flex justify-space-between"):
                     self._build_effect_button(
                         icon="mdi-cursor-default",
@@ -102,7 +104,6 @@ class SegmentationEffectUI(v3.VCard):
             tooltip=effect_type.value,
             active=(self._is_active_effect(effect_type),),
             click=self._set_active_effect(effect_type),
-            disabled=(f"{self.active_segment_id} == null",),
             **kwargs,
         )
 

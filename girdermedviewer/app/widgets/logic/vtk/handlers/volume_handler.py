@@ -79,6 +79,7 @@ class VolumeSliceHandler(ObjectHandler):
             self.set_volume_normal_color(
                 data_id,
                 display_property.normal_color.show_arrows,
+                display_property.normal_color.sampling,
                 display_property.normal_color.arrow_length,
                 display_property.normal_color.arrow_width,
                 orientation,
@@ -236,6 +237,7 @@ class VolumeThreeDHandler(ObjectHandler):
             self.set_volume_normal_color(
                 data_id,
                 display_property.normal_color.show_arrows,
+                display_property.normal_color.sampling,
                 display_property.normal_color.arrow_length,
                 display_property.normal_color.arrow_width,
             )

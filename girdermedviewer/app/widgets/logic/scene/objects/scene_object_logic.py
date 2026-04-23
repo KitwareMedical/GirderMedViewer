@@ -98,6 +98,10 @@ class SceneObjectLogic(BaseLogic[None]):
         self.input_id = None
         self.soft_input_id = None
 
+    @property
+    def is_visible(self) -> bool:
+        return self.scene_object.is_visible
+
     @abstractmethod
     def load_object_data(self, *args, **kwargs):
         pass

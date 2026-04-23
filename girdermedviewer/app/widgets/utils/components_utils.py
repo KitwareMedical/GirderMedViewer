@@ -185,6 +185,7 @@ class GlobalStyle(Style):
             ".display-property { gap: 12px; display: flex; flex-direction: column; } "
             ".display-property-divider { margin-top: 12px; margin-bottom: 12px; } "
             ".display-property-setting { gap: 12px; display: flex; flex-direction: row; align-items: center; } "
+            ".disabled { pointer-events: none; opacity: 0.5; } "
             ".drawer .v-navigation-drawer__content { display: flex; flex-direction: column; padding: 12px; justify-content: space-between;} "
             ".fullscreen-view { position: relative; width: 100% !important; height: 100% !important; }"
             ".girder-browser { width: 100%; } "
