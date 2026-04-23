@@ -50,6 +50,7 @@ class SceneObjectGUI(StateDataModel):
 class SceneObjectDisplay(StateDataModel):
     opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
     is_visible = Sync(bool, True)
+    is_threed_visible = Sync(bool, True)
 
 
 class SceneObject(StateDataModel):

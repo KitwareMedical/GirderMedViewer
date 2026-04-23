@@ -241,12 +241,14 @@ class VolumeThreeDHandler(VolumeHandler):
         volume = self.get_data(data_id)
         if volume is None:
             return False
+        
+        visible = data_display.is_visible and data_display.is_threed_visible
+        show_arrows = visible and data_display.normal_color and data_display.normal_color.show_arrows
+        show_volume = visible and data_display.normal_color is None
 
-        logger.debug(f"set_volume_visibility({data_id}): {data_display.is_visible}")
-        modified = set_volume_visibility(volume, data_display.is_visible and data_display.normal_color is None)
-        show_arrows = (
-            data_display.is_visible and data_display.normal_color is not None and data_display.normal_color.show_arrows
-        )
+        logger.debug(f"set_volume_visibility({data_id}): {show_arrows or show_volume}")
+        modified = set_volume_visibility(volume, show_volume)
+        
         for glyph_actor in self.get_glyph_actors(data_id):
             modified = set_actor_visibility(glyph_actor, show_arrows) or modified
         return modified

@@ -27,7 +27,7 @@ class SegmentationDisplayHandler:
 
     def update_visibility(self, seg_logic: SegmentationFilterLogic) -> Callable:
         def _update_visibility(*_args):
-            for view in self.views_logic.views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.update_volume_visibility(seg_logic._id, seg_logic.display)
                 if modified:
                     view.update()
