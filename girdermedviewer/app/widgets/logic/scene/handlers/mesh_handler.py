@@ -25,6 +25,17 @@ class MeshDisplayHandler:
 
         return _update_visibility
 
+    def update_threed_visibility(self, mesh_logic: MeshObjectLogic) -> Callable:
+        def _update_threed_visibility(is_threed_visible: bool) -> None:
+            if not mesh_logic.is_visible:
+                return
+            for view in self.views_logic.threed_views:
+                modified = view.mesh_handler.set_mesh_visibility(mesh_logic._id, is_threed_visible)
+                if modified:
+                    view.update()
+
+        return _update_threed_visibility
+
     def update_opacity(self, mesh_logic: MeshObjectLogic) -> Callable:
         @debounce(0.05)
         def _update_opacity(opacity: float) -> None:
@@ -95,6 +106,7 @@ class MeshHandler(ObjectHandler):
         mesh_logic.display.watch(("opacity",), self._display_handler.update_opacity(mesh_logic))
         mesh_logic.display.watch(("active_array_id",), self._display_handler.update_active_array(mesh_logic))
         mesh_logic.display.watch(("solid_color",), self._display_handler.update_solid_coloring(mesh_logic))
+        mesh_logic.display.watch(("is_threed_visible",), self._display_handler.update_threed_visibility(mesh_logic))
         mesh_logic.display.array_color.watch(
             ("name", "is_inverted", "array_range"),
             self._display_handler.update_array_coloring(mesh_logic),

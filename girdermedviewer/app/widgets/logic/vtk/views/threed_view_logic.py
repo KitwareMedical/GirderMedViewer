@@ -9,15 +9,17 @@ from ....utils import (
 )
 from ...scene.objects.mesh_object_logic import MeshDisplay
 from ...scene.objects.volume_object_logic import VolumeDisplay
+from ..handlers.mesh_handler import MeshThreedHandler
 from ..handlers.volume_handler import VolumeThreeDHandler
 from .view_logic import ViewLogic
 
 logger = logging.getLogger(__name__)
 
 
-class ThreeDViewLogic(ViewLogic[VolumeThreeDHandler]):
+class ThreeDViewLogic(ViewLogic[MeshThreedHandler, VolumeThreeDHandler]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self.volume_handler = MeshThreedHandler(self.volume_preset_parser, self.renderer)
         self.volume_handler = VolumeThreeDHandler(self.volume_preset_parser, self.renderer)
 
     def add_volume(
@@ -34,7 +36,7 @@ class ThreeDViewLogic(ViewLogic[VolumeThreeDHandler]):
         self.volume_handler.apply_volume_display_properties(data_id, display_properties)
 
     def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
-        self.mesh_handler.add_mesh_in_3D(data_id, poly_data)
+        self.mesh_handler.add_mesh(data_id, poly_data)
         self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
 
     def reset(self) -> None:

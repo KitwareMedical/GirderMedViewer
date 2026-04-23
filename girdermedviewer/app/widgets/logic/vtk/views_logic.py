@@ -4,8 +4,6 @@ from trame_server.core import Server
 from undo_stack import Signal
 from vtk import vtkImageData, vtkPolyData
 
-from girdermedviewer.app.widgets.logic.vtk.handlers.volume_handler import VolumeHandler
-
 from ...logic.base_logic import BaseLogic
 from ...ui import ViewsState, ViewsUI, ViewType
 from ...utils import (
@@ -15,6 +13,8 @@ from ...utils import (
     get_volume_preset_parser,
 )
 from ..scene.objects.volume_object_logic import VolumeDisplay
+from .handlers.mesh_handler import MeshHandler
+from .handlers.volume_handler import VolumeHandler
 from .views.slice_view_logic import SliceViewLogic
 from .views.threed_view_logic import ThreeDViewLogic
 from .views.view_logic import ViewLogic
@@ -48,7 +48,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         return {view_type: view.render_window for view_type, view in self.view_logics.items()}
 
     @property
-    def views(self) -> list[ViewLogic[VolumeHandler]]:
+    def views(self) -> list[ViewLogic[MeshHandler, VolumeHandler]]:
         return list(self.view_logics.values())
 
     @property
@@ -86,7 +86,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.update_views()
 
-    def _is_view_shown(self, view_logic: ViewLogic[VolumeHandler]) -> bool:
+    def _is_view_shown(self, view_logic: ViewLogic[MeshHandler, VolumeHandler]) -> bool:
         return self.data.fullscreen is None or self.data.fullscreen == view_logic.type
 
     def update_views(self) -> None:

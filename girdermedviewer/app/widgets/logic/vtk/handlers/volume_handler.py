@@ -141,16 +141,21 @@ class VolumeSliceHandler(VolumeHandler):
         volume_display = self.get_display(data_id)
         if volume_display is None:
             return False
-        show_arrows = volume_display.normal_color is not None and volume_display.normal_color.show_arrows
+
+        if not visible:
+            show_arrows = show_volume = False
+        else:
+            show_arrows = volume_display.normal_color is not None and volume_display.normal_color.show_arrows
+            show_volume = not show_arrows
 
         modified = False
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None:
-            modified = set_reslice_visibility(reslice_image_viewer, visible and not show_arrows)
+            modified = set_reslice_visibility(reslice_image_viewer, show_volume)
         for slice in self.get_image_slices(data_id):
-            modified = set_slice_visibility(slice, visible and not show_arrows) or modified
+            modified = set_slice_visibility(slice, show_volume) or modified
         for glyph_actor in self.get_glyph_actors(data_id):
-            modified = set_actor_visibility(glyph_actor, visible and show_arrows) or modified
+            modified = set_actor_visibility(glyph_actor, show_arrows) or modified
 
         return modified
 
@@ -271,7 +276,7 @@ class VolumeThreeDHandler(VolumeHandler):
                 display_properties.normal_color.arrow_length,
                 display_properties.normal_color.arrow_width,
             )
-        else:
+        elif display_properties.threed_color is not None:
             self.set_volume_preset(
                 data_id,
                 display_properties.threed_color.name,
@@ -295,10 +300,16 @@ class VolumeThreeDHandler(VolumeHandler):
         if volume_display is None:
             return False
 
-        modified = set_volume_visibility(volume, visible and volume_display.normal_color is None)
-        show_arrows = volume_display.normal_color is not None and volume_display.normal_color.show_arrows
+        if not visible or not volume_display.is_threed_visible:
+            show_arrows = show_volume = False
+        elif volume_display.normal_color is None:
+            show_arrows, show_volume = False, True
+        else:
+            show_arrows, show_volume = volume_display.normal_color.show_arrows, False
+
+        modified = set_volume_visibility(volume, show_volume)
         for glyph_actor in self.get_glyph_actors(data_id):
-            modified = set_actor_visibility(glyph_actor, visible and show_arrows) or modified
+            modified = set_actor_visibility(glyph_actor, show_arrows) or modified
         return modified
 
     def set_volume_preset(self, data_id: str, preset_name: str, range: list[float]) -> bool:

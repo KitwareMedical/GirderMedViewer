@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 
 from trame_dataclass.v2 import get_instance
 from vtk import vtkPolyData, vtkRenderer
@@ -20,48 +21,18 @@ from .object_handler import ObjectHandler
 logger = logging.getLogger(__name__)
 
 
-class MeshHandler(ObjectHandler):
-    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer) -> None:
+class MeshHandler(ObjectHandler, ABC):
+    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer):
         super().__init__(renderer)
         self.preset_parser = preset_parser
 
-    def apply_mesh_display_properties(self, data_id: str, display_properties: MeshDisplay) -> None:
-        self.register_display(data_id, display_properties)
+    @abstractmethod
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData) -> None:
+        pass
 
-        # Set opacity
-        self.set_mesh_opacity(data_id, display_properties.opacity)
-
-        # Set color
-        active_array = get_instance(display_properties.active_array_id)
-        assert isinstance(active_array, DataArray)
-        if active_array.coloring_mode == MeshColoringMode.SOLID:
-            self.set_mesh_solid_color(data_id, display_properties.solid_color)
-
-        elif active_array.coloring_mode == MeshColoringMode.ARRAY:
-            self.set_mesh_array_color(
-                data_id,
-                active_array,
-                display_properties.array_color.name,
-                display_properties.array_color.is_inverted,
-                display_properties.array_color.array_range,
-            )
-
-        # Set visibility
-        self.set_mesh_visibility(data_id, display_properties.is_visible)
-
-    def add_mesh_in_3D(self, data_id: str, poly_data: vtkPolyData) -> None:
-        actor = render_mesh_in_3D(poly_data, self.renderer)
-        self.register_data(data_id, actor)
-
-    def add_mesh_in_slice(self, data_id: str, poly_data: vtkPolyData, orientation: int) -> None:
-        actor = render_mesh_in_slice(poly_data, orientation, self.renderer)
-        self.register_data(data_id, actor)
-
+    @abstractmethod
     def set_mesh_visibility(self, data_id: str, visible: bool) -> bool:
-        modified = False
-        for actor in self.get_actors(data_id):
-            modified = set_mesh_visibility(actor, visible) or modified
-        return modified
+        pass
 
     def set_mesh_opacity(self, data_id: str, opacity: float) -> bool:
         modified = False
@@ -96,3 +67,62 @@ class MeshHandler(ObjectHandler):
 
     def has_mesh(self) -> bool:
         return len(list(self.object_data)) > 0
+
+    def apply_mesh_display_properties(self, data_id: str, display_properties: MeshDisplay) -> None:
+        self.register_display(data_id, display_properties)
+
+        # Set opacity
+        self.set_mesh_opacity(data_id, display_properties.opacity)
+
+        # Set color
+        active_array = get_instance(display_properties.active_array_id)
+        assert isinstance(active_array, DataArray)
+        if active_array.coloring_mode == MeshColoringMode.SOLID:
+            self.set_mesh_solid_color(data_id, display_properties.solid_color)
+
+        elif active_array.coloring_mode == MeshColoringMode.ARRAY:
+            self.set_mesh_array_color(
+                data_id,
+                active_array,
+                display_properties.array_color.name,
+                display_properties.array_color.is_inverted,
+                display_properties.array_color.array_range,
+            )
+
+        # Set visibility
+        self.set_mesh_visibility(data_id, display_properties.is_visible)
+
+
+class MeshSliceHandler(MeshHandler):
+    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer, orientation: int) -> None:
+        super().__init__(preset_parser, renderer)
+        self.orientation = orientation
+
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData) -> None:
+        actor = render_mesh_in_slice(poly_data, self.orientation, self.renderer)
+        self.register_data(data_id, actor)
+
+    def set_mesh_visibility(self, data_id: str, visible: bool) -> bool:
+        modified = False
+        for actor in self.get_actors(data_id):
+            modified = set_mesh_visibility(actor, visible) or modified
+        return modified
+
+
+class MeshThreedHandler(MeshHandler):
+    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer) -> None:
+        super().__init__(preset_parser, renderer)
+
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData) -> None:
+        actor = render_mesh_in_3D(poly_data, self.renderer)
+        self.register_data(data_id, actor)
+
+    def set_mesh_visibility(self, data_id: str, visible: bool) -> bool:
+        mesh_display = self.get_display(data_id)
+        if mesh_display is None:
+            return False
+
+        modified = False
+        for actor in self.get_actors(data_id):
+            modified = set_mesh_visibility(actor, visible and mesh_display.is_threed_visible) or modified
+        return modified

@@ -4,9 +4,8 @@ from trame.widgets import vuetify3 as v3
 from ....utils import SceneObjectSubtype, SceneObjectType
 from .object_display_color_ui import (
     MeshDisplayColorUI,
-    VolumeDisplayNormalColorUI,
-    VolumeDisplayThreeDColorUI,
-    VolumeDisplayTwoDColorUI,
+    VolumeDisplayScalarColorUI,
+    VolumeDisplayVectorColorUI,
 )
 from .object_display_opacity_ui import ObjectDisplayOpacityUI
 
@@ -34,18 +33,18 @@ class VolumeDisplayUI(html.Div):
     def _build_ui(self) -> None:
         with self:
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.SCALAR),)):
-                VolumeDisplayThreeDColorUI(
-                    v_if=(f"{self.display}.threed_color",),
+                VolumeDisplayScalarColorUI(
+                    v_if=(f"{self.display}.twod_color && {self.display}.threed_color",),
                     obj_display=self.display,
+                    twod_presets=self.twod_presets,
                     threed_presets=self.threed_presets,
-                )
-                v3.VDivider(classes="display-property-divider")
-                VolumeDisplayTwoDColorUI(
-                    v_if=(f"{self.display}.twod_color",), obj_display=self.display, twod_presets=self.twod_presets
                 )
 
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.VECTOR),)):
-                VolumeDisplayNormalColorUI(v_if=(f"{self.display}.normal_color",), obj_display=self.display)
+                VolumeDisplayVectorColorUI(
+                    v_if=(f"{self.display}.normal_color",),
+                    obj_display=self.display,
+                )
 
             with html.Div(
                 v_if=(f"!{self.is_primary}",),
@@ -83,17 +82,17 @@ class SceneObjectDisplayUI(html.Div):
 
         with self:
             VolumeDisplayUI(
+                v_if=(self._is_object_type(SceneObjectType.VOLUME),),
                 obj_display=obj_display,
                 obj_subtype=f"{self.obj}.object_subtype",
                 is_primary=is_primary,
                 twod_presets=color_presets,
                 threed_presets=volume_presets,
-                v_if=(self._is_object_type(SceneObjectType.VOLUME),),
             )
             MeshDisplayUI(
+                v_if=(self._is_object_type(SceneObjectType.MESH),),
                 obj_display=obj_display,
                 scalar_presets=color_presets,
-                v_if=(self._is_object_type(SceneObjectType.MESH),),
             )
 
     def _is_object_type(self, object_type: SceneObjectType) -> str:

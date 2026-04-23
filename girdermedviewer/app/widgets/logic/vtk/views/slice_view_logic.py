@@ -24,6 +24,7 @@ from ....utils import (
 )
 from ...scene.objects.mesh_object_logic import MeshDisplay
 from ...scene.objects.volume_object_logic import VolumeDisplay
+from ..handlers.mesh_handler import MeshSliceHandler
 from ..handlers.volume_handler import VolumeSliceHandler
 from .view_logic import ViewLogic
 
@@ -40,7 +41,7 @@ def get_orientation_from_view_type(view_type: ViewType) -> SliceOrientation | No
     return SliceOrientation.__members__.get(view_type.name)
 
 
-class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
+class SliceViewLogic(ViewLogic[MeshSliceHandler, VolumeSliceHandler]):
     """Display volume as a 2D slice along a given axis/orientation"""
 
     _debounced_flush_initialized = False
@@ -63,6 +64,7 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
             }
         )
 
+        self.mesh_handler = MeshSliceHandler(self.color_preset_parser, self.renderer, self.orientation.value)
         self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.renderer, self.orientation.value)
 
     @property
@@ -115,7 +117,7 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
         self.volume_handler.apply_volume_display_properties(data_id, display_properties, is_primary)
 
     def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
-        self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)
+        self.mesh_handler.add_mesh(data_id, poly_data, self.orientation.value)
         self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
 
     def flush(self) -> None:
