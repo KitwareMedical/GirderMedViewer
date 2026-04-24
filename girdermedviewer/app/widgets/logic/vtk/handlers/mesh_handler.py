@@ -55,7 +55,7 @@ class ObjectHandler:
 
     def get_glyph_actors(self, data_id):
         data = [self.object_data[data_id]] if data_id in self.object_data else self.object_data.values()
-        return [obj for objs in data for obj in objs if obj.IsA("vtkGlyph3DMapper")]
+        return [obj for objs in data for obj in objs if hasattr(obj, 'GetMapper') and obj.GetMapper().IsA("vtkGlyph3DMapper")]
 
 
 class MeshHandler(ObjectHandler):

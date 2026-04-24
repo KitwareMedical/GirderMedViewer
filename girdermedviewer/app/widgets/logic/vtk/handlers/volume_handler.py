@@ -17,6 +17,7 @@ from ....utils import (
     render_volume_as_vector_field,
     render_volume_in_3D,
     render_volume_in_slice,
+    set_actor_opacity,
     set_actor_visibility,
     set_reslice_opacity,
     set_reslice_visibility,
@@ -26,6 +27,7 @@ from ....utils import (
     set_slice_window_level,
     set_vector_field_arrow_length,
     set_vector_field_arrow_thickness,
+    set_vector_field_sampling,
     set_volume_visibility,
 )
 from .mesh_handler import ObjectHandler
@@ -80,6 +82,8 @@ class VolumeTwoDHandler(ObjectHandler):
             modified = set_reslice_visibility(reslice_image_viewer, visible)
         for slice in self.get_image_slices(data_id):
             modified = set_slice_visibility(slice, visible) or modified
+        for glyph_actor in self.get_glyph_actors(data_id):
+            modified = set_actor_visibility(glyph_actor, visible) or modified
         return modified
 
     def set_volume_opacity(self, data_id, opacity) -> bool:
@@ -90,6 +94,8 @@ class VolumeTwoDHandler(ObjectHandler):
             modified = set_reslice_opacity(reslice_image_viewer, opacity)
         for slice in self.get_image_slices(data_id):
             modified = set_slice_opacity(slice, opacity) or modified
+        for glyph_actor in self.get_glyph_actors(data_id):
+            modified = set_actor_opacity(glyph_actor, opacity) or modified
         return modified
 
     def set_volume_window_level(self, data_id, window_level) -> bool:
@@ -130,8 +136,9 @@ class VolumeTwoDHandler(ObjectHandler):
         self,
         data_id: str,
         show_arrows: bool,
-        arrow_length: bool,
-        arrow_width: bool,
+        sampling: int,
+        arrow_length: float,
+        arrow_width: float,
         orientation: int,
     ) -> bool:
         logger.debug(f"set_volume_normal_color({data_id})")
@@ -142,9 +149,9 @@ class VolumeTwoDHandler(ObjectHandler):
             self.register_data(data_id, glyph_actor)
             glyph_actors = [glyph_actor]
             modified = True
-        # FIXME: add a convenient function to set visibility of any actor
         for glyph_actor in glyph_actors:
             modified = set_actor_visibility(glyph_actor, show_arrows) or modified
+            modified = set_vector_field_sampling(glyph_actor, orientation, sampling) or modified
             modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
             modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
         for image_slice in self.get_image_slices(data_id):
@@ -221,8 +228,9 @@ class VolumeThreeDHandler(ObjectHandler):
         self,
         data_id: str,
         show_arrows: bool,
-        arrow_length: bool,
-        arrow_width: bool,
+        sampling: int,
+        arrow_length: float,
+        arrow_width: float,
     ) -> bool:
         volume = self.get_data(data_id)
         if volume is None:
@@ -238,6 +246,7 @@ class VolumeThreeDHandler(ObjectHandler):
         # FIXME: add a convenient function to set visibility of any actor
         for glyph_actor in glyph_actors:
             modified = set_actor_visibility(glyph_actor, show_arrows) or modified
+            modified = set_vector_field_sampling(glyph_actor, None, sampling) or modified
             modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
             modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
 

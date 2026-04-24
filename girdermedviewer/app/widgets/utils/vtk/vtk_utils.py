@@ -57,14 +57,6 @@ logger = logging.getLogger(__name__)
 viewers = {}
 
 
-def set_vector_field_arrow_length(*_args, **_kwargs):
-    pass
-
-
-def set_vector_field_arrow_thickness(*_args, **_kwargs):
-    pass
-
-
 def set_oblique_visibility(reslice_image_viewer, visible):
     reslice_cursor_widget = reslice_image_viewer.GetResliceCursorWidget()
     cursor_rep = vtkResliceCursorLineRepresentation.SafeDownCast(reslice_cursor_widget.GetRepresentation())
@@ -103,10 +95,10 @@ def get_reslice_cursor_representation(reslice_object) -> vtkResliceCursorReprese
     return reslice_object
 
 
-def get_image_data(object: vtkResliceImageViewer | vtkImageSlice) -> vtkImageData | None:
+def get_image_data(object: vtkResliceImageViewer | vtkImageSlice | vtkVolume) -> vtkImageData | None:
     if isinstance(object, vtkResliceImageViewer):
         return object.GetInput()
-    if isinstance(object, vtkImageSlice):
+    if isinstance(object, vtkImageSlice | vtkVolume):
         return object.GetMapper().GetInput()
     return None
 
@@ -326,6 +318,11 @@ def get_reslice_image_viewer(axis=-1) -> vtkResliceImageViewer:
 
 
 def render_volume_in_slice(image_data, renderer, axis=2, obliques=True):
+    """
+    Render the volume in a slice defined by axis.
+    Only the first component of RGB images are supported.
+    """
+
     render_window = renderer.GetRenderWindow()
     interactor = render_window.GetInteractor()
 
@@ -463,52 +460,117 @@ def set_slice_visibility(image_slice: vtkImageSlice, visible: bool) -> bool:
     return True
 
 
-def render_volume_as_vector_field(image_data, renderer, axis=2):
-    reslice_image_viewer = get_reslice_image_viewer(axis)
-    reslice_cursor = get_reslice_cursor(reslice_image_viewer)
-
-    point_data = image_data.GetPointData()
-    for i in range(point_data.GetNumberOfArrays()):
-        logger.info("array: %s", point_data.GetArray(i).GetName())
-
-    cutter = vtkCutter()
-    cutter.SetInputData(image_data)
-    cutter.SetCutFunction(reslice_cursor.GetPlane(axis))
-
-    arrow = vtkArrowSource()
-    arrow.SetTipLength(0.3)
-    arrow.SetTipRadius(0.1)
-    arrow.SetShaftRadius(0.03)
-
-    imageMapper = vtkImageResliceMapper()
-    imageMapper.SetInputData(image_data)
-    imageMapper.SetSlicePlane(reslice_cursor.GetPlane(axis))
+def render_volume_as_vector_field(image_data: vtkImageData, renderer: vtkRenderer, axis: int | None = None):
+    """
+    Render the volume as a vector field in the slice defined by axis.
+    :param axis: the normal axis of the slice, if None, the vector field
+    is rendered in the 3D view
+    :type axis: int or None
+    :see set_vector_field_sampling, set_vector_field_arrow_length, set_vector_field_arrow_thickness
+    """
+    shrinker = vtkImageReslice()
+    shrinker.SetInputData(image_data)
 
     glyph_mapper = vtkGlyph3DMapper()
-    glyph_mapper.SetInputConnection(cutter.GetOutputPort())
+    if axis is not None:
+        cutter = vtkCutter()
+        cutter.SetInputConnection(shrinker.GetOutputPort())
+
+        reslice_image_viewer = get_reslice_image_viewer(axis)
+        reslice_cursor = get_reslice_cursor(reslice_image_viewer)
+        cutter.SetCutFunction(reslice_cursor.GetPlane(axis))
+
+        glyph_mapper.SetInputConnection(cutter.GetOutputPort())
+    else:
+        glyph_mapper.SetInputConnection(shrinker.GetOutputPort())
+
+    point_data = image_data.GetPointData()
+
+    arrow = vtkArrowSource()
+    arrow.SetArrowOriginToCenter()
+    arrow.SetTipRadius(0.1)
     glyph_mapper.SetSourceConnection(arrow.GetOutputPort())
 
-    glyph_mapper.SetOrientationArray("Scalars")
-    # glyph_mapper.SetScaleArray("Vectors")
-    # glyph_mapper.SetScaleModeToScaleByVector()
-    # glyph_mapper.SetScaleFactor(0.2)
+    if point_data.GetVectors():
+        glyph_mapper.SetOrientationArray(point_data.GetVectors().GetName())
+    elif point_data.GetScalars():
+        glyph_mapper.SetOrientationArray(point_data.GetScalars().GetName())
     glyph_mapper.OrientOn()
 
-    bounds = glyph_mapper.GetBounds()
-    logger.info("glyph bounds: %s", bounds)
-
     glyph_actor = vtkActor()
+    glyph_actor.GetProperty().SetLighting(False)
     glyph_actor.SetMapper(glyph_mapper)
 
     renderer.AddActor(glyph_actor)
-
-    # Fit volume to viewport
-    # renderer.ResetCameraScreenSpace(0.8)
-
     return glyph_actor
 
 
-def set_actor_visibility(image_slice_or_actor: vtkActor | vtkImageSlice, visibility: bool) -> bool:
+def get_vector_field_shrinker(glyph_actor: vtkActor | None) -> vtkImageReslice | None:
+    if glyph_actor is None:
+        return None
+    algo = glyph_actor.GetMapper()
+    while algo is not None and not isinstance(algo, vtkImageReslice):
+        algo = algo.GetInputConnection(0, 0).GetProducer()
+    return algo
+
+
+# FIXME: to merge in a unique set_vector_field_properties function
+def set_vector_field_sampling(glyph_actor: vtkActor | None, axis: int | None, sampling: int) -> bool:
+    if glyph_actor is None:
+        return False
+    shrinker = get_vector_field_shrinker(glyph_actor)
+    new_sampling = (sampling, sampling, sampling) if axis is None else [sampling if i != axis else 100 for i in range(3)]
+    input_image = shrinker.GetInput()
+
+    spacing = input_image.GetSpacing()
+    origin = input_image.GetOrigin()
+    extent = input_image.GetExtent()
+    dimensions = input_image.GetDimensions()
+    world_dimensions = [spacing[i] * (dimensions[i] - 1) for i in range(3)]
+
+    desired_new_spacing = tuple(spacing[i] * 100 / new_sampling[i] for i in range(3))
+    new_dimensions = [int(world_dimensions[i] // desired_new_spacing[i]) for i in range(3)]
+    new_spacing = [world_dimensions[i] / new_dimensions[i] for i in range(3)]
+
+    new_origin = list(origin)
+    new_origin[0] += (new_spacing[0] - spacing[0]) / 2.0
+    new_origin[1] += (new_spacing[1] - spacing[1]) / 2.0
+    new_origin[2] += (new_spacing[2] - spacing[2]) / 2.0
+
+    new_extent = [extent[0], 0, extent[2], 0, extent[4], 0]
+    new_extent[1] = new_extent[0] + new_dimensions[0] - 1
+    new_extent[3] = new_extent[2] + new_dimensions[1] - 1
+    new_extent[5] = new_extent[4] + new_dimensions[2] - 1
+
+    shrinker.SetOutputSpacing(new_spacing)
+    shrinker.SetOutputOrigin(new_origin)
+    shrinker.SetOutputExtent(new_extent)
+    shrinker.SetInterpolationModeToNearestNeighbor()
+
+    return True
+
+
+def set_vector_field_arrow_length(glyph_actor: vtkActor | None, length: float) -> bool:
+    if glyph_actor is None:
+        return False
+    glyph_mapper = glyph_actor.GetMapper()
+    if glyph_mapper.GetScaleFactor() == length:
+        return False
+    glyph_mapper.SetScaleFactor(length)
+    return True
+
+
+def set_vector_field_arrow_thickness(glyph_actor: vtkActor | None, thickness: float) -> bool:
+    if glyph_actor is None:
+        return False
+    arrow = glyph_actor.GetMapper().GetInputConnection(1, 0).GetProducer()
+    if arrow.GetShaftRadius() == thickness:
+        return False
+    arrow.SetShaftRadius(thickness)
+    return True
+
+
+def set_actor_visibility(image_slice_or_actor: vtkActor | vtkImageSlice | None, visibility: bool) -> bool:
     """
     Set the visibility of a vtkActor or a vtkImageSlice.
     Return true if the visibility was changed, false otherwise.
@@ -524,7 +586,7 @@ def set_actor_visibility(image_slice_or_actor: vtkActor | vtkImageSlice, visibil
     return True
 
 
-def set_actor_opacity(image_slice_or_actor: vtkActor | vtkImageSlice, opacity: float) -> bool:
+def set_actor_opacity(image_slice_or_actor: vtkActor | vtkImageSlice | None, opacity: float) -> bool:
     if image_slice_or_actor is None:
         return False
     if image_slice_or_actor.GetProperty().GetOpacity() == opacity:
@@ -533,11 +595,11 @@ def set_actor_opacity(image_slice_or_actor: vtkActor | vtkImageSlice, opacity: f
     return True
 
 
-def set_slice_opacity(image_slice: vtkImageSlice, opacity: float) -> bool:
+def set_slice_opacity(image_slice: vtkImageSlice | None, opacity: float) -> bool:
     return set_actor_opacity(image_slice, opacity)
 
 
-def set_slice_window_level(image_slice, window_level):
+def set_slice_window_level(image_slice: vtkImageSlice | None, window_level: tuple[float, float]) -> bool:
     if image_slice is None:
         return False
     if (
@@ -603,6 +665,7 @@ def reset_3D(renderer):
     renderer.ResetCameraScreenSpace(0.8)
 
 
+# FIXME: to merge with set_actor_visibility
 def set_volume_visibility(volume: vtkVolume, visible: bool) -> bool:
     if volume.GetVisibility() == visible:
         return False

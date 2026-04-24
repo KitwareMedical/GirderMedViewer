@@ -63,6 +63,7 @@ from .vtk.vtk_utils import (
     render_volume_in_slice,
     reset_3D,
     reset_reslice,
+    set_actor_opacity,
     set_actor_visibility,
     set_mesh_opacity,
     set_mesh_solid_color,
@@ -78,10 +79,12 @@ from .vtk.vtk_utils import (
     set_slice_window_level,
     set_vector_field_arrow_length,
     set_vector_field_arrow_thickness,
+    set_vector_field_sampling,
     set_volume_visibility,
     supported_mesh_extensions,
     supported_volume_extensions,
 )
+
 
 __all__ = [
     "ICONS_MAP",
@@ -161,6 +164,7 @@ __all__ = [
     "set_slice_window_level",
     "set_vector_field_arrow_length",
     "set_vector_field_arrow_thickness",
+    "set_vector_field_sampling",
     "set_volume_visibility",
     "supported_mesh_extensions",
     "supported_volume_extensions",
