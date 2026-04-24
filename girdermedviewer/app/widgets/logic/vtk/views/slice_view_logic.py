@@ -79,7 +79,6 @@ class SliceViewLogic(ViewLogic):
     def set_ui(self, ui: ViewUI):
         super().set_ui(ui)
         ui.slider_ui.slice_updated.connect(self.set_slice)
-        ui.view_hovered.connect(self.on_hover)
 
     def reset(self):
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
@@ -206,17 +205,3 @@ class SliceViewLogic(ViewLogic):
         modified = set_reslice_window_level(self.volume_handler.get_reslice_image_viewer(), window_level)
         if modified:
             self.update()
-
-    def on_hover(self, events: list[dict[str, float]]):
-        """events = [{'x': x, 'y': y, 'z': z}, ...]"""
-        from vtk import vtkRenderWindowInteractor
-
-        viewer = self.volume_handler.get_reslice_image_viewer()
-        if viewer is None:
-            return
-        for event in events:
-            interactor: vtkRenderWindowInteractor = viewer.GetInteractor()
-            interactor.SetEventInformation(int(event["x"]), int(event["y"]))
-            interactor.MouseMoveEvent()
-
-        self.update()

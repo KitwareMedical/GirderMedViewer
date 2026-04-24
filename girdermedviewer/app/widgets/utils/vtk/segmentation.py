@@ -561,6 +561,7 @@ class SegmentPaintEffect2D:
             self.start_painting()
             # swallow event
             caller.GetCommand(self._left_pressed_command_id).AbortFlagOn()
+        self.update_requested()
 
     def _on_left_released(self, _caller: vtkRenderWindowInteractor, _ev: str) -> bool:
         if self.is_painting():
@@ -569,6 +570,7 @@ class SegmentPaintEffect2D:
 
     def _on_mouse_move(self, _caller: vtkRenderWindowInteractor, _ev: str) -> bool:
         self._update_brush()
+        self.update_requested()
 
     def _update_brush(self):
         if self.is_brush_enabled():

@@ -186,7 +186,7 @@ class GlobalStyle(Style):
             ".display-property-divider { margin-top: 12px; margin-bottom: 12px; } "
             ".display-property-setting { gap: 12px; display: flex; flex-direction: row; align-items: center; } "
             ".drawer .v-navigation-drawer__content { display: flex; flex-direction: column; padding: 12px; justify-content: space-between;} "
-            ".fullscreen-view { width: 100% !important; height: 100% !important; }"
+            ".fullscreen-view { position: relative; width: 100% !important; height: 100% !important; }"
             ".girder-browser { width: 100%; } "
             ".item-card .v-expansion-panel--active>.v-expansion-panel-title,.v-expansion-panel-title { height: 64px !important }"
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important; }"
@@ -215,7 +215,7 @@ class GlobalStyle(Style):
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px; } "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px; } "
             ".v-window { overflow: unset; } "
-            ".view { min-width: calc(50% - 1px); width: unset !important; height: unset !important; }"
+            ".view { position: relative; min-width: calc(50% - 1px); width: unset !important; height: unset !important; }"
             ".view-gutter { position: absolute;  top: 0; left: 0; background-color: transparent; height: 100%; }"
             ".view-gutter-content { display: flex; flex-direction: column; height: 100%; padding: 8px; }"
         )
