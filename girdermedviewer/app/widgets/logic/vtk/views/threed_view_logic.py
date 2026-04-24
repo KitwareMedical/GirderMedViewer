@@ -38,7 +38,9 @@ class ThreeDViewLogic(ViewLogic):
         if subtype == SceneObjectSubtype.VECTOR and layer == VolumeLayer.SECONDARY:
             self.volume_handler.set_volume_visibility(data_id, False)
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay, _subtype: SceneObjectSubtype
+    ) -> None:
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)
         self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
 

@@ -68,7 +68,7 @@ class ViewLogic(BaseLogic[ViewState]):
         pass
 
     @abstractmethod
-    def add_mesh(self, data_id: str, data: vtkImageData) -> None:
+    def add_mesh(self, data_id: str, data: vtkImageData, subtype: SceneObjectSubtype) -> None:
         pass
 
     @abstractmethod

@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from typing import Any
 
+from vtkmodules.vtkCommonExecutionModel import vtkAlgorithm
 from vtkmodules.vtkRenderingCore import vtkRenderer
 
 from ....utils import (
@@ -38,6 +39,12 @@ class ObjectHandler:
         if not self.object_data[data_id]:
             self.object_data.pop(data_id)
 
+    def update_filters(self):
+        for obj_data in self.object_data.values():
+            for obj in obj_data:
+                if isinstance(obj, vtkAlgorithm):
+                    obj.Update()
+
     def get_data(self, data_id):
         data = self.object_data.get(data_id, [])
         return data[0] if len(data) else None
@@ -53,4 +60,9 @@ class ObjectHandler:
 
     def get_glyph_actors(self, data_id):
         data = [self.object_data[data_id]] if data_id in self.object_data else self.object_data.values()
-        return [obj for objs in data for obj in objs if hasattr(obj, 'GetMapper') and obj.GetMapper().IsA("vtkGlyph3DMapper")]
+        return [
+            obj
+            for objs in data
+            for obj in objs
+            if hasattr(obj, "GetMapper") and obj.GetMapper().IsA("vtkGlyph3DMapper")
+        ]

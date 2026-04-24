@@ -122,7 +122,9 @@ class MeshHandler(ObjectHandler):
             mesh_logic.align_data(self.views_logic.center)
             mesh_logic.init_filter()
 
-        self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data, mesh_logic.display)
+        self.views_logic.add_mesh(
+            mesh_logic._id, mesh_logic.object_data, mesh_logic.display, mesh_logic.scene_object.object_subtype
+        )
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
         mesh_logic.display.clear_watchers()

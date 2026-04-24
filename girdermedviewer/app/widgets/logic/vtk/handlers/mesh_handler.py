@@ -7,8 +7,10 @@ from ....utils import (
     ColorPresetParser,
     DataArray,
     MeshColoringMode,
+    create_streamline_slice_projector,
     render_mesh_in_3D,
     render_mesh_in_slice,
+    render_streamline_projection_in_slice,
     set_mesh_opacity,
     set_mesh_solid_color,
     set_mesh_visibility,
@@ -50,6 +52,12 @@ class MeshHandler(ObjectHandler):
     def add_mesh_in_slice(self, data_id: str, poly_data: vtkPolyData, orientation: int) -> None:
         actor = render_mesh_in_slice(poly_data, orientation, self.renderer)
         self.register_data(data_id, actor)
+
+    def add_streamline_in_slice(self, data_id: str, poly_data: vtkPolyData, orientation: int) -> None:
+        projection_filter = create_streamline_slice_projector(poly_data, orientation)
+        actor = render_streamline_projection_in_slice(projection_filter, self.renderer)
+        self.register_data(data_id, actor)
+        self.register_data(data_id, projection_filter)
 
     def set_mesh_visibility(self, data_id: str, visible: bool) -> bool:
         modified = False

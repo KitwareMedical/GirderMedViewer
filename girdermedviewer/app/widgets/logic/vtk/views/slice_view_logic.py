@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 
-from vtk import vtkImageData, vtkPolyData, vtkRenderWindowInteractor
+from vtk import vtkImageData, vtkPolyData
 from vtkmodules.vtkInteractionImage import vtkResliceImageViewer
 from vtkmodules.vtkInteractionWidgets import vtkResliceCursorWidget
 
@@ -117,8 +117,13 @@ class SliceViewLogic(ViewLogic):
             data_id, display_properties, self.orientation.value, is_primary
         )
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
-        self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay, subtype: SceneObjectSubtype
+    ) -> None:
+        if subtype == SceneObjectSubtype.STREAMLINE:
+            self.mesh_handler.add_streamline_in_slice(data_id, poly_data, self.orientation.value)
+        else:
+            self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)
         self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
 
     def init_roi(self, roi: PlaceROILogic) -> None:
@@ -205,6 +210,7 @@ class SliceViewLogic(ViewLogic):
         if position.pos_x is not None and normals is not None:
             self._update_position_and_normals_in_view(position, normals)
             self._update_slider()
+            self.mesh_handler.update_filters()
 
             self.update()
 

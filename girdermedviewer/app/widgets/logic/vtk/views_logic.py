@@ -30,6 +30,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         super().__init__(server, ViewsState)
         self.view_logics: dict[ViewType, ViewLogic] = {}
         self.ctrl.reset = self.reset
+        self.center = None
 
         self.volume_preset_parser = get_volume_preset_parser()
         self.color_preset_parser = get_color_preset_parser()
@@ -111,9 +112,11 @@ class ViewsLogic(BaseLogic[ViewsState]):
         stream_line_logic.init_filter()
         self.add_mesh(data_id, stream_line_logic.object_filter.GetOutput())
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay):
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay, subtype: SceneObjectSubtype
+    ):
         for view_logic in self.views:
-            view_logic.add_mesh(data_id, poly_data, display_properties)
+            view_logic.add_mesh(data_id, poly_data, display_properties, subtype)
         self.update_views()
 
     def remove_mesh(self, data_id: str, only_data: Any = None) -> None:

@@ -41,6 +41,7 @@ class SceneObjectSubtype(DataclassEnum):
     SCALAR = "scalar_volume"
     VECTOR = "vector_volume"
     LABELMAP = "labelmap_volume"
+    STREAMLINE = "streamline_mesh"
     UNDEFINED = None
 
 

@@ -44,6 +44,7 @@ from .vtk.vtk_utils import (
     create_gaussian_filter,
     create_rendering_pipeline,
     create_streamline_filter,
+    create_streamline_slice_projector,
     get_aligned_poly_data,
     get_image_data,
     get_number_of_slices,
@@ -61,6 +62,7 @@ from .vtk.vtk_utils import (
     render_labelmap_as_overlay_in_slice,
     render_mesh_in_3D,
     render_mesh_in_slice,
+    render_streamline_projection_in_slice,
     render_volume_as_overlay_in_slice,
     render_volume_as_vector_field,
     render_volume_in_3D,
@@ -88,7 +90,6 @@ from .vtk.vtk_utils import (
     supported_mesh_extensions,
     supported_volume_extensions,
 )
-
 
 __all__ = [
     "ICONS_MAP",
@@ -128,6 +129,7 @@ __all__ = [
     "create_gaussian_filter",
     "create_rendering_pipeline",
     "create_streamline_filter",
+    "create_streamline_slice_projector",
     "debounce",
     "format_date",
     "get_aligned_poly_data",
@@ -150,6 +152,7 @@ __all__ = [
     "render_labelmap_as_overlay_in_slice",
     "render_mesh_in_3D",
     "render_mesh_in_slice",
+    "render_streamline_projection_in_slice",
     "render_volume_as_overlay_in_slice",
     "render_volume_as_vector_field",
     "render_volume_in_3D",

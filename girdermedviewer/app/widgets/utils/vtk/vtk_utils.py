@@ -27,6 +27,7 @@ from vtk import (
     vtkPiecewiseFunction,
     vtkPolyData,
     vtkPolyDataMapper,
+    vtkProgrammableFilter,
     vtkResliceCursor,
     vtkResliceCursorLineRepresentation,
     vtkResliceCursorRepresentation,
@@ -513,7 +514,9 @@ def set_vector_field_sampling(glyph_actor: vtkActor | None, axis: int | None, sa
     if glyph_actor is None:
         return False
     shrinker = get_vector_field_shrinker(glyph_actor)
-    new_sampling = (sampling, sampling, sampling) if axis is None else [sampling if i != axis else 100 for i in range(3)]
+    new_sampling = (
+        (sampling, sampling, sampling) if axis is None else [sampling if i != axis else 100 for i in range(3)]
+    )
     input_image = shrinker.GetInput()
 
     spacing = input_image.GetSpacing()
@@ -606,7 +609,7 @@ def set_slice_window_level(image_slice: vtkImageSlice | None, window_level: tupl
     return True
 
 
-def render_mesh_in_slice(poly_data, axis, renderer):
+def render_mesh_in_slice(poly_data: vtkPolyData, axis: int, renderer: vtkRenderer) -> vtkActor:
     reslice_image_viewer = get_reslice_image_viewer(axis)
     reslice_cursor = get_reslice_cursor(reslice_image_viewer)
 
@@ -617,6 +620,55 @@ def render_mesh_in_slice(poly_data, axis, renderer):
 
     mapper = vtkPolyDataMapper()
     mapper.SetInputConnection(cutter.GetOutputPort())
+
+    actor = vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(1, 0, 0)
+
+    renderer.AddActor(actor)
+    renderer.ResetCameraScreenSpace(0.8)
+
+    return actor
+
+
+def create_streamline_slice_projector(poly_data: vtkPolyData, axis: int) -> vtkActor:
+    reslice_image_viewer = get_reslice_image_viewer(axis)
+    reslice_cursor = get_reslice_cursor(reslice_image_viewer)
+
+    plane = reslice_cursor.GetPlane(axis)
+
+    def project_points():
+        input_data = projector.GetInput()
+        output = projector.GetOutput()
+
+        output.DeepCopy(input_data)
+
+        origin = plane.GetOrigin()
+        normal = plane.GetNormal()
+
+        points = output.GetPoints()
+
+        for i in range(points.GetNumberOfPoints()):
+            p = list(points.GetPoint(i))
+
+            v = [p[j] - origin[j] for j in range(3)]
+            d = sum(v[j] * normal[j] for j in range(3))
+
+            projected = [p[j] - d * normal[j] for j in range(3)]
+            points.SetPoint(i, projected)
+
+        points.Modified()
+
+    projector = vtkProgrammableFilter()
+    projector.SetInputData(poly_data)
+    projector.SetExecuteMethod(project_points)
+
+    return projector
+
+
+def render_streamline_projection_in_slice(projector: vtkProgrammableFilter, renderer: vtkRenderer) -> vtkActor:
+    mapper = vtkPolyDataMapper()
+    mapper.SetInputConnection(projector.GetOutputPort())
 
     actor = vtkActor()
     actor.SetMapper(mapper)

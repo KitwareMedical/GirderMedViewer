@@ -2,7 +2,7 @@ from trame_dataclass.v2 import StateDataModel, Sync, TypeValidation
 from undo_stack import Signal
 from vtk import vtkExtractPolyDataGeometry, vtkSphere, vtkTubeFilter
 
-from ....utils import FilterType, get_aligned_poly_data, load_mesh
+from ....utils import FilterType, SceneObjectSubtype, get_aligned_poly_data, load_mesh
 from ..objects.mesh_object_logic import MeshObjectLogic
 
 
@@ -17,6 +17,7 @@ class StreamlineFilterLogic(MeshObjectLogic):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, filter_type=FilterType.STREAMLINE, **kwargs)
+        self.scene_object.object_subtype = SceneObjectSubtype.STREAMLINE
         self.scene_object_filter = StreamlineFilterProperties(self.server)
         self.scene_object.filter_prop_id = self.scene_object_filter._id
 
