@@ -3,8 +3,8 @@ import logging
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 
+from ...point_selector_ui import PointSelectorUI
 from ..views_ui import ViewsState
-from .point_selector_ui import PointSelectorUI
 
 logger = logging.getLogger(__name__)
 

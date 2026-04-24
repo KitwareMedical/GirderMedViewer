@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from trame.widgets import html
 from trame_server.utils.typed_state import TypedState
 
-from ....utils import NumberInput, Text
+from ..utils import NumberInput, Text
 
 
 @dataclass

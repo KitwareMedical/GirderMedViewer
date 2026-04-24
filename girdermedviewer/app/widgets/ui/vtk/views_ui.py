@@ -11,7 +11,7 @@ from ...utils import (
     Button,
     create_rendering_pipeline,
 )
-from .tools.point_selector_ui import PointState
+from ..point_selector_ui import PointState
 
 logger = logging.getLogger(__name__)
 
