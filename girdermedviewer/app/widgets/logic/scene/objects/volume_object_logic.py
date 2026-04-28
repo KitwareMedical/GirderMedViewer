@@ -30,7 +30,7 @@ class VolumeDisplay(StateDataModel):
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
-    opacity = Sync(float, 0.5, type_checking=TypeValidation.SKIP)
+    opacity = Sync(float, 0.5, type_checking=TypeValidation.SKIP)  # Used only for secondary volumes
 
 
 class BaseVolumeObjectLogic(SceneObjectLogic):

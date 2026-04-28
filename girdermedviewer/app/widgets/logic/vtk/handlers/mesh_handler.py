@@ -7,6 +7,7 @@ from ....utils import (
     ColorPresetParser,
     DataArray,
     MeshColoringMode,
+    convert_color_hex_to_normalized_rgb,
     render_mesh_in_3D,
     render_mesh_in_slice,
     set_mesh_opacity,
@@ -64,8 +65,7 @@ class MeshHandler(ObjectHandler):
         return modified
 
     def set_mesh_solid_color(self, data_id: str, color: str) -> bool:
-        hex = color.lstrip("#")
-        color_tuple = tuple(float(int(hex[i : i + 2], 16)) / 255.0 for i in (0, 2, 4))
+        color_tuple = convert_color_hex_to_normalized_rgb(color)
         modified = False
         for actor in self.get_actors(data_id):
             modified = set_mesh_solid_color(actor, color_tuple) or modified

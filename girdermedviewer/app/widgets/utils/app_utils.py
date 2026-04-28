@@ -89,3 +89,8 @@ def debounce(wait, disabled=False):
     if disabled:
         return lambda func: func
     return decorator
+
+
+def convert_color_hex_to_normalized_rgb(hex_color) -> tuple[float]:
+    hex = hex_color.lstrip("#")
+    return tuple(round(int(hex[i : i + 2], 16) / 255.0, 3) for i in (0, 2, 4))

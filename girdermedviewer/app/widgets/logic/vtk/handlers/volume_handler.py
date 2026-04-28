@@ -2,16 +2,15 @@ import logging
 from typing import Any
 
 from vtk import (
-    vtkDiscretizableColorTransferFunction,
     vtkImageData,
     vtkImageSlice,
-    vtkPiecewiseFunction,
     vtkResliceImageViewer,
 )
 
 from ....utils import (
     ColorPresetParser,
     VolumePresetParser,
+    convert_color_hex_to_normalized_rgb,
     render_labelmap_as_overlay_in_slice,
     render_volume_as_overlay_in_slice,
     render_volume_as_vector_field,
@@ -30,6 +29,7 @@ from ....utils import (
     set_vector_field_sampling,
     set_volume_visibility,
 )
+from ....utils.vtk.segmentation import set_segment_color, set_segment_visibility
 from ...scene.objects.volume_object_logic import VolumeDisplay
 from .object_handler import ObjectHandler
 
@@ -197,28 +197,18 @@ class VolumeSliceHandler(ObjectHandler):
         ids = [data_id] if data_id in self.object_data else self.object_data.keys()
         return [self.get_data(id) for id in ids if self._is_secondary_volume(id)]
 
-    def set_segment_color(self, data_id: str, segment_id: int, color: str) -> None:
-        # color format: #rrggbb
-        color_value = [
-            int(color[1:3], base=16) / 255.0,
-            int(color[3:5], base=16) / 255.0,
-            int(color[5:7], base=16) / 255.0,
-        ]
+    def set_segment_color(self, data_id: str, segment_id: int, color: str) -> bool:
+        color_tuple = convert_color_hex_to_normalized_rgb(color)
+        modified = False
         for image_slice in self.get_image_slices(data_id):
-            lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
-            value = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            lut.GetNodeValue(segment_id, value)
-            value[1:4] = color_value
-            lut.SetNodeValue(segment_id, value)
+            modified = set_segment_color(image_slice, segment_id, color_tuple) or modified
+        return modified
 
-    def set_segment_visibility(self, data_id: str, segment_id: int, visible: bool) -> None:
+    def set_segment_visibility(self, data_id: str, segment_id: int, visible: bool) -> bool:
+        modified = False
         for image_slice in self.get_image_slices(data_id):
-            lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
-            of: vtkPiecewiseFunction = lut.GetScalarOpacityFunction()
-            value = [0.0, 0.0, 0.0, 0.0]
-            of.GetNodeValue(segment_id, value)
-            value[1] = float(visible)
-            of.SetNodeValue(segment_id, value)
+            modified = set_segment_visibility(image_slice, segment_id, visible) or modified
+        return modified
 
 
 class VolumeThreeDHandler(ObjectHandler):

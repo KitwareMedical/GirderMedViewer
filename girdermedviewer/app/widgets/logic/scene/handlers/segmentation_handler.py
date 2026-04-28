@@ -49,8 +49,9 @@ class SegmentationDisplayHandler:
             if not seg_logic.is_visible:
                 return
             for view in self.views_logic.slice_views:
-                view.volume_handler.set_segment_color(seg_logic._id, segment_id, color)
-                view.update()
+                modified = view.volume_handler.set_segment_color(seg_logic._id, segment_id, color)
+                if modified:
+                    view.update()
 
         return _update_segment_color
 
@@ -59,8 +60,9 @@ class SegmentationDisplayHandler:
             if not seg_logic.is_visible:
                 return
             for view in self.views_logic.slice_views:
-                view.volume_handler.set_segment_visibility(seg_logic._id, segment_id, visible)
-                view.update()
+                modified = view.volume_handler.set_segment_visibility(seg_logic._id, segment_id, visible)
+                if modified:
+                    view.update()
 
         return _update_segment_visbility
 
