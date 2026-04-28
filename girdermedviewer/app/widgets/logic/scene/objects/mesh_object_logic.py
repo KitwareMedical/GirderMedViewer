@@ -1,6 +1,6 @@
 import logging
 
-from trame_dataclass.v2 import StateDataModel, Sync, TypeValidation
+from trame_dataclass.v2 import StateDataModel, Sync
 
 from ....utils import (
     DataArray,
@@ -9,7 +9,7 @@ from ....utils import (
     get_random_color,
     load_mesh,
 )
-from .scene_object_logic import SceneObjectLogic, TwoDColor
+from .scene_object_logic import SceneObjectDisplay, SceneObjectLogic, TwoDColor
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,11 @@ class ArrayColor(StateDataModel):
     array_range = Sync(list[float], list)
 
 
-class MeshDisplay(StateDataModel):
+class MeshDisplay(SceneObjectDisplay):
     data_arrays = Sync(list[DataArray], list, has_dataclass=True)
     active_array_id = Sync(str)
     solid_color = Sync(str)
     array_color = Sync(ArrayColor, has_dataclass=True)
-    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
 
 
 class MeshObjectLogic(SceneObjectLogic):

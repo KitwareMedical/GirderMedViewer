@@ -238,4 +238,4 @@ class VolumeDisplayNormalColorUI(html.Div):
                     precision=2,
                 )
 
-            VolumeWindowLevelUI(self.display, disabled=f"{self.display}.normal_color.show_arrows")
+            VolumeWindowLevelUI(self.display, is_disabled=f"{self.display}.normal_color.show_arrows")

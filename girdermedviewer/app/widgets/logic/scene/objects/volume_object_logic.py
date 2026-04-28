@@ -12,7 +12,12 @@ from ....utils import (
     VolumeLayer,
     load_volume,
 )
-from .scene_object_logic import SceneObjectLogic, ThreeDColor, TwoDColor
+from .scene_object_logic import (
+    SceneObjectDisplay,
+    SceneObjectLogic,
+    ThreeDColor,
+    TwoDColor,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +29,12 @@ class NormalColor(StateDataModel):
     arrow_width = Sync(float, 0.03, type_checking=TypeValidation.SKIP)
 
 
-class VolumeDisplay(StateDataModel):
+class VolumeDisplay(SceneObjectDisplay):
     scalar_range = Sync(list[float])
     window_level = Sync(list[float])
     threed_color = Sync(ThreeDColor, has_dataclass=True)
     twod_color = Sync(TwoDColor, has_dataclass=True)
     normal_color = Sync(NormalColor, has_dataclass=True)
-    opacity = Sync(float, 0.5, type_checking=TypeValidation.SKIP)  # Used only for secondary volumes
 
 
 class BaseVolumeObjectLogic(SceneObjectLogic):
@@ -42,6 +46,7 @@ class BaseVolumeObjectLogic(SceneObjectLogic):
         self.scene_object.object_type = SceneObjectType.VOLUME
         self.display = VolumeDisplay(
             self.server,
+            opacity=0.5,  # Used only for secondary volumes
         )
         self.scene_object.display = self.display._id
         self.scene_object.flush()

@@ -453,7 +453,7 @@ def set_slice_visibility(image_slice: vtkImageSlice, visible: bool) -> bool:
     return True
 
 
-def render_volume_as_vector_field(image_data: vtkImageData, renderer: vtkRenderer, axis: int | None):
+def render_volume_as_vector_field(image_data: vtkImageData, renderer: vtkRenderer, axis: int | None = None):
     """
     Render the volume as a vector field in the slice defined by axis.
     :param axis: the normal axis of the slice, if None, the vector field
@@ -508,7 +508,7 @@ def get_vector_field_shrinker(glyph_actor: vtkActor | None) -> vtkImageReslice |
 
 
 # FIXME: to merge in a unique set_vector_field_properties function
-def set_vector_field_sampling(glyph_actor: vtkActor | None, axis: int | None, sampling: int) -> bool:
+def set_vector_field_sampling(glyph_actor: vtkActor | None, sampling: int, axis: int | None = None) -> bool:
     if glyph_actor is None:
         return False
     shrinker = get_vector_field_shrinker(glyph_actor)

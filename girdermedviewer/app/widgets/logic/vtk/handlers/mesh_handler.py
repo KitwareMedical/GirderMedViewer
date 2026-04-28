@@ -26,6 +26,8 @@ class MeshHandler(ObjectHandler):
         self.preset_parser = preset_parser
 
     def apply_mesh_display_properties(self, data_id: str, display_properties: MeshDisplay) -> None:
+        self.register_display(data_id, display_properties)
+
         # Set opacity
         self.set_mesh_opacity(data_id, display_properties.opacity)
 
@@ -43,6 +45,9 @@ class MeshHandler(ObjectHandler):
                 display_properties.array_color.is_inverted,
                 display_properties.array_color.array_range,
             )
+
+        # Set visibility
+        self.set_mesh_visibility(data_id, display_properties.is_visible)
 
     def add_mesh_in_3D(self, data_id: str, poly_data: vtkPolyData) -> None:
         actor = render_mesh_in_3D(poly_data, self.renderer)

@@ -2,7 +2,7 @@ from typing import Any
 
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
-from trame_dataclass.v2 import get_instance
+from trame_dataclass.v2 import Provider, get_instance
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
@@ -54,11 +54,8 @@ class SceneObjectUI(v3.VExpansionPanel):
     def _is_active_primary_volume(self) -> str:
         return f"({self._typed_state.name.active_primary_volume_id} === {self._obj}._id)"
 
-    def _is_disabled(self) -> str:
-        return f"!{self._obj}.is_visible"
-
     def _build_ui(self):
-        with self:
+        with self, Provider(name="display", instance=(f"{self._obj}.display",)):
             with v3.VExpansionPanelTitle(v_if=(f"{self._obj}.gui.loading",), classes="item-card-title"):
                 Text("{{ " + self._obj + ".name }}", classes="text-header font-weight-medium")
                 with v3.Template(v_slot_actions="{ expanded }"):
@@ -81,10 +78,11 @@ class SceneObjectUI(v3.VExpansionPanel):
                 )
                 with v3.Template(v_slot_actions="{ expanded }"):
                     Button(
+                        v_if=("display_available",),
                         click_stop=(self.visibility_clicked, f"[{self._obj}._id]"),
-                        icon=(f"{self._obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        icon=("display.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
                         size="small",
-                        tooltip=(f"{self._obj}.is_visible ? 'Hide' : 'Show'",),
+                        tooltip=("display.is_visible ? 'Hide' : 'Show'",),
                     )
 
             with v3.VExpansionPanelText(v_if=(f"!{self._obj}.gui.loading",)), v3.VCard():
@@ -147,21 +145,22 @@ class SceneObjectUI(v3.VExpansionPanel):
                     v3.VWindow(v_model=(f"{self._obj}.gui.current_window"), style="overflow: unset;"),
                 ):
                     with (
-                        v3.VWindowItem(value="filter", v_if=(f"{self._obj}.filter_type",)),
+                        v3.VWindowItem(value="filter", v_if=(f"display_available && {self._obj}.filter_type",)),
                     ):
                         self.filter_ui = FilterUI(
+                            classes=("display.is_visible ? '' : 'disabled'",),
                             obj=self._obj,
-                            disabled=self._is_disabled(),
                         )
 
                     with (
-                        v3.VWindowItem(value="display", v_if=(f"{self._obj}.display",)),
+                        v3.VWindowItem(value="display", v_if=("display_available",)),
                     ):
                         SceneObjectDisplayUI(
-                            obj=self._obj,
-                            disabled=self._is_disabled(),
-                            is_primary=self._is_primary_volume(),
+                            classes=("display.is_visible ? '' : 'disabled'",),
                             color_presets=f"{self._scene}.color_presets",
+                            is_primary=self._is_primary_volume(),
+                            obj=self._obj,
+                            obj_display="display",
                             volume_presets=f"{self._scene}.volume_presets",
                         )
 

@@ -39,4 +39,4 @@ class ObjectHandler(BaseLogic[SceneState]):
         pass
 
     def set_object_visibility(self, object_logic: SceneObjectLogic, visible: bool) -> None:
-        object_logic.scene_object.is_visible = visible
+        object_logic.display.is_visible = visible

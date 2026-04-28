@@ -16,10 +16,9 @@ class VolumeDisplayHandler:
         self.views_logic = views_logic
 
     def update_visibility(self, volume_logic: VolumeObjectLogic, visible: bool) -> None:
-        volume_logic.scene_object.is_visible = visible
-        update_glyph = volume_logic.display.normal_color is not None and volume_logic.display.normal_color.show_arrows
+        volume_logic.display.is_visible = visible
         for view in self.views_logic.views:
-            modified = view.volume_handler.set_volume_visibility(volume_logic._id, visible, update_glyph)
+            modified = view.volume_handler.set_volume_visibility(volume_logic._id, visible)
             if modified:
                 view.update()
 
@@ -135,13 +134,14 @@ class VolumeHandler(ObjectHandler):
     def _set_active_primary_volume_id(self, volume_id: str | None) -> None:
         if self.active_primary_volume_id is not None:
             old_active = self.object_logics.get(self.active_primary_volume_id)
-            if old_active is not None:
+            if old_active is not None and old_active.is_visible:
                 self._display_handler.update_visibility(old_active, False)
 
         self.data.active_primary_volume_id = volume_id
         if self.active_primary_volume_id is not None:
             new_active = self.object_logics.get(self.active_primary_volume_id)
-            self._display_handler.update_visibility(new_active, True)
+            if not new_active.is_visible:
+                self._display_handler.update_visibility(new_active, True)
 
     def _add_to_primary_volumes(self, volume_id: str) -> None:
         if not self._is_primary_volume(volume_id):
