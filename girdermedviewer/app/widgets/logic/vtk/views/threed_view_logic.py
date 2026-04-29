@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ThreeDViewLogic(ViewLogic[VolumeThreeDHandler]):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.volume_handler = VolumeThreeDHandler(self.volume_preset_parser)
+        self.volume_handler = VolumeThreeDHandler(self.volume_preset_parser, self.renderer)
 
     def add_volume(
         self,

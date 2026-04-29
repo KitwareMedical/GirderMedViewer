@@ -63,7 +63,7 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
             }
         )
 
-        self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.orientation.value)
+        self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.renderer, self.orientation.value)
 
     @property
     def position(self) -> tuple[float]:

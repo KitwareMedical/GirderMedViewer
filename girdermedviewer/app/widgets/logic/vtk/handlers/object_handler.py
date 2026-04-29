@@ -17,13 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class ObjectHandler:
-    def __init__(self) -> None:
+    def __init__(self, renderer: vtkRenderer) -> None:
         self.object_data = defaultdict(list)
         self.object_display = defaultdict(list)
-        self.renderer: vtkRenderer | None = None
-        self.roi_id: str | None = None
-
-    def set_renderer(self, renderer: vtkRenderer) -> None:
         self.renderer = renderer
 
     def register_data(self, data_id: str, data: Any) -> None:
