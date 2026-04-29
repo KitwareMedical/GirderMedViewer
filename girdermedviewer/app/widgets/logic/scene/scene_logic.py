@@ -203,9 +203,7 @@ class SceneLogic(BaseLogic[SceneState]):
         if object_logic is None:
             return
 
-        self._get_object_handler(object_logic).set_object_visibility(
-            object_logic, not object_logic.scene_object.is_visible
-        )
+        self._get_object_handler(object_logic).set_object_visibility(object_logic, not object_logic.is_visible)
 
     def toggle_object_overlay(self, object_id: str) -> None:
         object_logic = self.object_logics.get(object_id)

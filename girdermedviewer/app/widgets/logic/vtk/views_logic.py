@@ -5,6 +5,8 @@ from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 from vtk import vtkImageData, vtkPolyData
 
+from girdermedviewer.app.widgets.logic.vtk.handlers.volume_handler import VolumeHandler
+
 from ...logic.base_logic import BaseLogic
 from ...ui import ToolState, ToolType, ToolUI, ViewsState, ViewsUI, ViewType
 from ...utils import (
@@ -26,7 +28,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
     def __init__(self, server: Server) -> None:
         super().__init__(server, ViewsState)
-        self.view_logics: dict[ViewType, ViewLogic] = {}
+        self.view_logics: dict[ViewType, ViewLogic[VolumeHandler]] = {}
         self.ctrl.reset = self.reset
 
         self.volume_preset_parser = get_volume_preset_parser()
@@ -50,7 +52,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
         self.segmentation_logic.update_requested.connect(self.update_slice_views)
 
     @property
-    def views(self) -> list[ViewLogic]:
+    def views(self) -> list[ViewLogic[VolumeHandler]]:
         return list(self.view_logics.values())
 
     @property
@@ -72,7 +74,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.update_views()
 
-    def _is_view_shown(self, view_logic: ViewLogic) -> bool:
+    def _is_view_shown(self, view_logic: ViewLogic[VolumeHandler]) -> bool:
         return self.data.fullscreen is None or self.data.fullscreen == view_logic.type
 
     def update_views(self) -> None:

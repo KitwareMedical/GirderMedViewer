@@ -508,11 +508,13 @@ def get_vector_field_shrinker(glyph_actor: vtkActor | None) -> vtkImageReslice |
 
 
 # FIXME: to merge in a unique set_vector_field_properties function
-def set_vector_field_sampling(glyph_actor: vtkActor | None, axis: int | None, sampling: int) -> bool:
+def set_vector_field_sampling(glyph_actor: vtkActor | None, sampling: int, axis: int | None = None) -> bool:
     if glyph_actor is None:
         return False
     shrinker = get_vector_field_shrinker(glyph_actor)
-    new_sampling = (sampling, sampling, sampling) if axis is None else [sampling if i != axis else 100 for i in range(3)]
+    new_sampling = (
+        (sampling, sampling, sampling) if axis is None else [sampling if i != axis else 100 for i in range(3)]
+    )
     input_image = shrinker.GetInput()
 
     spacing = input_image.GetSpacing()

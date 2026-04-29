@@ -6,6 +6,7 @@ from trame_dataclass.v2 import (
     FieldEncoder,
     StateDataModel,
     Sync,
+    TypeValidation,
 )
 from trame_server import Server
 from undo_stack import Signal
@@ -46,6 +47,11 @@ class SceneObjectGUI(StateDataModel):
     icon = Sync(str)
 
 
+class SceneObjectDisplay(StateDataModel):
+    opacity = Sync(float, 1.0, type_checking=TypeValidation.SKIP)
+    is_visible = Sync(bool, True)
+
+
 class SceneObject(StateDataModel):
     name = Sync(str)
     gui = Sync(SceneObjectGUI, has_dataclass=True)
@@ -69,7 +75,6 @@ class SceneObject(StateDataModel):
         convert=FieldEncoder(FilterType.encoder, FilterType.decoder),
     )
     filter_prop_id = Sync(str)
-    is_visible = Sync(bool, True)
 
 
 class SceneObjectLogic(BaseLogic[None]):
@@ -85,6 +90,7 @@ class SceneObjectLogic(BaseLogic[None]):
     """
 
     updated = Signal()
+    display: SceneObjectDisplay
 
     def __init__(
         self,
@@ -100,7 +106,7 @@ class SceneObjectLogic(BaseLogic[None]):
 
     @property
     def is_visible(self) -> bool:
-        return self.scene_object.is_visible
+        return self.display.is_visible
 
     @abstractmethod
     def load_object_data(self, *args, **kwargs):

@@ -1,6 +1,5 @@
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
-from trame_dataclass.v2 import Provider
 
 from ....utils import SceneObjectSubtype, SceneObjectType
 from .object_display_color_ui import (
@@ -79,13 +78,13 @@ class MeshDisplayUI(html.Div):
 
 
 class SceneObjectDisplayUI(html.Div):
-    def __init__(self, obj: str, disabled: str, is_primary: str, color_presets: str, volume_presets: str, **kwargs):
-        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
+    def __init__(self, obj: str, obj_display: str, is_primary: str, color_presets: str, volume_presets: str, **kwargs):
+        super().__init__(**kwargs)
         self.obj = obj
 
-        with self, Provider(name="display", instance=(f"{self.obj}.display",)):
+        with self:
             VolumeDisplayUI(
-                obj_display="display",
+                obj_display=obj_display,
                 obj_subtype=f"{self.obj}.object_subtype",
                 is_primary=is_primary,
                 twod_presets=color_presets,
@@ -93,7 +92,7 @@ class SceneObjectDisplayUI(html.Div):
                 v_if=(self._is_object_type(SceneObjectType.VOLUME),),
             )
             MeshDisplayUI(
-                obj_display="display",
+                obj_display=obj_display,
                 scalar_presets=color_presets,
                 v_if=(self._is_object_type(SceneObjectType.MESH),),
             )

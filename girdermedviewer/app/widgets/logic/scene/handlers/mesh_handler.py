@@ -99,7 +99,7 @@ class MeshHandler(ObjectHandler):
             ("name", "is_inverted", "array_range"),
             self._display_handler.update_array_coloring(mesh_logic),
         )
-        mesh_logic.scene_object.watch(("is_visible",), self._display_handler.update_visibility(mesh_logic))
+        mesh_logic.display.watch(("is_visible",), self._display_handler.update_visibility(mesh_logic))
 
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.object_logics[mesh_logic._id] = mesh_logic

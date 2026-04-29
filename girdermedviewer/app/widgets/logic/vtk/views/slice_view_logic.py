@@ -41,7 +41,7 @@ def get_orientation_from_view_type(view_type: ViewType) -> SliceOrientation | No
     return SliceOrientation.__members__.get(view_type.name)
 
 
-class SliceViewLogic(ViewLogic):
+class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
     """Display volume as a 2D slice along a given axis/orientation"""
 
     _debounced_flush_initialized = False
@@ -64,7 +64,7 @@ class SliceViewLogic(ViewLogic):
             }
         )
 
-        self.volume_handler = VolumeSliceHandler(self.color_preset_parser)
+        self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.orientation.value)
 
     @property
     def position(self) -> tuple[float]:
@@ -103,19 +103,17 @@ class SliceViewLogic(ViewLogic):
     ):
         is_primary = False
         if subtype == SceneObjectSubtype.LABELMAP and layer == VolumeLayer.SECONDARY:
-            self.volume_handler.add_labelmap(data_id, image_data, self.orientation.value)
+            self.volume_handler.add_labelmap(data_id, image_data)
         elif layer == VolumeLayer.PRIMARY:
             is_primary = True
-            self.volume_handler.add_primary_volume(data_id, image_data, self.orientation.value)
+            self.volume_handler.add_primary_volume(data_id, image_data)
             self._set_reslice_interaction()
         elif layer == VolumeLayer.SECONDARY:
-            self.volume_handler.add_secondary_volume(data_id, image_data, self.orientation.value)
+            self.volume_handler.add_secondary_volume(data_id, image_data)
         else:
             raise ValueError("Volume layer cannot be undefined.")
 
-        self.volume_handler.apply_volume_display_properties(
-            data_id, display_properties, self.orientation.value, is_primary
-        )
+        self.volume_handler.apply_volume_display_properties(data_id, display_properties, is_primary)
 
     def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
         self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)

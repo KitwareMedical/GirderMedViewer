@@ -107,7 +107,7 @@ class SegmentationHandler(ObjectHandler):
 
     def _connect_labelmap_to_display_handler(self, seg_filter_logic: SegmentationFilterLogic):
         seg_filter_logic.display.watch(("opacity",), self._display_handler.update_opacity(seg_filter_logic))
-        seg_filter_logic.scene_object.watch(("is_visible",), self._display_handler.update_visibility(seg_filter_logic))
+        seg_filter_logic.display.watch(("is_visible",), self._display_handler.update_visibility(seg_filter_logic))
 
     def select_segment_in_labelmap(
         self, seg_filter_logic: SegmentationFilterLogic | None, segment_id: str | None = None

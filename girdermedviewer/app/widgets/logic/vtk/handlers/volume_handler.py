@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod
 from typing import Any
 
 from vtk import (
@@ -9,6 +10,7 @@ from vtk import (
 
 from ....utils import (
     ColorPresetParser,
+    PresetParser,
     VolumePresetParser,
     convert_color_hex_to_normalized_rgb,
     render_labelmap_as_overlay_in_slice,
@@ -36,10 +38,31 @@ from .object_handler import ObjectHandler
 logger = logging.getLogger(__name__)
 
 
-class VolumeSliceHandler(ObjectHandler):
-    def __init__(self, preset_parser: ColorPresetParser) -> None:
+class VolumeHandler(ObjectHandler):
+    def __init__(self, preset_parser: PresetParser):
         super().__init__()
         self.preset_parser = preset_parser
+
+    @abstractmethod
+    def set_volume_visibility(self, data_id: str, visible: bool) -> bool:
+        pass
+
+    @abstractmethod
+    def set_volume_normal_color(
+        self,
+        data_id: str,
+        show_arrows: bool,
+        sampling: int,
+        arrow_length: float,
+        arrow_width: float,
+    ) -> bool:
+        pass
+
+
+class VolumeSliceHandler(VolumeHandler):
+    def __init__(self, preset_parser: ColorPresetParser, orientation: int) -> None:
+        super().__init__(preset_parser)
+        self.orientation = orientation
 
     def _is_primary_volume(self, data_id: str) -> bool:
         data = self.get_data(data_id)
@@ -51,6 +74,10 @@ class VolumeSliceHandler(ObjectHandler):
 
     def _has_multiple_primary_volumes(self) -> bool:
         return len([data_id for data_id in self.object_data if self._is_primary_volume(data_id)]) > 1
+
+    def _init_glyph_actors(self, data_id: str) -> None:
+        glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer, self.orientation)
+        self.register_data(data_id, glyph_actor)
 
     def has_primary_volume(self) -> bool:
         return self.get_reslice_image_viewer() is not None
@@ -64,49 +91,66 @@ class VolumeSliceHandler(ObjectHandler):
         super().unregister_data(data_id, only_data, remove_prop)
 
     def apply_volume_display_properties(
-        self, data_id: str, display_property: VolumeDisplay, orientation: int, is_primary: bool
+        self, data_id: str, display_properties: VolumeDisplay, is_primary: bool
     ) -> None:
-        self.set_volume_window_level_min_max(data_id, display_property.window_level)
+        self.register_display(data_id, display_properties)
+        self.set_volume_window_level_min_max(data_id, display_properties.window_level)
+
+        # Set opacity
         if not is_primary:
-            self.set_volume_opacity(data_id, display_property.opacity)
-        elif display_property.twod_color is not None:
+            self.set_volume_opacity(data_id, display_properties.opacity)
+
+        # Set color
+        else:
+            # FIXME: supposed to be set for secondary volumes also
             self.set_volume_scalar_color_preset(
                 data_id,
-                display_property.twod_color.name,
-                display_property.twod_color.is_inverted,
+                display_properties.twod_color.name,
+                display_properties.twod_color.is_inverted,
             )
-        elif display_property.normal_color is not None:
+
+        if display_properties.normal_color is not None:
+            if not self.get_glyph_actors(data_id):
+                self._init_glyph_actors(data_id)
             self.set_volume_normal_color(
                 data_id,
-                display_property.normal_color.show_arrows,
-                display_property.normal_color.sampling,
-                display_property.normal_color.arrow_length,
-                display_property.normal_color.arrow_width,
-                orientation,
+                display_properties.normal_color.show_arrows,
+                display_properties.normal_color.sampling,
+                display_properties.normal_color.arrow_length,
+                display_properties.normal_color.arrow_width,
             )
 
-    def add_primary_volume(self, data_id: str, image_data: vtkImageData, orientation: int) -> None:
-        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, orientation)
+        # Set visibility
+        self.set_volume_visibility(data_id, display_properties.is_visible)
+
+    def add_primary_volume(self, data_id: str, image_data: vtkImageData) -> None:
+        reslice_image_viewer = render_volume_in_slice(image_data, self.renderer, self.orientation)
         self.register_data(data_id, reslice_image_viewer)
 
-    def add_secondary_volume(self, data_id: str, image_data: vtkImageData, orientation: int):
-        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, axis=orientation)
+    def add_secondary_volume(self, data_id: str, image_data: vtkImageData):
+        actor = render_volume_as_overlay_in_slice(image_data, self.renderer, axis=self.orientation)
         self.register_data(data_id, actor)
 
-    def add_labelmap(self, data_id: str, image_data: vtkImageData, orientation: int):
-        actor = render_labelmap_as_overlay_in_slice(image_data, axis=orientation)
+    def add_labelmap(self, data_id: str, image_data: vtkImageData):
+        actor = render_labelmap_as_overlay_in_slice(image_data, axis=self.orientation)
         self.register_data(data_id, actor)
 
     def set_volume_visibility(self, data_id: str, visible: bool) -> bool:
         logger.debug(f"set_volume_visibility({data_id}): {visible}")
+        volume_display = self.get_display(data_id)
+        if volume_display is None:
+            return False
+        show_arrows = volume_display.normal_color is not None and volume_display.normal_color.show_arrows
+
         modified = False
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None:
-            modified = set_reslice_visibility(reslice_image_viewer, visible)
+            modified = set_reslice_visibility(reslice_image_viewer, visible and not show_arrows)
         for slice in self.get_image_slices(data_id):
-            modified = set_slice_visibility(slice, visible) or modified
+            modified = set_slice_visibility(slice, visible and not show_arrows) or modified
         for glyph_actor in self.get_glyph_actors(data_id):
-            modified = set_actor_visibility(glyph_actor, visible) or modified
+            modified = set_actor_visibility(glyph_actor, visible and show_arrows) or modified
+
         return modified
 
     def set_volume_opacity(self, data_id: str, opacity: float) -> bool:
@@ -162,26 +206,19 @@ class VolumeSliceHandler(ObjectHandler):
         sampling: int,
         arrow_length: float,
         arrow_width: float,
-        orientation: int,
     ) -> bool:
+        volume_display = self.get_display(data_id)
+        if volume_display is None:
+            return False
+
         logger.debug(f"set_volume_normal_color({data_id})")
         modified = False
-        glyph_actors = self.get_glyph_actors(data_id)
-        if show_arrows and len(glyph_actors) == 0:
-            glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer, orientation)
-            self.register_data(data_id, glyph_actor)
-            glyph_actors = [glyph_actor]
-            modified = True
-        for glyph_actor in glyph_actors:
-            modified = set_actor_visibility(glyph_actor, show_arrows) or modified
-            modified = set_vector_field_sampling(glyph_actor, orientation, sampling) or modified
+        for glyph_actor in self.get_glyph_actors(data_id):
+            modified = set_actor_visibility(glyph_actor, show_arrows and volume_display.is_visible) or modified
+            modified = set_vector_field_sampling(glyph_actor, sampling, self.orientation) or modified
             modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
             modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
-        for image_slice in self.get_image_slices(data_id):
-            modified = set_actor_visibility(image_slice, not show_arrows) or modified
-        reslice_image_viewer = self.get_reslice_image_viewer(data_id)
-        if reslice_image_viewer is not None:
-            modified = set_actor_visibility(reslice_image_viewer, not show_arrows) or modified
+
         return modified
 
     def get_reslice_image_viewer(self, data_id=None) -> vtkResliceImageViewer | None:
@@ -211,26 +248,37 @@ class VolumeSliceHandler(ObjectHandler):
         return modified
 
 
-class VolumeThreeDHandler(ObjectHandler):
+class VolumeThreeDHandler(VolumeHandler):
     def __init__(self, preset_parser: VolumePresetParser) -> None:
-        super().__init__()
-        self.preset_parser = preset_parser
+        super().__init__(preset_parser)
 
-    def apply_volume_display_properties(self, data_id: str, display_property: VolumeDisplay) -> None:
-        if display_property.threed_color is not None:
-            self.set_volume_preset(
-                data_id,
-                display_property.threed_color.name,
-                display_property.threed_color.vr_shift,
-            )
-        elif display_property.normal_color is not None:
+    def _init_glyph_actors(self, data_id: str) -> None:
+        glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer)
+        self.register_data(data_id, glyph_actor)
+
+    def apply_volume_display_properties(self, data_id: str, display_properties: VolumeDisplay) -> None:
+        self.register_display(data_id, display_properties)
+
+        # Set color
+        if display_properties.normal_color is not None:
+            if not self.get_glyph_actors(data_id):
+                self._init_glyph_actors(data_id)
             self.set_volume_normal_color(
                 data_id,
-                display_property.normal_color.show_arrows,
-                display_property.normal_color.sampling,
-                display_property.normal_color.arrow_length,
-                display_property.normal_color.arrow_width,
+                display_properties.normal_color.show_arrows,
+                display_properties.normal_color.sampling,
+                display_properties.normal_color.arrow_length,
+                display_properties.normal_color.arrow_width,
             )
+        else:
+            self.set_volume_preset(
+                data_id,
+                display_properties.threed_color.name,
+                display_properties.threed_color.vr_shift,
+            )
+
+        # Set visibility
+        self.set_volume_visibility(data_id, display_properties.is_visible)
 
     def add_volume(self, data_id: str, image_data: vtkImageData) -> None:
         volume = render_volume_in_3D(image_data, self.renderer)
@@ -241,7 +289,16 @@ class VolumeThreeDHandler(ObjectHandler):
         volume = self.get_data(data_id)
         if volume is None:
             return False
-        return set_volume_visibility(volume, visible)
+
+        volume_display = self.get_display(data_id)
+        if volume_display is None:
+            return False
+
+        modified = set_volume_visibility(volume, visible and volume_display.normal_color is None)
+        show_arrows = volume_display.normal_color is not None and volume_display.normal_color.show_arrows
+        for glyph_actor in self.get_glyph_actors(data_id):
+            modified = set_actor_visibility(glyph_actor, visible and show_arrows) or modified
+        return modified
 
     def set_volume_preset(self, data_id: str, preset_name: str, range: list[float]) -> bool:
         volume = self.get_data(data_id)
@@ -261,21 +318,15 @@ class VolumeThreeDHandler(ObjectHandler):
         arrow_length: float,
         arrow_width: float,
     ) -> bool:
-        volume = self.get_data(data_id)
-        if volume is None:
+        volume_display = self.get_display(data_id)
+        if volume_display is None:
             return False
+
         logger.debug(f"set_volume_normal_color({data_id})")
         modified = False
-        glyph_actors = self.get_glyph_actors(data_id)
-        if show_arrows and len(glyph_actors) == 0:
-            glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer)
-            self.register_data(data_id, glyph_actor)
-            glyph_actors = [glyph_actor]
-            modified = True
-        # FIXME: add a convenient function to set visibility of any actor
-        for glyph_actor in glyph_actors:
-            modified = set_actor_visibility(glyph_actor, show_arrows) or modified
-            modified = set_vector_field_sampling(glyph_actor, None, sampling) or modified
+        for glyph_actor in self.get_glyph_actors(data_id):
+            modified = set_actor_visibility(glyph_actor, show_arrows and volume_display.is_visible) or modified
+            modified = set_vector_field_sampling(glyph_actor, sampling) or modified
             modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
             modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
 

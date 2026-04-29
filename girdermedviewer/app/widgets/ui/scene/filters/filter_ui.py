@@ -38,8 +38,8 @@ class FilterToolbarUI(html.Div):
 
 
 class FilterUI(html.Div):
-    def __init__(self, obj: str, disabled: str, **kwargs) -> None:
-        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
+    def __init__(self, obj: str, **kwargs) -> None:
+        super().__init__(**kwargs)
         self._filter_type = f"{obj}.filter_type"
 
         with self, Provider(name="filter_prop", instance=(f"{obj}.filter_prop_id",)):
