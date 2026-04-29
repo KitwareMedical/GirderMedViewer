@@ -6,7 +6,12 @@ import vtkmodules.util.numpy_support as vtknp
 from numpy.typing import NDArray
 from undo_stack import Signal
 from vtkmodules.vtkCommonCore import VTK_UNSIGNED_CHAR, vtkCommand, vtkPoints
-from vtkmodules.vtkCommonDataModel import vtkImageData, vtkPlane, vtkPolyData
+from vtkmodules.vtkCommonDataModel import (
+    vtkImageData,
+    vtkPiecewiseFunction,
+    vtkPlane,
+    vtkPolyData,
+)
 from vtkmodules.vtkCommonExecutionModel import vtkAlgorithmOutput, vtkPolyDataAlgorithm
 from vtkmodules.vtkCommonMath import vtkMatrix4x4
 from vtkmodules.vtkCommonTransforms import vtkTransform
@@ -22,6 +27,8 @@ from vtkmodules.vtkInteractionImage import vtkResliceImageViewer
 from vtkmodules.vtkInteractionWidgets import vtkResliceCursor, vtkResliceCursorWidget
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
+    vtkDiscretizableColorTransferFunction,
+    vtkImageSlice,
     vtkPolyDataMapper,
     vtkProp,
     vtkProperty,
@@ -30,7 +37,7 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderWindowInteractor,
 )
 
-from girdermedviewer.app.widgets.utils.vtk.vtk_utils import realign_axes
+from .vtk_utils import realign_axes
 
 
 def _vtk_image_to_np(image: vtkImageData) -> np.ndarray:
@@ -70,6 +77,33 @@ def _subextent_to_slices(extent: list[int], subextent: list[int]) -> tuple[slice
             subextent[0] - extent[0] + (subextent[1] - subextent[0] + 1),
         ),
     )
+
+
+def set_segment_color(image_slice: vtkImageSlice, segment_id: int, color: tuple[float]) -> bool:
+    lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
+    value = [0.0] * 6
+    lut.GetNodeValue(segment_id, value)
+
+    if color == value[1:4]:
+        return False
+
+    value[1:4] = color
+    lut.SetNodeValue(segment_id, value)
+    return True
+
+
+def set_segment_visibility(image_slice: vtkImageSlice, segment_id: int, visible: bool) -> bool:
+    lut: vtkDiscretizableColorTransferFunction = image_slice.GetProperty().GetLookupTable()
+    of: vtkPiecewiseFunction = lut.GetScalarOpacityFunction()
+    value = [0.0, 0.0, 0.0, 0.0]
+    of.GetNodeValue(segment_id, value)
+
+    if value[1] == float(visible):
+        return False
+
+    value[1] = float(visible)
+    of.SetNodeValue(segment_id, value)
+    return True
 
 
 class LabelMapOperation(IntEnum):

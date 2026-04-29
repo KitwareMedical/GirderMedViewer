@@ -17,7 +17,6 @@ class VolumeDisplayUI(html.Div):
         self,
         obj_display: str,
         obj_subtype: str,
-        disabled: str,
         has_opacity: str,
         twod_presets: str,
         threed_presets: str,
@@ -28,7 +27,6 @@ class VolumeDisplayUI(html.Div):
         )
         self.display = obj_display
         self.subtype = obj_subtype
-        self.disabled = disabled
         self.has_opacity = has_opacity
         self.twod_presets = twod_presets
         self.threed_presets = threed_presets
@@ -75,16 +73,13 @@ class MeshDisplayUI(html.Div):
 
 class SceneObjectDisplayUI(html.Div):
     def __init__(self, obj: str, disabled: str, has_opacity: str, color_presets: str, volume_presets: str, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
+        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
         self.obj = obj
 
         with self, Provider(name="display", instance=(f"{self.obj}.display",)):
             VolumeDisplayUI(
                 obj_display="display",
                 obj_subtype=f"{self.obj}.object_subtype",
-                disabled=disabled,
                 has_opacity=has_opacity,
                 twod_presets=color_presets,
                 threed_presets=volume_presets,

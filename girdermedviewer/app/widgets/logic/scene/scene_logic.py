@@ -124,7 +124,8 @@ class SceneLogic(BaseLogic[SceneState]):
         if not isinstance(scene_object, SceneObject):
             logger.debug(f"Id {object_id} does not match a SceneObject.")
             return
-        self.object_removed(object_id, scene_object.database_id)
+        if scene_object.database_id is not None:
+            self.object_removed(object_id, scene_object.database_id)
 
     def _get_dependent_objects(self, object_id: str) -> None:
         dependent_objects = []

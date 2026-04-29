@@ -1,4 +1,9 @@
-from .app_utils import AppConfig, debounce, is_valid_url
+from .app_utils import (
+    AppConfig,
+    convert_color_hex_to_normalized_rgb,
+    debounce,
+    is_valid_url,
+)
 from .components_utils import (
     Button,
     ColorPicker,
@@ -85,7 +90,6 @@ from .vtk.vtk_utils import (
     supported_volume_extensions,
 )
 
-
 __all__ = [
     "ICONS_MAP",
     "AppConfig",
@@ -121,6 +125,7 @@ __all__ = [
     "VolumeLayer",
     "VolumePresetParser",
     "are_same_paths",
+    "convert_color_hex_to_normalized_rgb",
     "create_gaussian_filter",
     "create_rendering_pipeline",
     "debounce",

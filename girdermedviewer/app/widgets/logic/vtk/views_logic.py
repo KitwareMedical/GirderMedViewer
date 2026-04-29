@@ -1,3 +1,5 @@
+from typing import Any
+
 from trame_server.core import Server
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
@@ -11,6 +13,7 @@ from ...utils import (
     get_color_preset_parser,
     get_volume_preset_parser,
 )
+from ..scene.objects.volume_object_logic import VolumeDisplay
 from .place_roi_logic import PlaceROILogic
 from .segmentation_effect_logic import SegmentationEffectLogic
 from .views.slice_view_logic import SliceViewLogic
@@ -21,7 +24,7 @@ from .views.view_logic import ViewLogic
 class ViewsLogic(BaseLogic[ViewsState]):
     window_level_changed = Signal()
 
-    def __init__(self, server: Server):
+    def __init__(self, server: Server) -> None:
         super().__init__(server, ViewsState)
         self.view_logics: dict[ViewType, ViewLogic] = {}
         self.ctrl.reset = self.reset
@@ -58,7 +61,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
     def threed_views(self) -> list[ThreeDViewLogic]:
         return [view for view in self.view_logics.values() if isinstance(view, ThreeDViewLogic)]
 
-    def _on_tool_change(self, active_tool: ToolType):
+    def _on_tool_change(self, active_tool: ToolType) -> None:
         self.roi_logic.enable_widget(active_tool == ToolType.PLACE_ROI)
         for view_logic in self.views:
             if isinstance(view_logic, SliceViewLogic):
@@ -69,13 +72,18 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.update_views()
 
-    def update_views(self):
-        for view in self.views:
-            view.update()
+    def _is_view_shown(self, view_logic: ViewLogic) -> bool:
+        return self.data.fullscreen is None or self.data.fullscreen == view_logic.type
 
-    def update_slice_views(self):
+    def update_views(self) -> None:
+        for view in self.views:
+            if self._is_view_shown(view):
+                view.update()
+
+    def update_slice_views(self) -> None:
         for view in self.slice_views:
-            view.update()
+            if self._is_view_shown(view):
+                view.update()
 
     def set_ui(self, ui: ViewsUI, tool_ui: ToolUI):
         self.roi_logic.roi_updated.connect(self.update_views)
@@ -90,18 +98,18 @@ class ViewsLogic(BaseLogic[ViewsState]):
         # Init ROI
         self._init_roi()
 
-    def reset(self):
-        for view_logic in self.view_logics.values():
+    def reset(self) -> None:
+        for view_logic in self.views:
             view_logic.reset()
         self.update_views()
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData):
-        for view_logic in self.view_logics.values():
-            view_logic.add_mesh(data_id, poly_data)
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay) -> None:
+        for view_logic in self.views:
+            view_logic.add_mesh(data_id, poly_data, display_properties)
         self.update_views()
 
-    def remove_mesh(self, data_id: str, only_data=None):
-        for view_logic in self.view_logics.values():
+    def remove_mesh(self, data_id: str, only_data: Any = None) -> None:
+        for view_logic in self.views:
             view_logic.remove_mesh(data_id, only_data)
         self.update_views()
 
@@ -109,12 +117,13 @@ class ViewsLogic(BaseLogic[ViewsState]):
         self,
         data_id: str,
         image_data: vtkImageData,
+        display_properties: VolumeDisplay,
         layer: VolumeLayer,
         subtype: SceneObjectSubtype = SceneObjectSubtype.UNDEFINED,
     ):
         is_labelmap = subtype == SceneObjectSubtype.LABELMAP
-        for view_logic in self.view_logics.values():
-            view_logic.add_volume(data_id, image_data, layer, is_labelmap)
+        for view_logic in self.views:
+            view_logic.add_volume(data_id, image_data, display_properties, layer, is_labelmap)
 
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
@@ -125,12 +134,13 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         if is_labelmap:
             self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
+
         self.update_views()
 
-    def remove_volume(self, data_id: str, only_data=None):
+    def remove_volume(self, data_id: str, only_data: Any = None) -> None:
         has_primary_volume = False
         has_secondary_volume = False
-        for view_logic in self.view_logics.values():
+        for view_logic in self.views:
             view_logic.remove_volume(data_id, only_data)
 
             if isinstance(view_logic, SliceViewLogic):
@@ -148,6 +158,6 @@ class ViewsLogic(BaseLogic[ViewsState]):
 
         self.update_views()
 
-    def _init_roi(self):
-        for view_logic in self.view_logics.values():
+    def _init_roi(self) -> None:
+        for view_logic in self.views:
             view_logic.init_roi(self.roi_logic)

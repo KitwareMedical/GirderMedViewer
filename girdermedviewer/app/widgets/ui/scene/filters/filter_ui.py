@@ -39,13 +39,12 @@ class FilterToolbarUI(html.Div):
 
 class FilterUI(html.Div):
     def __init__(self, obj: str, disabled: str, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(classes=(f"{disabled} ? 'disabled' : ''",), **kwargs)
         self._filter_type = f"{obj}.filter_type"
 
         with self, Provider(name="filter_prop", instance=(f"{obj}.filter_prop_id",)):
             self.gaussian_filter = GaussianFilterUI(
                 v_if=(self._is_filter_active(FilterType.GAUSSIAN_BLUR),),
-                disabled=disabled,
                 obj_filter_prop="filter_prop",
             )
 

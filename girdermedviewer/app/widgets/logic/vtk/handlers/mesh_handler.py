@@ -1,61 +1,23 @@
 import logging
-from collections import defaultdict
-from typing import Any
 
+from trame_dataclass.v2 import get_instance
 from vtkmodules.vtkCommonDataModel import vtkPolyData
-from vtkmodules.vtkRenderingCore import vtkRenderer
 
 from ....utils import (
     ColorPresetParser,
     DataArray,
-    get_image_data,
-    remove_prop,
+    MeshColoringMode,
+    convert_color_hex_to_normalized_rgb,
     render_mesh_in_3D,
     render_mesh_in_slice,
     set_mesh_opacity,
     set_mesh_solid_color,
     set_mesh_visibility,
 )
+from ...scene.objects.mesh_object_logic import MeshDisplay
+from .object_handler import ObjectHandler
 
 logger = logging.getLogger(__name__)
-
-
-class ObjectHandler:
-    def __init__(self) -> None:
-        self.object_data = defaultdict(list)
-        self.renderer: vtkRenderer | None = None
-
-    def set_renderer(self, renderer: vtkRenderer) -> None:
-        self.renderer = renderer
-
-    def register_data(self, data_id: str, data: Any) -> None:
-        self.object_data[data_id].append(data)
-
-    def unregister_data(self, data_id, only_data=None, remove=True):
-        for obj in list(self.object_data.get(data_id, [])):
-            if only_data is None or obj == only_data:
-                if remove:
-                    remove_prop(self.renderer, obj)
-                self.object_data[data_id].remove(obj)
-        if len(list(self.object_data.get(data_id, []))) == 0:
-            self.object_data.pop(data_id)
-
-    def get_data(self, data_id):
-        data = self.object_data.get(data_id, [])
-        return data[0] if len(data) else None
-
-    def get_actors(self, data_id):
-        data = [self.object_data[data_id]] if data_id in self.object_data else self.object_data.values()
-        return [obj for objs in data for obj in objs if obj.IsA("vtkActor")]
-
-    def get_image_data(self, data_id):
-        data = [self.object_data[data_id]] if data_id in self.object_data else self.object_data.values()
-        image_data = [get_image_data(obj) for objs in data for obj in objs if get_image_data(obj) is not None]
-        return image_data[0] if len(image_data) > 0 else None
-
-    def get_glyph_actors(self, data_id):
-        data = [self.object_data[data_id]] if data_id in self.object_data else self.object_data.values()
-        return [obj for objs in data for obj in objs if hasattr(obj, 'GetMapper') and obj.GetMapper().IsA("vtkGlyph3DMapper")]
 
 
 class MeshHandler(ObjectHandler):
@@ -63,12 +25,31 @@ class MeshHandler(ObjectHandler):
         super().__init__()
         self.preset_parser = preset_parser
 
+    def apply_mesh_display_properties(self, data_id: str, display_properties: MeshDisplay) -> None:
+        # Set opacity
+        self.set_mesh_opacity(data_id, display_properties.opacity)
+
+        # Set color
+        active_array = get_instance(display_properties.active_array_id)
+        assert isinstance(active_array, DataArray)
+        if active_array.coloring_mode == MeshColoringMode.SOLID:
+            self.set_mesh_solid_color(data_id, display_properties.solid_color)
+
+        elif active_array.coloring_mode == MeshColoringMode.ARRAY:
+            self.set_mesh_array_color(
+                data_id,
+                active_array,
+                display_properties.array_color.name,
+                display_properties.array_color.is_inverted,
+                display_properties.array_color.array_range,
+            )
+
     def add_mesh_in_3D(self, data_id: str, poly_data: vtkPolyData) -> None:
         actor = render_mesh_in_3D(poly_data, self.renderer)
         self.register_data(data_id, actor)
 
-    def add_mesh_in_slice(self, data_id, poly_data: vtkPolyData, orientation) -> None:
-        actor = render_mesh_in_slice(poly_data, orientation.value, self.renderer)
+    def add_mesh_in_slice(self, data_id: str, poly_data: vtkPolyData, orientation: int) -> None:
+        actor = render_mesh_in_slice(poly_data, orientation, self.renderer)
         self.register_data(data_id, actor)
 
     def set_mesh_visibility(self, data_id: str, visible: bool) -> bool:
@@ -83,10 +64,11 @@ class MeshHandler(ObjectHandler):
             modified = set_mesh_opacity(actor, opacity) or modified
         return modified
 
-    def set_mesh_solid_color(self, data_id, color: str) -> bool:
+    def set_mesh_solid_color(self, data_id: str, color: str) -> bool:
+        color_tuple = convert_color_hex_to_normalized_rgb(color)
         modified = False
         for actor in self.get_actors(data_id):
-            modified = set_mesh_solid_color(actor, color) or modified
+            modified = set_mesh_solid_color(actor, color_tuple) or modified
         return modified
 
     def set_mesh_array_color(

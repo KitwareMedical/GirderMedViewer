@@ -9,13 +9,12 @@ class GaussianSigmaSlider(Slider):
 
 
 class GaussianFilterUI(html.Div):
-    def __init__(self, obj_filter_prop: str, disabled: str, **kwargs):
+    def __init__(self, obj_filter_prop: str, **kwargs):
         super().__init__(**kwargs)
         self._filter_prop = obj_filter_prop
-        self._disabled = disabled
         self._build_ui()
 
     def _build_ui(self):
         with self:
             Text("Sigma", classes="text-header")
-            GaussianSigmaSlider(disabled=(self._disabled,), model=f"{self._filter_prop}.sigma")
+            GaussianSigmaSlider(model=f"{self._filter_prop}.sigma")

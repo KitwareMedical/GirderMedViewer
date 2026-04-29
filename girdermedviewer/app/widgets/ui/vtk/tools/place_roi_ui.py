@@ -54,5 +54,5 @@ class PlaceROIUI(v3.VCard):
                     tooltip="Reset",
                 )
 
-    def _toggle_roi_interaction(self):
+    def _toggle_roi_interaction(self) -> None:
         self._typed_state.data.is_roi_locked = not self._typed_state.data.is_roi_locked
