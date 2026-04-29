@@ -119,11 +119,10 @@ class ViewsLogic(BaseLogic[ViewsState]):
         image_data: vtkImageData,
         display_properties: VolumeDisplay,
         layer: VolumeLayer,
-        subtype: SceneObjectSubtype = SceneObjectSubtype.UNDEFINED,
+        subtype: SceneObjectSubtype,
     ):
-        is_labelmap = subtype == SceneObjectSubtype.LABELMAP
         for view_logic in self.views:
-            view_logic.add_volume(data_id, image_data, display_properties, layer, is_labelmap)
+            view_logic.add_volume(data_id, image_data, display_properties, layer, subtype)
 
         if layer == VolumeLayer.PRIMARY:
             self.data.are_obliques_visible = True
@@ -132,7 +131,7 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.roi_logic.set_default_bounds(image_data.GetBounds())
             self.segmentation_logic.set_paint_effects(self.slice_views)
 
-        if is_labelmap:
+        if subtype == SceneObjectSubtype.LABELMAP:
             self._tool_state.data.active_tool = ToolType.SEGMENTATION_EFFECT
 
         self.update_views()

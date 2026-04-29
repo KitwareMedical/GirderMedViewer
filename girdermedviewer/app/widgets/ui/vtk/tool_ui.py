@@ -88,7 +88,6 @@ class ToolUI(html.Div):
             if is_colored
             else None,
             disabled=(self._views_state.name.is_viewer_disabled,),
-            size="default",
             **kwargs,
         )
 

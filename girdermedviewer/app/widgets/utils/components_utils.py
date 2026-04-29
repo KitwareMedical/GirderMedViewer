@@ -176,22 +176,23 @@ class RangeSlider(VRangeSlider):
 
 class Selector(VSelect):
     def __init__(self, **kwargs):
-        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="comfortable", **kwargs)
+        super().__init__(flat=True, hide_details=True, variant="solo-filled", density="compact", **kwargs)
 
 
 class GlobalStyle(Style):
     def __init__(self):
         super().__init__(
+            ".disabled { pointer-events: none; opacity: 0.5; } "
             ".display-property { gap: 12px; display: flex; flex-direction: column; } "
             ".display-property-divider { margin-top: 12px; margin-bottom: 12px; } "
             ".display-property-setting { gap: 12px; display: flex; flex-direction: row; align-items: center; } "
             ".disabled { pointer-events: none; opacity: 0.5; } "
-            ".drawer .v-navigation-drawer__content { display: flex; flex-direction: column; padding: 12px; justify-content: space-between;} "
+            ".drawer .v-navigation-drawer__content { display: flex; flex-direction: column; justify-content: space-between;} "
             ".fullscreen-view { position: relative; width: 100% !important; height: 100% !important; }"
             ".girder-browser { width: 100%; } "
-            ".item-card .v-expansion-panel--active>.v-expansion-panel-title,.v-expansion-panel-title { height: 64px !important }"
+            "html { overflow-y: hidden; } "
+            ".item-card-title { gap: 16px; padding: 12px; height: 64px; } "
             ".item-card .v-expansion-panel-text__wrapper { padding: 0 !important; }"
-            ".item-card-title { gap: 16px; } "
             ".layer-btn { position: relative; height: 24px; width: 24px; transform: rotateX(45deg); } "
             ".layer-bottom { position: absolute; top: 4px; left: -1px; } "
             ".layer-top { position: absolute; top: -4px; left: -1px; } "
@@ -206,13 +207,14 @@ class GlobalStyle(Style):
             ".position-selector .v-input__details { display: none !important; } "
             ".position-selector .v-text-field__prefix { font-weight: 700 !important; } "
             ".quad-view { display: flex; gap: 2px; width: 100%; height: 100%; flex-direction: row; flex-wrap: wrap; }"
-            ".scene-drawer { overflow: auto; } "
+            ".scene-drawer { padding-left: 16px; padding-top: 16px; padding-bottom: 16px; overflow: auto; scrollbar-gutter: stable; } "
             ".segment-item .v-list-item__prepend { display: grid; }"
             ".text-header { font-size: 1.125rem; font-weight: 300; line-height: 1.75; letter-spacing: 0.0125em; }"
             ".text-subtitle { font-size: 1rem; font-weight: 500; line-height: 1.75; letter-spacing:  0.009375em; }"
+            ".tool-card { padding: 16px; }"
             ".tool-card .v-card-text { padding: 0px; }"
             ".tool-card .v-card-title { display: flex; justify-content: space-between; align-items: center; }"
-            ".tools-strip { display: flex; flex-direction: column; align-items: center; width: 50px; }"
+            ".tools-strip { display: flex; flex-direction: column; align-items: center; width: 100%; }"
             ".v-btn-group .v-btn:first-child { border-end-start-radius: 24px; border-start-start-radius: 24px; } "
             ".v-btn-group .v-btn:last-child { border-start-end-radius: 24px; border-end-end-radius: 24px; } "
             ".v-window { overflow: unset; } "

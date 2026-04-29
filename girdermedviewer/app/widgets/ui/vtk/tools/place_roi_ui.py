@@ -37,9 +37,8 @@ class PlaceROIUI(v3.VCard):
                 disabled=(self._typed_state.name.is_roi_locked,),
             ):
                 Button(
-                    active=(self._typed_state.name.is_roi_locked,),
                     click=self._toggle_roi_interaction,
-                    icon="mdi-lock",
+                    icon=(f"{self._typed_state.name.is_roi_locked} ? 'mdi-lock' : 'mdi-lock-open'",),
                     tooltip=(f"{self._typed_state.name.is_roi_locked} ? 'Unlock' : 'Lock'",),
                 )
             with PointSelectorUI(

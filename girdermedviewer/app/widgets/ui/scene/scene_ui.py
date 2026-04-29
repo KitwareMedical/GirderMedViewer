@@ -59,15 +59,16 @@ class SceneObjectUI(v3.VExpansionPanel):
 
     def _build_ui(self):
         with self:
-            with v3.VExpansionPanelTitle(classes="item-card-title", v_if=(f"{self._obj}.gui.loading",)):
+            with v3.VExpansionPanelTitle(v_if=(f"{self._obj}.gui.loading",), classes="item-card-title"):
                 Text("{{ " + self._obj + ".name }}", classes="text-header font-weight-medium")
                 with v3.Template(v_slot_actions="{ expanded }"):
                     LoadingButton(
-                        tooltip="Cancel",
                         click_stop=(self.load_canceled, f"[{self._obj}._id]"),
+                        size="small",
+                        tooltip="Cancel",
                     )
 
-            with v3.VExpansionPanelTitle(classes="item-card-title", v_else=True):
+            with v3.VExpansionPanelTitle(v_else=True, classes="item-card-title"):
                 v3.VIcon(
                     icon=(f"{self._obj}.gui.icon",),
                     color=(f"{self._is_active_labelmap()} ? 'primary' : 'undefined'",),
@@ -82,6 +83,7 @@ class SceneObjectUI(v3.VExpansionPanel):
                     Button(
                         click_stop=(self.visibility_clicked, f"[{self._obj}._id]"),
                         icon=(f"{self._obj}.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                        size="small",
                         tooltip=(f"{self._obj}.is_visible ? 'Hide' : 'Show'",),
                     )
 
@@ -142,7 +144,7 @@ class SceneObjectUI(v3.VExpansionPanel):
 
                 with (
                     v3.VCardText(),
-                    v3.VWindow(v_model=(f"{self._obj}.gui.current_window",), style="overflow: unset;"),
+                    v3.VWindow(v_model=(f"{self._obj}.gui.current_window"), style="overflow: unset;"),
                 ):
                     with (
                         v3.VWindowItem(value="filter", v_if=(f"{self._obj}.filter_type",)),
@@ -158,7 +160,7 @@ class SceneObjectUI(v3.VExpansionPanel):
                         SceneObjectDisplayUI(
                             obj=self._obj,
                             disabled=self._is_disabled(),
-                            has_opacity=f"!{self._is_primary_volume()}",
+                            is_primary=self._is_primary_volume(),
                             color_presets=f"{self._scene}.color_presets",
                             volume_presets=f"{self._scene}.volume_presets",
                         )
@@ -220,10 +222,9 @@ class SceneUI(html.Div):
         with self, self._scene.provide_as("scene"):
             with v3.VExpansionPanels(
                 v_if=("scene.objects?.length > 0",),
-                v_model=("scene.gui.expanded_objects",),
+                v_model=("scene.gui.expanded_object",),
                 variant="accordion",
                 focusable=True,
-                multiple=True,
             ):
                 self.object_ui = SceneObjectUI(
                     obj="obj",

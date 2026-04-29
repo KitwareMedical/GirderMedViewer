@@ -279,4 +279,4 @@ class VolumeThreeDHandler(ObjectHandler):
             modified = set_vector_field_arrow_length(glyph_actor, arrow_length) or modified
             modified = set_vector_field_arrow_thickness(glyph_actor, arrow_width) or modified
 
-        return set_volume_visibility(volume, not show_arrows) or modified
+        return modified

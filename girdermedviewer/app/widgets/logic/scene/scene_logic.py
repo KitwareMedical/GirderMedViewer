@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class SceneGUI(StateDataModel):
-    expanded_objects = Sync(list[str], list)
+    expanded_object = Sync(str, list)
 
 
 class Scene(StateDataModel):
@@ -44,7 +44,7 @@ class SceneLogic(BaseLogic[SceneState]):
     def __init__(self, server: Server, views_logic: ViewsLogic) -> None:
         super().__init__(server, SceneState)
 
-        self.scene = Scene(self.server, gui=SceneGUI(self.server, gui=SceneGUI(self.server)))
+        self.scene = Scene(self.server, gui=SceneGUI(self.server))
         self.data.scene_id = self.scene._id
         self.object_logics: dict[str, SceneObjectLogic] = {}
         self._init_presets(views_logic)
@@ -143,6 +143,7 @@ class SceneLogic(BaseLogic[SceneState]):
         self._get_object_handler(object_logic).add_object_to_views(object_logic)
         object_logic.set_loading_status(False)
         object_logic.set_icon()
+        self.scene.gui.expanded_object = object_logic._id
 
         self.object_logics[object_logic._id] = object_logic
 
@@ -171,8 +172,6 @@ class SceneLogic(BaseLogic[SceneState]):
             return
         self.scene.objects = [*self.scene.objects, scene_object]
         self.object_added(scene_object._id)
-
-        self.state.flush()  # FIXME: need to flush manually
 
     def add_file_object_to_views(self, file_path: str, object_id: str) -> None:
         # Check that object has been created

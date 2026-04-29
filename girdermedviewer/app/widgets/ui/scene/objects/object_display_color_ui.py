@@ -92,6 +92,7 @@ class MeshDisplayColorUI(html.Div):
                                 v_model=("array_color.is_inverted",),
                                 label="Invert",
                                 hide_details=True,
+                                density="compact",
                             )
                     with html.Div(classes="display-property-setting"):
                         Text("Range", classes="text-subtitle")
@@ -118,11 +119,11 @@ class VolumeDisplayThreeDColorUI(html.Div):
             (
                 PresetSelector(
                     items=(self.threed_presets,),
-                    v_model=(f"{self.display}.threed_color.name"),
+                    v_model=(f"{self.display}.threed_color.name",),
                 ),
             )
             with html.Div(classes="display-property-setting"):
-                Text("Volume Rendering Shift", classes="text-subtitle")
+                Text("Rendering Shift", classes="text-subtitle")
                 RangeSlider(
                     v_model=(f"{self.display}.threed_color.vr_shift",),
                     min=(f"{self.display}.scalar_range[0]",),
@@ -131,12 +132,13 @@ class VolumeDisplayThreeDColorUI(html.Div):
 
 
 class VolumeWindowLevelUI(html.Div):
-    def __init__(self, obj_display: str, **kwargs):
+    def __init__(self, obj_display: str, is_disabled: str | None = None, **kwargs):
         super().__init__(
             classes="display-property-setting",
             **kwargs,
         )
         self.display = obj_display
+        self.disabled = is_disabled
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -147,7 +149,7 @@ class VolumeWindowLevelUI(html.Div):
                     v_model=f"{self.display}.window_level",
                     min=(f"{self.display}.scalar_range[0]",),
                     max=(f"{self.display}.scalar_range[1]",),
-                    disabled=(f"{self.display}.normal_color?.show_arrows",),
+                    disabled=(self.disabled,),
                 ),
                 v3.Template(v_slot_append=True),
             ):
@@ -155,7 +157,7 @@ class VolumeWindowLevelUI(html.Div):
                     tooltip="Auto Window/Level",
                     icon="mdi-refresh-auto",
                     click=f"{self.display}.window_level = {self.display}.scalar_range",
-                    disabled=(f"{self.display}.normal_color?.show_arrows",),
+                    disabled=(self.disabled,),
                 )
 
 
@@ -175,7 +177,7 @@ class VolumeDisplayTwoDColorUI(html.Div):
             with (
                 PresetSelector(
                     items=(self.twod_presets,),
-                    v_model=(f"{self.display}.twod_color.name"),
+                    v_model=(f"{self.display}.twod_color.name",),
                 ),
                 v3.Template(v_slot_append=True),
             ):
@@ -183,6 +185,7 @@ class VolumeDisplayTwoDColorUI(html.Div):
                     v_model=(f"{self.display}.twod_color.is_inverted",),
                     label="Invert",
                     hide_details=True,
+                    density="compact",
                 )
 
             VolumeWindowLevelUI(self.display)
@@ -235,4 +238,4 @@ class VolumeDisplayNormalColorUI(html.Div):
                     precision=2,
                 )
 
-            VolumeWindowLevelUI(self.display)
+            VolumeWindowLevelUI(self.display, disabled=f"{self.display}.normal_color.show_arrows")

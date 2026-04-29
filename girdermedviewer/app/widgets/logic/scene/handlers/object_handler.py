@@ -38,6 +38,5 @@ class ObjectHandler(BaseLogic[SceneState]):
     def unregister_object_from_views(self, object_logic: SceneObjectLogic) -> None:
         pass
 
-    @abstractmethod
     def set_object_visibility(self, object_logic: SceneObjectLogic, visible: bool) -> None:
-        pass
+        object_logic.scene_object.is_visible = visible

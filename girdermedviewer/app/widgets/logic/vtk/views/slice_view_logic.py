@@ -7,6 +7,7 @@ from vtkmodules.vtkInteractionWidgets import vtkResliceCursorWidget
 
 from ....ui import PointState, ViewType, ViewUI
 from ....utils import (
+    SceneObjectSubtype,
     VolumeLayer,
     debounce,
     get_number_of_slices,
@@ -98,10 +99,10 @@ class SliceViewLogic(ViewLogic):
         image_data: vtkImageData,
         display_properties: VolumeDisplay,
         layer: VolumeLayer,
-        is_labelmap: bool,
+        subtype: SceneObjectSubtype,
     ):
         is_primary = False
-        if is_labelmap and layer == VolumeLayer.SECONDARY:
+        if subtype == SceneObjectSubtype.LABELMAP and layer == VolumeLayer.SECONDARY:
             self.volume_handler.add_labelmap(data_id, image_data, self.orientation.value)
         elif layer == VolumeLayer.PRIMARY:
             is_primary = True
