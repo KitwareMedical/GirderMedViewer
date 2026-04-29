@@ -29,6 +29,7 @@ class SegmentationFilterLogic(BaseVolumeObjectLogic):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.scene_object.object_subtype = SceneObjectSubtype.LABELMAP
+        self.display.opacity = 0.5
         self.layer = VolumeLayer.SECONDARY
 
         self._next_segment_id = 1

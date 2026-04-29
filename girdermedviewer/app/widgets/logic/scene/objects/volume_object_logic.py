@@ -44,10 +44,7 @@ class BaseVolumeObjectLogic(SceneObjectLogic):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.scene_object.object_type = SceneObjectType.VOLUME
-        self.display = VolumeDisplay(
-            self.server,
-            opacity=0.5,  # Used only for secondary volumes
-        )
+        self.display = VolumeDisplay(self.server)
         self.scene_object.display = self.display._id
         self.scene_object.flush()
 
