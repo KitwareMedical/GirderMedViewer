@@ -1,7 +1,7 @@
 import logging
 
 from trame_dataclass.v2 import get_instance
-from vtkmodules.vtkCommonDataModel import vtkPolyData
+from vtk import vtkPolyData, vtkRenderer
 
 from ....utils import (
     ColorPresetParser,
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class MeshHandler(ObjectHandler):
-    def __init__(self, preset_parser: ColorPresetParser) -> None:
-        super().__init__()
+    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer) -> None:
+        super().__init__(renderer)
         self.preset_parser = preset_parser
 
     def apply_mesh_display_properties(self, data_id: str, display_properties: MeshDisplay) -> None:

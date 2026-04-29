@@ -25,6 +25,7 @@ class AppLogic(BaseLogic[AppState]):
         self._tool_logic = ToolLogic(self.server, self._views_logic, self._scene_logic)
         self._girder_logic = GirderLogic(self.server, self._scene_logic, self.app_config)
         self.provider = self._girder_logic.connection_logic.provider
+        self.render_windows = self._views_logic.render_windows
 
     def set_ui(self, ui: AppUI) -> None:
         self._views_logic.set_ui(ui.views_ui)

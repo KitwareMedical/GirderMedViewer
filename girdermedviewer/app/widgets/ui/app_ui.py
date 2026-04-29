@@ -5,13 +5,14 @@ from trame.widgets import gwc
 from trame.widgets import vuetify3 as v3
 from trame_server import Server
 from trame_server.utils.typed_state import TypedState
+from vtk import vtkRenderWindow
 
 from ..utils import AppConfig, GlobalStyle
 from .girder.girder_browser_ui import GirderBrowserUI
 from .girder.girder_connection_ui import GirderConnectionUI
 from .scene.scene_ui import SceneUI
 from .vtk.tool_ui import ToolUI
-from .vtk.views_ui import ViewsUI
+from .vtk.views_ui import ViewsUI, ViewType
 
 
 @dataclass
@@ -55,7 +56,13 @@ class AppLayout(VAppLayout):
 
 
 class AppUI:
-    def __init__(self, layout: AppLayout, provider: gwc.GirderProvider, app_config: AppConfig) -> None:
+    def __init__(
+        self,
+        layout: AppLayout,
+        provider: gwc.GirderProvider,
+        app_config: AppConfig,
+        render_windows: dict[ViewType, vtkRenderWindow],
+    ) -> None:
         self.layout = layout
         self.provider = provider
 
@@ -74,7 +81,7 @@ class AppUI:
                 self.tool_ui = ToolUI()
 
             with self.layout.viewer:
-                self.views_ui = ViewsUI()
+                self.views_ui = ViewsUI(render_windows)
 
             with self.layout.drawer:
                 self.scene_ui = SceneUI()

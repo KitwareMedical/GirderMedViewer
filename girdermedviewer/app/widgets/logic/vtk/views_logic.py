@@ -44,6 +44,10 @@ class ViewsLogic(BaseLogic[ViewsState]):
             self.view_logics[view_type].window_level_changed.connect(self.window_level_changed)
 
     @property
+    def render_windows(self):
+        return {view_type: view.render_window for view_type, view in self.view_logics.items()}
+
+    @property
     def views(self) -> list[ViewLogic[VolumeHandler]]:
         return list(self.view_logics.values())
 

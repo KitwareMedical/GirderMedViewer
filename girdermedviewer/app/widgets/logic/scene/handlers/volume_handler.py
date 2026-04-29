@@ -138,10 +138,6 @@ class VolumeHandler(ObjectHandler):
                 self._display_handler.update_visibility(old_active, False)
 
         self.data.active_primary_volume_id = volume_id
-        if self.active_primary_volume_id is not None:
-            new_active = self.object_logics.get(self.active_primary_volume_id)
-            if not new_active.is_visible:
-                self._display_handler.update_visibility(new_active, True)
 
     def _add_to_primary_volumes(self, volume_id: str) -> None:
         if not self._is_primary_volume(volume_id):
@@ -173,6 +169,8 @@ class VolumeHandler(ObjectHandler):
             self._add_to_primary_volumes(volume_logic._id)
             self._set_active_primary_volume_id(volume_logic._id)
 
+        volume_logic.display.is_visible = True
+
         self.views_logic.add_volume(
             volume_logic._id,
             volume_logic.object_data,
@@ -190,26 +188,26 @@ class VolumeHandler(ObjectHandler):
         self._remove_from_primary_volumes(volume_logic._id)
         self._add_volume_to_views(volume_logic, VolumeLayer.SECONDARY)
 
-    def _get_next_volume(self, volume_logic: VolumeObjectLogic) -> tuple[str, bool]:
+    def _get_next_volume(self, volume_logic: VolumeObjectLogic) -> str:
         next_volume_id = volume_logic.input_id or volume_logic.soft_input_id
 
         if self._is_primary_volume(next_volume_id):
-            return next_volume_id, True  # primary parent
+            return next_volume_id  # primary parent
 
         for vol_id, vol in self.object_logics.items():
             if vol.soft_input_id == volume_logic._id:
                 if self._is_primary_volume(vol._id):
-                    return vol_id, True  # primary child
+                    return vol_id  # primary child
                 if next_volume_id is None:
                     next_volume_id = vol_id
 
         if len(self.primary_volume_ids) > 0:
-            return self.primary_volume_ids[0], True  # any primary volume
+            return self.primary_volume_ids[0]  # any primary volume
 
         if next_volume_id is not None:
-            return next_volume_id, False  # parent or child
+            return next_volume_id  # parent or child
 
-        return next(iter(self.object_logics), None), False  # any volume or None
+        return next(iter(self.object_logics), None)  # any volume or None
 
     def add_object_to_views(self, volume_logic: VolumeObjectLogic) -> None:
         self.object_logics[volume_logic._id] = volume_logic
@@ -239,9 +237,9 @@ class VolumeHandler(ObjectHandler):
         self.unregister_object_from_views(volume_logic)
 
         if self._is_active_volume(volume_logic._id):
-            next_volume_id, is_next_volume_primary = self._get_next_volume(volume_logic)
-            if is_next_volume_primary or next_volume_id is None:
-                self._set_active_primary_volume_id(next_volume_id)
+            next_volume_id = self._get_next_volume(volume_logic)
+            if next_volume_id is None:
+                self._set_active_primary_volume_id(None)
             else:
                 next_volume_logic = self.object_logics.get(next_volume_id)
                 self._reload_as_primary_volume(next_volume_logic)
