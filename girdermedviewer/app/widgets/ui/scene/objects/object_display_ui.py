@@ -34,13 +34,12 @@ class VolumeDisplayUI(html.Div):
     def _build_ui(self) -> None:
         with self:
             with html.Div(v_if=(self._is_volume_subtype(SceneObjectSubtype.SCALAR),)):
-                with html.Div(v_if=(self.is_primary,)):
-                    VolumeDisplayThreeDColorUI(
-                        v_if=(f"{self.display}.threed_color",),
-                        obj_display=self.display,
-                        threed_presets=self.threed_presets,
-                    )
-                    v3.VDivider(classes="display-property-divider")
+                VolumeDisplayThreeDColorUI(
+                    v_if=(f"{self.display}.threed_color",),
+                    obj_display=self.display,
+                    threed_presets=self.threed_presets,
+                )
+                v3.VDivider(classes="display-property-divider")
                 VolumeDisplayTwoDColorUI(
                     v_if=(f"{self.display}.twod_color",), obj_display=self.display, twod_presets=self.twod_presets
                 )
