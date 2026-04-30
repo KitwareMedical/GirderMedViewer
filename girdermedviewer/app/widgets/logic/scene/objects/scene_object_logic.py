@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from trame_dataclass.v2 import (
     ClientOnly,
@@ -77,7 +77,7 @@ class SceneObject(StateDataModel):
     filter_prop_id = Sync(str)
 
 
-class SceneObjectLogic(BaseLogic[None]):
+class SceneObjectLogic(BaseLogic[None], ABC):
     """
     Defines properties of object added to the scene:
         - display, info, metadata

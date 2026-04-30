@@ -3,6 +3,7 @@ import logging
 from trame_dataclass.v2 import StateDataModel, Sync, get_instance
 from trame_server import Server
 from undo_stack import Signal
+from vtk import vtkImageData
 
 from ...ui import SceneState, SceneUI
 from ...utils import (
@@ -40,6 +41,8 @@ class SceneLogic(BaseLogic[SceneState]):
     object_added = Signal(str)
     object_removed = Signal(str, str)
     object_load_canceled = Signal(str)
+    segment_selected = Signal(vtkImageData, int)
+    segment_cleared = Signal(vtkImageData, int)
 
     def __init__(self, server: Server, views_logic: ViewsLogic) -> None:
         super().__init__(server, SceneState)
@@ -52,6 +55,8 @@ class SceneLogic(BaseLogic[SceneState]):
         self.mesh_handler = MeshHandler(self.server, views_logic)
         self.volume_handler = VolumeHandler(self.server, views_logic)
         self.segmentation_handler = SegmentationHandler(self.server, views_logic)
+        self.segmentation_handler.segment_selected.connect(self.segment_selected)
+        self.segmentation_handler.segment_cleared.connect(self.segment_cleared)
 
     def _get_presets_from_preset_parser(self, preset_parser: PresetParser) -> list[Preset]:
         return [

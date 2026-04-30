@@ -3,6 +3,8 @@ from collections.abc import Callable
 
 from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
+from undo_stack import Signal
+from vtk import vtkImageData
 
 from ....utils import (
     SceneObjectSubtype,
@@ -68,6 +70,9 @@ class SegmentationDisplayHandler:
 
 
 class SegmentationHandler(ObjectHandler):
+    segment_selected = Signal(vtkImageData | None, int)
+    segment_cleared = Signal(vtkImageData, int)
+
     def __init__(self, server: Server, views_logic: ViewsLogic):
         super().__init__(server, views_logic)
         self._display_handler = SegmentationDisplayHandler(views_logic)
@@ -121,11 +126,11 @@ class SegmentationHandler(ObjectHandler):
 
             self.data.active_segment_id = segment_id
             self.data.active_labelmap_id = seg_filter_logic._id
-            self.views_logic.segmentation_logic.set_active_segment(seg_filter_logic.object_data, segment_value)
+            self.segment_selected(seg_filter_logic.object_data, segment_value)
         else:
             self.data.active_segment_id = None
             self.data.active_labelmap_id = None
-            self.views_logic.segmentation_logic.set_active_segment(None, 0)
+            self.segment_selected(None, 0)
 
     def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> None:
         new_segment = seg_filter_logic.create_segment()
@@ -138,7 +143,7 @@ class SegmentationHandler(ObjectHandler):
     def delete_segment_from_labelmap(self, seg_filter_logic: SegmentationFilterLogic, deleted_segment_id: str) -> None:
         deleted_segment = SegmentationHandler._get_segment_from_id(deleted_segment_id)
         deleted_segment.clear_watchers()
-        self.views_logic.segmentation_logic.clear_segment(seg_filter_logic.object_data, deleted_segment.value)
+        self.segment_cleared(seg_filter_logic.object_data, deleted_segment.value)
         self.views_logic.update_slice_views()
         seg_filter_logic.delete_segment(deleted_segment_id)
 

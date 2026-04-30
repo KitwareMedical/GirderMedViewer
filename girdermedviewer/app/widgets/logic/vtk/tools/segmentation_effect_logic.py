@@ -2,20 +2,20 @@ import logging
 
 from trame_dataclass.v2 import StateDataModel, Sync
 from trame_server import Server
-from undo_stack import Signal
 from vtk import vtkImageData
 
-from ...ui import SegmentationEffectState
-from ...utils import SegmentationEffectType
-from ...utils.vtk.segmentation import (
+from ....ui import SegmentationEffectState
+from ....utils import SegmentationEffectType
+from ....utils.vtk.segmentation import (
     BrushModel,
     BrushShape,
     LabelMapEditor,
     LabelMapOperation,
     SegmentPaintEffect2D,
 )
-from ..base_logic import BaseLogic
-from .views.slice_view_logic import SliceViewLogic
+from ..views.slice_view_logic import SliceViewLogic
+from ..views_logic import ViewsLogic
+from .base_tool_logic import BaseToolLogic
 
 logger = logging.getLogger(__name__)
 
@@ -25,16 +25,14 @@ class PaintEraseEffectProperties(StateDataModel):
     use_sphere_brush = Sync(bool, True)
 
 
-class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
-    update_requested = Signal()
-
-    def __init__(self, server: Server) -> None:
-        super().__init__(server, SegmentationEffectState)
+class SegmentationEffectLogic(BaseToolLogic[SegmentationEffectState]):
+    def __init__(self, server: Server, views_logic: ViewsLogic) -> None:
+        super().__init__(server, views_logic, SegmentationEffectState)
         self.paint_erase_effect_prop = PaintEraseEffectProperties(self.server)
 
         self._segmentation_editor = LabelMapEditor()
         self._brush_model = BrushModel(BrushShape.Sphere)
-        self._paint_effects = []
+        self._paint_effects: list[SegmentPaintEffect2D] = []
 
         self.bind_changes({self.name.active_effect: self._update_active_effect})
         self.paint_erase_effect_prop.watch(("brush_size",), self._update_brush_size)
@@ -46,7 +44,7 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
             for effect in self._paint_effects:
                 effect.disable_brush()
         elif not self._segmentation_editor.active_segment:
-            self.deactivate_effects()
+            self._deactivate_effects()
         else:
             self.data.active_effect_prop_id = self.paint_erase_effect_prop._id
 
@@ -67,6 +65,9 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
     def _update_use_sphere_brush(self, use_sphere_brush: bool) -> None:
         self._brush_model.shape = BrushShape.Sphere if use_sphere_brush else BrushShape.Cylinder
 
+    def _deactivate_effects(self) -> None:
+        self.data.active_effect = SegmentationEffectType.UNDEFINED
+
     def set_paint_effects(self, slice_views: list[SliceViewLogic]) -> None:
         if not self._paint_effects:  # FIXME: needed to add this to not recreate SegmentPaintEffect2D
             for view in slice_views:
@@ -74,16 +75,17 @@ class SegmentationEffectLogic(BaseLogic[SegmentationEffectState]):
                     view.volume_handler.get_reslice_image_viewer(), self._segmentation_editor, self._brush_model
                 )
                 self._paint_effects.append(paint_effect)
-                paint_effect.update_requested.connect(self.update_requested)
+                paint_effect.update_requested.connect(self._views_logic.update_slice_views)
 
     def set_active_segment(self, object_data: vtkImageData | None, segment_value: int) -> None:
         if object_data is None:
-            self.deactivate_effects()
+            self._deactivate_effects()
         self._segmentation_editor.labelmap = object_data
         self._segmentation_editor.active_segment = segment_value
 
-    def clear_segment(self, object_data: vtkImageData, segment_value: int):
+    def clear_segment(self, object_data: vtkImageData, segment_value: int) -> None:
         self._segmentation_editor.clear_segment(object_data, segment_value)
 
-    def deactivate_effects(self):
-        self.data.active_effect = SegmentationEffectType.UNDEFINED
+    def set_enabled(self, enabled: bool) -> None:
+        if not enabled:
+            self._deactivate_effects()

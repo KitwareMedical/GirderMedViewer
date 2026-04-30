@@ -5,6 +5,7 @@ from enum import Enum
 from trame.widgets import html
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
+from undo_stack import Signal
 
 from ...utils import Button
 from .tools.place_point_ui import PlacePointUI
@@ -24,10 +25,17 @@ class ToolType(Enum):
 
 @dataclass
 class ToolState:
+    is_toolbar_disabled: bool = True
+    is_oblique_tool_disabled: bool = True
+    is_roi_tool_disabled: bool = True
+    is_point_tool_disabled: bool = True
+    is_segmentation_tool_disabled: bool = True
     active_tool: ToolType = ToolType.UNDEFINED
 
 
 class ToolUI(html.Div):
+    reset_clicked = Signal()
+
     def __init__(self, **kwargs):
         super().__init__(
             classes="tools-strip",
@@ -38,13 +46,15 @@ class ToolUI(html.Div):
 
         with self:
             Button(
-                click=self.ctrl.reset,
+                click=self.reset_clicked,
+                disabled=(self._is_toolbar_disabled,),
                 icon="mdi-camera-flip-outline",
                 tooltip="Reset views",
             )
             self._build_tool_button(
                 click=self._toggle_obliques_visibility,
                 is_colored=self._views_state.name.are_obliques_visible,
+                is_disabled=self._typed_state.name.is_oblique_tool_disabled,
                 icon="mdi-cube-scan",
                 tooltip=(f"{self._views_state.name.are_obliques_visible} ? 'Hide obliques' : 'Show obliques'",),
             )
@@ -52,6 +62,7 @@ class ToolUI(html.Div):
             self._build_tool_button(
                 click=lambda: self._activate_tool(ToolType.PLACE_POINT),
                 is_colored=self._is_tool_active(ToolType.PLACE_POINT),
+                is_disabled=self._typed_state.name.is_point_tool_disabled,
                 icon="mdi-target",
                 tooltip="Place point",
             )
@@ -59,6 +70,7 @@ class ToolUI(html.Div):
             self._build_tool_button(
                 click=lambda: self._activate_tool(ToolType.PLACE_ROI),
                 is_colored=self._is_tool_active(ToolType.PLACE_ROI),
+                is_disabled=self._typed_state.name.is_roi_tool_disabled,
                 icon="mdi-crop",
                 tooltip="Place ROI",
             )
@@ -66,9 +78,14 @@ class ToolUI(html.Div):
             self._build_tool_button(
                 click=lambda: self._activate_tool(ToolType.SEGMENTATION_EFFECT),
                 is_colored=self._is_tool_active(ToolType.SEGMENTATION_EFFECT),
+                is_disabled=self._typed_state.name.is_segmentation_tool_disabled,
                 icon="mdi-shape",
                 tooltip="Segmentation tool",
             )
+
+    @property
+    def _is_toolbar_disabled(self) -> str:
+        return self._typed_state.name.is_toolbar_disabled
 
     def _toggle_obliques_visibility(self):
         self._views_state.data.are_obliques_visible = not self._views_state.data.are_obliques_visible
@@ -82,12 +99,13 @@ class ToolUI(html.Div):
     def _is_tool_active(self, tool_type: ToolType) -> str:
         return f"({self._typed_state.name.active_tool} === {tool_type.value})"
 
-    def _build_tool_button(self, is_colored: str | None = None, **kwargs):
+    def _build_tool_button(self, is_colored: str | None = None, is_disabled: str | None = None, **kwargs):
+        is_disabled = (
+            f"({is_disabled} || {self._is_toolbar_disabled})" if is_disabled is not None else self._is_toolbar_disabled
+        )
         Button(
-            color=(f"{is_colored} && !{self._views_state.name.is_viewer_disabled} ? 'primary' : 'undefined'",)
-            if is_colored
-            else None,
-            disabled=(self._views_state.name.is_viewer_disabled,),
+            color=(f"{is_colored} && !{is_disabled} ? 'primary' : 'undefined'",) if is_colored else None,
+            disabled=(is_disabled,),
             **kwargs,
         )
 

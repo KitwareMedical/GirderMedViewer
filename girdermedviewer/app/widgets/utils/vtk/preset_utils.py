@@ -1,7 +1,7 @@
 import json
 import logging
 import xml.etree.ElementTree as ET
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -84,7 +84,7 @@ class Preset(StateDataModel):
     props = Sync(dict[str, str], {})
 
 
-class PresetParser:
+class PresetParser(ABC):
     def __init__(self, presets_file: Path, icons_folder: Path | None):
         self.presets = self.parse_slicer_presets(presets_file)
         self.icons_folder = icons_folder

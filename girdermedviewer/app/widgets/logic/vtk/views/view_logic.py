@@ -1,5 +1,5 @@
 import logging
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
 from trame_server.core import Server
@@ -15,17 +15,17 @@ from ....utils import (
     VolumePresetParser,
 )
 from ...base_logic import BaseLogic
+from ...scene.objects.mesh_object_logic import MeshDisplay
 from ...scene.objects.volume_object_logic import VolumeDisplay
 from ..handlers.mesh_handler import MeshHandler
 from ..handlers.volume_handler import VolumeHandler
-from ..place_roi_logic import PlaceROILogic
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=VolumeHandler)
 
 
-class ViewLogic(BaseLogic[ViewState], Generic[T]):
+class ViewLogic(BaseLogic[ViewState], Generic[T], ABC):
     window_level_changed = Signal(str)
     volume_handler: T
 
@@ -67,11 +67,7 @@ class ViewLogic(BaseLogic[ViewState], Generic[T]):
         pass
 
     @abstractmethod
-    def add_mesh(self, data_id: str, data: vtkImageData) -> None:
-        pass
-
-    @abstractmethod
-    def init_roi(self, roi: PlaceROILogic) -> None:
+    def add_mesh(self, data_id: str, data: vtkImageData, display_properties: MeshDisplay) -> None:
         pass
 
     def remove_volume(self, data_id: str, only_data: Any | None = None) -> None:
