@@ -6,11 +6,9 @@ from trame.widgets import html, rca
 from trame.widgets import vuetify3 as v3
 from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
+from vtk import vtkRenderWindow
 
-from ...utils import (
-    Button,
-    create_rendering_pipeline,
-)
+from ...utils import Button
 from .tools.point_selector_ui import PointState
 
 logger = logging.getLogger(__name__)
@@ -64,21 +62,20 @@ class ViewSliderUI(v3.VSlider):
 
 
 class ViewUI(html.Div):
-    def __init__(self, view_type: ViewType, **kwargs):
+    def __init__(self, view_type: ViewType, render_window: vtkRenderWindow, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        self.renderer, self.render_window = create_rendering_pipeline()
-
+        self.render_window = render_window
         self.type = view_type
         self._views_state = TypedState(self.state, ViewsState)
         self._typed_state = TypedState(self.state, ViewState, namespace=view_type.value)
 
         self._build_ui()
 
-    def update(self):
+    def update(self) -> None:
         self.view_handler.update()
 
-    def _build_ui(self):
+    def _build_ui(self) -> None:
         with self:
             my_rca = rca.RemoteControlledArea(
                 v_if=(f"!{self._views_state.name.is_viewer_disabled}",), display="image", send_mouse_move=True
@@ -105,25 +102,26 @@ class ViewUI(html.Div):
                         disabled=(self._views_state.name.is_viewer_disabled,),
                     )
 
-    def toggle_fullscreen(self):
+    def toggle_fullscreen(self) -> None:
         self._views_state.data.fullscreen = None if self._views_state.data.fullscreen else self.type
 
 
 class ViewsUI(v3.VContainer):
-    def __init__(self, **kwargs):
+    def __init__(self, render_windows: dict[ViewType, vtkRenderWindow], **kwargs) -> None:
         super().__init__(classes="fill-height pa-0", fluid=True, **kwargs)
         self._typed_state = TypedState(self.state, ViewsState)
         self.view_uis: dict[ViewType, ViewUI] = {}
 
-        self._build_quad_view()
+        self._build_quad_view(render_windows)
 
-    def _build_quad_view(self):
+    def _build_quad_view(self, render_windows: dict[ViewType, vtkRenderWindow]) -> None:
         with self, html.Div(classes="quad-view"):
             for view_type in [ViewType.SAGITTAL, ViewType.THREED, ViewType.CORONAL, ViewType.AXIAL]:
                 self.view_uis[view_type] = ViewUI(
                     v_if=(self._has_view(view_type),),
                     classes=(f"{self._has_fullscreen_view(view_type)} ? 'fullscreen-view' : 'view'",),
                     view_type=view_type,
+                    render_window=render_windows.get(view_type),
                 )
 
     def _has_fullscreen_view(self, view_type: ViewType) -> str:

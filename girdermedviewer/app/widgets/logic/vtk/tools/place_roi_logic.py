@@ -37,6 +37,19 @@ class PlaceROILogic(BaseToolLogic[PlaceROIState]):
             }
         )
 
+        self._add_roi_to_views()
+
+    def _add_roi_to_views(self):
+        for view_logic in self._views_logic.threed_views:
+            self.box_widget.SetInteractor(view_logic.renderer.GetRenderWindow().GetInteractor())
+            self.box_widget.SetCurrentRenderer(view_logic.renderer)
+
+        for view_logic in self._views_logic.slice_views:
+            actor = render_mesh_in_slice(self.poly_data, view_logic.orientation.value, view_logic.renderer)
+            self.box_actors.append(actor)
+
+        self.set_enabled(False)
+
     def _get_bounds(self):
         return (
             self.data.min_roi_bounds.pos_x,
@@ -114,14 +127,3 @@ class PlaceROILogic(BaseToolLogic[PlaceROIState]):
 
     def set_ui(self, ui: PlaceROIUI) -> None:
         ui.reset_clicked.connect(self._reset)
-
-        for view_logic in self._views_logic.threed_views:
-            self.box_widget.SetInteractor(view_logic.renderer.GetRenderWindow().GetInteractor())
-            self.box_widget.SetCurrentRenderer(view_logic.renderer)
-
-        self.box_actors = []
-        for view_logic in self._views_logic.slice_views:
-            actor = render_mesh_in_slice(self.poly_data, view_logic.orientation.value, view_logic.renderer)
-            self.box_actors.append(actor)
-
-        self.set_enabled(False)

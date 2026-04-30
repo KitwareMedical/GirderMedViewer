@@ -12,7 +12,7 @@ class MedViewerApp(TrameApp):
         super().__init__(server, **kwargs)
         self._layout = AppLayout(self.server)
         self._logic = AppLogic(self.server)
-        self._ui = AppUI(self._layout, self._logic.provider, self._logic.app_config)
+        self._ui = AppUI(self._layout, self._logic.provider, self._logic.app_config, self._logic.render_windows)
 
         logging.basicConfig(stream=sys.stdout)
         # Silence dependencies logs and keep only the application ones

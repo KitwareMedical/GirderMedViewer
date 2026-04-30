@@ -5,6 +5,7 @@ from typing import Any
 from vtk import (
     vtkImageData,
     vtkImageSlice,
+    vtkRenderer,
     vtkResliceImageViewer,
 )
 
@@ -39,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 
 class VolumeHandler(ObjectHandler, ABC):
-    def __init__(self, preset_parser: PresetParser):
-        super().__init__()
+    def __init__(self, preset_parser: PresetParser, renderer: vtkRenderer):
+        super().__init__(renderer)
         self.preset_parser = preset_parser
 
     @abstractmethod
@@ -60,8 +61,8 @@ class VolumeHandler(ObjectHandler, ABC):
 
 
 class VolumeSliceHandler(VolumeHandler):
-    def __init__(self, preset_parser: ColorPresetParser, orientation: int) -> None:
-        super().__init__(preset_parser)
+    def __init__(self, preset_parser: ColorPresetParser, renderer: vtkRenderer, orientation: int) -> None:
+        super().__init__(preset_parser, renderer)
         self.orientation = orientation
 
     def _is_primary_volume(self, data_id: str) -> bool:
@@ -249,8 +250,8 @@ class VolumeSliceHandler(VolumeHandler):
 
 
 class VolumeThreeDHandler(VolumeHandler):
-    def __init__(self, preset_parser: VolumePresetParser) -> None:
-        super().__init__(preset_parser)
+    def __init__(self, preset_parser: VolumePresetParser, renderer: vtkRenderer) -> None:
+        super().__init__(preset_parser, renderer)
 
     def _init_glyph_actors(self, data_id: str) -> None:
         glyph_actor = render_volume_as_vector_field(self.get_image_data(data_id), self.renderer)

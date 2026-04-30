@@ -173,6 +173,11 @@ class VolumeHandler(ObjectHandler):
             self._add_to_primary_volumes(volume_logic._id)
             self._set_active_primary_volume_id(volume_logic._id)
 
+        elif layer == VolumeLayer.SECONDARY:
+            volume_logic.display.opacity = 0.5
+            if not volume_logic.is_visible:
+                self._display_handler.update_visibility(volume_logic, True)
+
         self.views_logic.add_volume(
             volume_logic._id,
             volume_logic.object_data,
