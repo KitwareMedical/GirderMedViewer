@@ -54,11 +54,12 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
             SliceViewLogic.DEBOUNCED_FLUSH and SliceViewLogic._debounced_flush_initialized is False
         ):  # can't use hasattr here
             SliceViewLogic._debounced_flush_initialized = True
-            self.server.controller.debounced_flush = debounce(0.3)(self.state.flush)
+            self.ctrl.debounced_flush = debounce(0.3)(self.state.flush)
 
+        # self.bind_changes({self.name.slider_state.value: self._set_slice})
         self._views_state.bind_changes(
             {
-                (self._views_state.name.position, self._views_state.name.normals): self._on_position_or_normals_changed,
+                # (self._views_state.name.position, self._views_state.name.normals): self._on_position_or_normals_changed,
                 self._views_state.name.are_obliques_visible: self.on_obliques_visibility_changed,
             }
         )
@@ -84,7 +85,7 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
 
     def set_ui(self, ui: ViewUI) -> None:
         super().set_ui(ui)
-        ui.slider_ui.slice_updated.connect(self.set_slice)
+        ui.slider_ui.slice_updated.connect(self._set_slice)
 
     def reset(self) -> None:
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
@@ -177,12 +178,11 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
     def on_reslice_cursor_end_interaction(self, *_args) -> None:
         self.flush()  # flush state.position
 
-    @debounce(0.05)
     def _update_slider(self, *_args) -> None:
-        range = self.get_slice_range()
+        range = self._get_slice_range()
         self.data.slider_state.min_value = range[0]
         self.data.slider_state.max_value = range[1]
-        self.data.slider_state.value = self.get_slice()
+        self.data.slider_state.value = self._get_slice()
         self.flush()
 
     def _update_position_and_normals_in_view(self, position: PointState, normals: tuple[tuple[float]]) -> None:
@@ -201,19 +201,21 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
 
             self.update()
 
-    def get_slice_range(self) -> None:
+    def _get_slice_range(self) -> None:
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
         return [0, get_number_of_slices(reslice_image_viewer, self.orientation.value)]
 
-    def get_slice(self) -> None:
+    def _get_slice(self) -> None:
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
         return get_slice_index_from_position(self.position, reslice_image_viewer, self.orientation.value)
 
-    def set_slice(self, slice: int) -> None:
+    @debounce(0.05)
+    def _set_slice(self, slice: int) -> None:
         reslice_image_viewer = self.volume_handler.get_reslice_image_viewer()
         new_position = get_position_from_slice_index(slice, reslice_image_viewer, self.orientation.value)
         if new_position is not None and self.position != new_position:
-            self.position = new_position
+            self.position = new_position/
+            self._update_position_and_normals_in_view(new_position, normals)
             self.flush()
 
     def on_window_level_changed(self, window_level: tuple[float], **_kwargs) -> None:

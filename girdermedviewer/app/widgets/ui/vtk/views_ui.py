@@ -11,7 +11,6 @@ from ...utils import (
     Button,
     create_rendering_pipeline,
 )
-from .tools.point_selector_ui import PointState
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,6 @@ class SliderState:
 
 @dataclass
 class ViewsState:
-    position: PointState = field(default_factory=PointState)
     normals: tuple[tuple[float]] | None = None
     is_viewer_disabled: bool = True
     are_sliders_visible: bool = False
