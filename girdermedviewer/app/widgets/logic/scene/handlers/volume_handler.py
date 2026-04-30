@@ -23,11 +23,9 @@ class VolumeDisplayHandler:
                 view.update()
 
     def update_threed_visibility(self, volume_logic: VolumeObjectLogic) -> Callable:
-        def _update_threed_visibility(is_threed_visible: bool) -> None:
-            if not volume_logic.is_visible:
-                return
+        def _update_threed_visibility(*_args) -> None:
             for view in self.views_logic.threed_views:
-                modified = view.volume_handler.set_volume_visibility(volume_logic._id, is_threed_visible)
+                modified = view.volume_handler.update_volume_visibility(volume_logic._id, volume_logic.display)
                 if modified:
                     view.update()
 

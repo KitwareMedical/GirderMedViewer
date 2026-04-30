@@ -26,11 +26,9 @@ class MeshDisplayHandler:
         return _update_visibility
 
     def update_threed_visibility(self, mesh_logic: MeshObjectLogic) -> Callable:
-        def _update_threed_visibility(is_threed_visible: bool) -> None:
-            if not mesh_logic.is_visible:
-                return
+        def _update_threed_visibility(*_args) -> None:
             for view in self.views_logic.threed_views:
-                modified = view.mesh_handler.set_mesh_visibility(mesh_logic._id, is_threed_visible)
+                modified = view.mesh_handler.update_mesh_visibility(mesh_logic._id, mesh_logic.display)
                 if modified:
                     view.update()
 
