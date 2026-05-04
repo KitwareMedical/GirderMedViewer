@@ -203,7 +203,6 @@ class SliceViewLogic(ViewLogic[MeshSliceHandler, VolumeSliceHandler]):
         if position.pos_x is not None and normals is not None:
             self._update_position_and_normals_in_view(position, normals)
             self._update_slider()
-            self.mesh_handler.update_filters()
 
             self.update()
 

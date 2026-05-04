@@ -22,6 +22,7 @@ from vtk import (
     vtkImageResliceMapper,
     vtkImageSlice,
     vtkMath,
+    vtkMatrix4x4,
     vtkMetaImageReader,
     vtkNIFTIImageReader,
     vtkNrrdReader,
@@ -36,7 +37,7 @@ from vtk import (
     vtkSmartVolumeMapper,
     vtkSTLReader,
     vtkTransform,
-    vtkTransformPolyDataFilter,
+    vtkTransformFilter,
     vtkVolume,
     vtkVolumeProperty,
     vtkXMLImageDataReader,
@@ -631,7 +632,7 @@ def render_mesh_in_slice(poly_data: vtkPolyData, axis: int, renderer: vtkRendere
     return actor
 
 
-def set_clipping_planes(
+def compute_clipping_planes(
     reslice_cursor: vtkResliceCursor, axis: int, front_plane: vtkPlane, back_plane: vtkPlane, offset=3.0
 ):
     current_slice = reslice_cursor.GetPlane(axis)
@@ -648,7 +649,7 @@ def render_streamline_in_slice(poly_data: vtkPolyData, renderer: vtkRenderer, ax
 
     front_plane = vtkPlane()
     back_plane = vtkPlane()
-    set_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
+    compute_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
 
     front_clipper = vtkClipPolyData()
     front_clipper.SetInputData(poly_data)
@@ -661,8 +662,7 @@ def render_streamline_in_slice(poly_data: vtkPolyData, renderer: vtkRenderer, ax
     back_clipper.InsideOutOn()
 
     def on_cursor_modified(*_args):
-        set_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
-        front_clipper.Modified()
+        compute_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
 
     reslice_cursor.AddObserver("ModifiedEvent", on_cursor_modified)
 
@@ -678,30 +678,6 @@ def render_streamline_in_slice(poly_data: vtkPolyData, renderer: vtkRenderer, ax
     renderer.GetRenderWindow().Render()
 
     return actor
-
-
-def get_aligned_poly_data(poly_data: vtkPolyData, center):
-    poly_data_bounds = poly_data.GetBounds()
-    poly_data_center = [
-        (poly_data_bounds[0] + poly_data_bounds[1]) / 2,
-        (poly_data_bounds[2] + poly_data_bounds[3]) / 2,
-        (poly_data_bounds[4] + poly_data_bounds[5]) / 2,
-    ]
-    translation = [
-        center[0] - poly_data_center[0],
-        center[1] - poly_data_center[1],
-        center[2] - poly_data_center[2],
-    ]
-
-    transform = vtkTransform()
-    transform.Translate(translation)
-
-    tf = vtkTransformPolyDataFilter()
-    tf.SetInputData(poly_data)
-    tf.SetTransform(transform)
-    tf.Update()
-
-    return tf.GetOutput()
 
 
 def set_mesh_visibility(actor: vtkActor, visible):
@@ -921,21 +897,21 @@ def load_mesh(file_path):
 
     reader = preload_mesh(file_path)
 
-    # # Invert x and y
-    # matrix = vtkMatrix4x4()
-    # matrix.SetElement(0, 0, -1)
-    # matrix.SetElement(1, 1, -1)
+    # Invert x and y
+    matrix = vtkMatrix4x4()
+    matrix.SetElement(0, 0, -1)
+    matrix.SetElement(1, 1, -1)
 
-    # transform = vtkTransform()
-    # transform.SetMatrix(matrix)
-    # transform.Inverse()
+    transform = vtkTransform()
+    transform.SetMatrix(matrix)
+    transform.Inverse()
 
-    # transform_filter = vtkTransformFilter()
-    # transform_filter.SetInputConnection(reader.GetOutputPort())
-    # transform_filter.SetTransform(transform)
-    # transform_filter.Update()
+    transform_filter = vtkTransformFilter()
+    transform_filter.SetInputConnection(reader.GetOutputPort())
+    transform_filter.SetTransform(transform)
+    transform_filter.Update()
 
-    # return transform_filter.GetOutput()
+    return transform_filter.GetOutput()
 
     return reader.GetOutput()
 
