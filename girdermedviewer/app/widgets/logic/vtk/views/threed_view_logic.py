@@ -24,18 +24,18 @@ class ThreeDViewLogic(ViewLogic[VolumeThreeDHandler]):
         self,
         data_id: str,
         image_data: vtkImageData,
-        display_properties: VolumeDisplay,
+        data_display: VolumeDisplay,
         layer: VolumeLayer,
         subtype: SceneObjectSubtype,
     ) -> None:
         if subtype == SceneObjectSubtype.LABELMAP and layer == VolumeLayer.SECONDARY:
             return
         self.volume_handler.add_volume(data_id, image_data)
-        self.volume_handler.apply_volume_display_properties(data_id, display_properties)
+        self.volume_handler.apply_data_display(data_id, data_display)
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay) -> None:
         self.mesh_handler.add_mesh_in_3D(data_id, poly_data)
-        self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
+        self.mesh_handler.apply_data_display(data_id, data_display)
 
     def reset(self) -> None:
         reset_3D(self.renderer)

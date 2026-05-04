@@ -26,9 +26,9 @@ class SegmentationDisplayHandler:
         self.views_logic = views_logic
 
     def update_visibility(self, seg_logic: SegmentationFilterLogic) -> Callable:
-        def _update_visibility(visible: bool):
+        def _update_visibility(*_args):
             for view in self.views_logic.views:
-                modified = view.volume_handler.set_volume_visibility(seg_logic._id, visible)
+                modified = view.volume_handler.update_volume_visibility(seg_logic._id, seg_logic.display)
                 if modified:
                     view.update()
 
@@ -36,37 +36,37 @@ class SegmentationDisplayHandler:
 
     def update_opacity(self, seg_logic: SegmentationFilterLogic) -> Callable:
         @debounce(0.05)
-        def _update_opacity(opacity: float) -> None:
-            if opacity < 0 or not seg_logic.is_visible:
-                return
+        def _update_opacity(*_args) -> None:
             for view in self.views_logic.slice_views:
-                modified = view.volume_handler.set_volume_opacity(seg_logic._id, opacity)
+                modified = view.volume_handler.update_volume_opacity(seg_logic._id, seg_logic.display)
                 if modified:
                     view.update()
 
         return _update_opacity
 
-    def update_segment_color(self, seg_logic: SegmentationFilterLogic, segment_id: int) -> Callable:
-        def _update_segment_color(color: str) -> None:
-            if not seg_logic.is_visible:
-                return
+    def update_segment_color(
+        self, seg_logic: SegmentationFilterLogic, segment_properties: SegmentProperties
+    ) -> Callable:
+        def _update_segment_color(*_args) -> None:
             for view in self.views_logic.slice_views:
-                modified = view.volume_handler.set_segment_color(seg_logic._id, segment_id, color)
+                modified = view.volume_handler.update_segment_color(
+                    seg_logic._id, segment_properties.value, segment_properties.display
+                )
                 if modified:
                     view.update()
 
         return _update_segment_color
 
-    def update_segment_visibility(self, seg_logic: SegmentationFilterLogic, segment_id: int):
-        def _update_segment_visbility(visible: bool) -> None:
-            if not seg_logic.is_visible:
-                return
+    def update_segment_visibility(self, seg_logic: SegmentationFilterLogic, segment_properties: SegmentProperties):
+        def _update_segment_visibility(*_args) -> None:
             for view in self.views_logic.slice_views:
-                modified = view.volume_handler.set_segment_visibility(seg_logic._id, segment_id, visible)
+                modified = view.volume_handler.update_segment_visibility(
+                    seg_logic._id, segment_properties.value, segment_properties.display
+                )
                 if modified:
                     view.update()
 
-        return _update_segment_visbility
+        return _update_segment_visibility
 
 
 class SegmentationHandler(ObjectHandler):
@@ -134,9 +134,9 @@ class SegmentationHandler(ObjectHandler):
 
     def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> None:
         new_segment = seg_filter_logic.create_segment()
-        new_segment.watch(("color",), self._display_handler.update_segment_color(seg_filter_logic, new_segment.value))
+        new_segment.watch(("color",), self._display_handler.update_segment_color(seg_filter_logic, new_segment))
         new_segment.watch(
-            ("is_visible",), self._display_handler.update_segment_visibility(seg_filter_logic, new_segment.value)
+            ("is_visible",), self._display_handler.update_segment_visibility(seg_filter_logic, new_segment)
         )
         self.select_segment_in_labelmap(seg_filter_logic)
 
