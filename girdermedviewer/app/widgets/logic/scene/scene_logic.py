@@ -81,7 +81,7 @@ class SceneLogic(BaseLogic[SceneState]):
         """Determines type based on file extension and upgrades the object."""
         # Upgrade object dynamically
         if self.mesh_handler.supports_file(file_path):
-            return MeshObjectLogic(self.server, scene_object)
+            return self.mesh_handler.get_logic_type(file_path)(self.server, scene_object)
         if self.volume_handler.supports_file(file_path):
             return VolumeObjectLogic(self.server, scene_object)
         raise ValueError("Unsupported file extension")
@@ -94,7 +94,9 @@ class SceneLogic(BaseLogic[SceneState]):
             raise ValueError(f"No logic associated to filter type: {filter_type.value}")
 
         filter_object = SceneObject(
-            self.server, name=f"{input_object_logic.scene_object.name}_{filter_type.value}", filter_type=filter_type
+            self.server,
+            name=f"{input_object_logic.scene_object.name}_{filter_type.value}",
+            filter_type=filter_type,
         )
         self.add_object(filter_object)
 

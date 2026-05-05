@@ -5,6 +5,7 @@ from undo_stack import Signal
 from ....utils import ICONS_MAP, Button, FilterType, SceneObjectType
 from .gaussian_filter_ui import GaussianFilterUI
 from .segmentation_filter_ui import SegmentationFilterUI
+from .streamline_filter_ui import StreamlineFilterUI
 
 
 class FilterToolbarUI(html.Div):
@@ -47,10 +48,13 @@ class FilterUI(html.Div):
                 v_if=(self._is_filter_active(FilterType.GAUSSIAN_BLUR),),
                 obj_filter_prop="filter_prop",
             )
-
             self.segmentation_filter = SegmentationFilterUI(
                 v_if=(self._is_filter_active(FilterType.SEGMENTATION),),
                 obj_id=f"{obj}._id",
+                obj_filter_prop="filter_prop",
+            )
+            self.streamline_filter = StreamlineFilterUI(
+                v_if=(self._is_filter_active(FilterType.STREAMLINE),),
                 obj_filter_prop="filter_prop",
             )
 

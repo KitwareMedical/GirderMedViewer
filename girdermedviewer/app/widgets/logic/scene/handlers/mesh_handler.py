@@ -1,15 +1,25 @@
 import logging
 from collections.abc import Callable
+from pathlib import Path
+from typing import TypeVar
 
 from trame_dataclass.v2 import get_instance
 from trame_server.core import Server
 
-from ....utils import DataArray, MeshColoringMode, debounce, supported_mesh_extensions
+from ....utils import (
+    DataArray,
+    MeshColoringMode,
+    debounce,
+    is_streamline_file,
+    supported_mesh_extensions,
+)
 from ...vtk.views_logic import ViewsLogic
+from ..filters.streamline_filter_logic import StreamlineFilterLogic
 from ..objects.mesh_object_logic import MeshObjectLogic
 from .object_handler import ObjectHandler
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 class MeshDisplayHandler:
@@ -85,6 +95,9 @@ class MeshHandler(ObjectHandler):
     def supported_extensions(self) -> tuple[str]:
         return supported_mesh_extensions()
 
+    def get_logic_type(self, file_path: Path) -> T:
+        return StreamlineFilterLogic if is_streamline_file(file_path) else MeshObjectLogic
+
     def _connect_mesh_logic_to_display_handler(self, mesh_logic: MeshObjectLogic):
         mesh_logic.display.watch(("opacity",), self._display_handler.update_opacity(mesh_logic))
         mesh_logic.display.watch(("active_array_id",), self._display_handler.update_active_array(mesh_logic))
@@ -96,10 +109,15 @@ class MeshHandler(ObjectHandler):
         )
         mesh_logic.display.watch(("is_visible",), self._display_handler.update_visibility(mesh_logic))
 
+        mesh_logic.updated.connect(self.views_logic.update_views)
+
     def add_object_to_views(self, mesh_logic: MeshObjectLogic) -> None:
         self.object_logics[mesh_logic._id] = mesh_logic
         self._connect_mesh_logic_to_display_handler(mesh_logic)
-        self.views_logic.add_mesh(mesh_logic._id, mesh_logic.object_data, mesh_logic.display)
+
+        self.views_logic.add_mesh(
+            mesh_logic._id, mesh_logic.object_data, mesh_logic.display, mesh_logic.scene_object.object_subtype
+        )
 
     def remove_object_from_views(self, mesh_logic: MeshObjectLogic) -> None:
         mesh_logic.display.clear_watchers()

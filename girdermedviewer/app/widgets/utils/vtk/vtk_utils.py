@@ -10,9 +10,11 @@ from vtk import (
     vtkArrowSource,
     vtkBoundingBox,
     vtkBox,
+    vtkClipPolyData,
     vtkColorSeries,
     vtkCutter,
     vtkDiscretizableColorTransferFunction,
+    vtkExtractGeometry,
     vtkGlyph3DMapper,
     vtkImageData,
     vtkImageGaussianSmooth,
@@ -25,6 +27,8 @@ from vtk import (
     vtkNIFTIImageReader,
     vtkNrrdReader,
     vtkPiecewiseFunction,
+    vtkPlane,
+    vtkPolyData,
     vtkPolyDataMapper,
     vtkResliceCursor,
     vtkResliceCursorLineRepresentation,
@@ -607,7 +611,7 @@ def set_slice_window_level(image_slice: vtkImageSlice | None, window_level: tupl
     return True
 
 
-def render_mesh_in_slice(poly_data, axis, renderer):
+def render_mesh_in_slice(poly_data: vtkPolyData, axis: int, renderer: vtkRenderer) -> vtkActor:
     reslice_image_viewer = get_reslice_image_viewer(axis)
     reslice_cursor = get_reslice_cursor(reslice_image_viewer)
 
@@ -621,10 +625,57 @@ def render_mesh_in_slice(poly_data, axis, renderer):
 
     actor = vtkActor()
     actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(1, 0, 0)
 
     renderer.AddActor(actor)
     renderer.ResetCameraScreenSpace(0.8)
+
+    return actor
+
+
+def compute_clipping_planes(
+    reslice_cursor: vtkResliceCursor, axis: int, front_plane: vtkPlane, back_plane: vtkPlane, offset=3.0
+):
+    current_slice = reslice_cursor.GetPlane(axis)
+    origin, normal = current_slice.GetOrigin(), current_slice.GetNormal()
+    front_plane.SetNormal(normal)
+    front_plane.SetOrigin([origin[i] + offset * normal[i] for i in range(3)])
+    back_plane.SetNormal([-n for n in normal])
+    back_plane.SetOrigin([origin[i] - offset * normal[i] for i in range(3)])
+
+
+def render_streamline_in_slice(poly_data: vtkPolyData, renderer: vtkRenderer, axis: int) -> vtkActor:
+    reslice_image_viewer = get_reslice_image_viewer(axis)
+    reslice_cursor = get_reslice_cursor(reslice_image_viewer)
+
+    front_plane = vtkPlane()
+    back_plane = vtkPlane()
+    compute_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
+
+    front_clipper = vtkClipPolyData()
+    front_clipper.SetInputData(poly_data)
+    front_clipper.SetClipFunction(front_plane)
+    front_clipper.InsideOutOn()
+
+    back_clipper = vtkClipPolyData()
+    back_clipper.SetInputConnection(front_clipper.GetOutputPort())
+    back_clipper.SetClipFunction(back_plane)
+    back_clipper.InsideOutOn()
+
+    def on_cursor_modified(*_args):
+        compute_clipping_planes(reslice_cursor, axis, front_plane, back_plane)
+
+    reslice_cursor.AddObserver("ModifiedEvent", on_cursor_modified)
+
+    mapper = vtkPolyDataMapper()
+    mapper.SetInputConnection(back_clipper.GetOutputPort())
+
+    actor = vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetLineWidth(5)
+    actor.GetProperty().RenderLinesAsTubesOn()
+
+    renderer.AddActor(actor)
+    renderer.GetRenderWindow().Render()
 
     return actor
 
@@ -693,7 +744,8 @@ def render_mesh_in_3D(poly_data, renderer):
 
     actor = vtkActor()
     actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(1, 0, 0)
+    actor.GetProperty().SetLineWidth(5)
+    actor.GetProperty().RenderLinesAsTubesOn()
 
     renderer.AddActor(actor)
     renderer.ResetCameraScreenSpace(0.8)
@@ -701,7 +753,7 @@ def render_mesh_in_3D(poly_data, renderer):
     return actor
 
 
-def remove_prop(renderer: vtkRenderer, prop: vtkProp | vtkResliceImageViewer):
+def remove_prop(renderer: vtkRenderer, prop: vtkProp | vtkResliceImageViewer) -> None:
     window = renderer.GetRenderWindow()
 
     if isinstance(prop, vtkProp):
@@ -823,39 +875,66 @@ def load_volume(file_path):
     raise Exception(f"File format is not handled for {file_path}")
 
 
-def load_mesh(file_path):
-    """Read a file and return a vtkPolyData object"""
-    logger.info(f"Loading mesh {file_path}")
-
-    def invert_xy(reader):
-        matrix = vtkMatrix4x4()
-        matrix.SetElement(0, 0, -1)
-        matrix.SetElement(1, 1, -1)
-
-        transform = vtkTransform()
-        transform.SetMatrix(matrix)
-        transform.Inverse()
-
-        transform_filter = vtkTransformFilter()
-        transform_filter.SetInputConnection(reader.GetOutputPort())
-        transform_filter.SetTransform(transform)
-        transform_filter.Update()
-
-        return transform_filter.GetOutput()
-
+def preload_mesh(file_path):
     if file_path.endswith(".stl"):
         reader = vtkSTLReader()
         reader.SetFileName(file_path)
         reader.Update()
-        return invert_xy(reader)
+        return reader
 
     if file_path.endswith(".vtp"):
         reader = vtkXMLPolyDataReader()
         reader.SetFileName(file_path)
         reader.Update()
-        return invert_xy(reader)
+        return reader
 
     raise Exception(f"File format is not handled for {file_path}")
+
+
+def load_mesh(file_path):
+    """Read a file and return a vtkPolyData object"""
+    logger.info(f"Loading mesh {file_path}")
+
+    reader = preload_mesh(file_path)
+
+    # Invert x and y
+    matrix = vtkMatrix4x4()
+    matrix.SetElement(0, 0, -1)
+    matrix.SetElement(1, 1, -1)
+
+    transform = vtkTransform()
+    transform.SetMatrix(matrix)
+    transform.Inverse()
+
+    transform_filter = vtkTransformFilter()
+    transform_filter.SetInputConnection(reader.GetOutputPort())
+    transform_filter.SetTransform(transform)
+    transform_filter.Update()
+
+    return transform_filter.GetOutput()
+
+    return reader.GetOutput()
+
+
+def create_streamline_filter(file_path, sphere) -> vtkExtractGeometry:
+    poly_data = load_mesh(file_path)
+    extract_filter = vtkExtractGeometry()
+    extract_filter.SetInputData(poly_data)
+    extract_filter.SetImplicitFunction(sphere)
+    extract_filter.ExtractInsideOn()
+    extract_filter.ExtractBoundaryCellsOn()
+
+    return extract_filter
+
+
+def is_streamline_file(file_path) -> bool:
+    reader = preload_mesh(file_path)
+    polydata = reader.GetOutput()
+    n_lines = polydata.GetNumberOfLines()
+    line_perc = n_lines / (
+        n_lines + polydata.GetNumberOfVerts() + polydata.GetNumberOfPolys() + polydata.GetNumberOfStrips()
+    )
+    return line_perc > 0.95
 
 
 color_series = vtkColorSeries()

@@ -6,7 +6,7 @@ from trame_server.utils.typed_state import TypedState
 from undo_stack import Signal
 
 from ....utils import Button
-from .point_selector_ui import PointSelectorUI, PointState
+from ...point_selector_ui import PointSelectorUI, PointState
 
 logger = logging.getLogger(__name__)
 

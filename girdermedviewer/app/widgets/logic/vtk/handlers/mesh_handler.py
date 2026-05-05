@@ -11,6 +11,7 @@ from ....utils import (
     convert_color_hex_to_normalized_rgb,
     render_mesh_in_3D,
     render_mesh_in_slice,
+    render_streamline_in_slice,
     set_mesh_opacity,
     set_mesh_solid_color,
     set_mesh_visibility,
@@ -99,6 +100,10 @@ class MeshSliceHandler(MeshHandler):
 
     def add_mesh(self, data_id: str, poly_data: vtkPolyData) -> None:
         actor = render_mesh_in_slice(poly_data, self.orientation, self.renderer)
+        self.register_data(data_id, actor)
+
+    def add_streamline(self, data_id: str, poly_data: vtkPolyData) -> None:
+        actor = render_streamline_in_slice(poly_data, self.renderer, self.orientation)
         self.register_data(data_id, actor)
 
     def update_mesh_visibility(self, data_id: str, data_display: MeshDisplay) -> bool:

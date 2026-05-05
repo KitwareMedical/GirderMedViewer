@@ -114,8 +114,13 @@ class SliceViewLogic(ViewLogic[MeshSliceHandler, VolumeSliceHandler]):
 
         self.volume_handler.apply_data_display(data_id, data_display)
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay) -> None:
-        self.mesh_handler.add_mesh(data_id, poly_data)
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay, subtype: SceneObjectSubtype
+    ) -> None:
+        if subtype == SceneObjectSubtype.STREAMLINE:
+            self.mesh_handler.add_streamline(data_id, poly_data)
+        else:
+            self.mesh_handler.add_mesh(data_id, poly_data)
         self.mesh_handler.apply_data_display(data_id, data_display)
 
     def flush(self) -> None:

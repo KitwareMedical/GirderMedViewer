@@ -111,9 +111,11 @@ class ViewsLogic(BaseLogic[ViewsState]):
             view_logic.reset()
         self.update_views()
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay) -> None:
+    def add_mesh(
+        self, data_id: str, poly_data: vtkPolyData, display_properties: VolumeDisplay, subtype: SceneObjectSubtype
+    ):
         for view_logic in self.views:
-            view_logic.add_mesh(data_id, poly_data, display_properties)
+            view_logic.add_mesh(data_id, poly_data, display_properties, subtype)
 
         self._on_object_added()
 
