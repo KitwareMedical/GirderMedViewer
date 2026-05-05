@@ -7,12 +7,16 @@ from ..objects.volume_object_logic import BaseVolumeObjectLogic, VolumeObjectLog
 MAX_SEGMENTS_PER_LABELMAP = 255
 
 
+class SegmentDisplay(StateDataModel):
+    color = Sync(str)
+    is_visible = Sync(bool, True)
+
+
 class SegmentProperties(StateDataModel):
     name = Sync(str)
-    color = Sync(str)
+    display = Sync(SegmentDisplay, has_dataclass=True)
     value = ServerOnly(int)
     is_color_dialog_visible = Sync(bool, False)
-    is_visible = Sync(bool, True)
 
 
 class SegmentationFilterProperties(StateDataModel):
@@ -60,7 +64,10 @@ class SegmentationFilterLogic(BaseVolumeObjectLogic):
             raise ValueError(f"Labelmap cannot exceed {MAX_SEGMENTS_PER_LABELMAP} segments.")
 
         new_segment = SegmentProperties(
-            self.server, name=f"Segment_{self._next_segment_id}", value=self._next_segment_id, color=get_random_color()
+            self.server,
+            name=f"Segment_{self._next_segment_id}",
+            value=self._next_segment_id,
+            display=SegmentDisplay(self.server, color=get_random_color()),
         )
         self.scene_object_filter.segments = [*self.segments, new_segment]
         self.update_next_segment_id()

@@ -19,7 +19,7 @@ class SegmentColorDialog(v3.VDialog):
                 Text("Edit segment color")
                 Button(icon="mdi-close", size="small", click=f"{self._segment}.is_color_dialog_visible = false;")
             with v3.VCardText():
-                ColorPicker(v_model=(f"{self._segment}.color",))
+                ColorPicker(v_model=(f"{self._segment}.display.color",))
 
 
 class SegmentList(v3.VList):
@@ -54,7 +54,7 @@ class SegmentList(v3.VList):
                 v3.Template(v_slot_prepend=True),
                 Button(
                     icon="mdi-circle",
-                    color=("segment.color",),
+                    color=("segment.display.color",),
                     size="small",
                 ),
             ):
@@ -68,8 +68,8 @@ class SegmentList(v3.VList):
 
             with v3.Template(v_slot_append=True):
                 Button(
-                    icon=("segment.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                    click_stop="segment.is_visible = !segment.is_visible",
+                    icon=("segment.display.is_visible ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                    click_stop="segment.display.is_visible = !segment.display.is_visible",
                     size="small",
                 )
                 Button(

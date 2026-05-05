@@ -17,9 +17,9 @@ class MeshDisplayHandler:
         self.views_logic = views_logic
 
     def update_visibility(self, mesh_logic: MeshObjectLogic) -> Callable:
-        def _update_visibility(visible: bool) -> None:
+        def _update_visibility(*_args) -> None:
             for view in self.views_logic.views:
-                modified = view.mesh_handler.set_mesh_visibility(mesh_logic._id, visible)
+                modified = view.mesh_handler.update_mesh_visibility(mesh_logic._id, mesh_logic.display)
                 if modified:
                     view.update()
 
@@ -27,11 +27,9 @@ class MeshDisplayHandler:
 
     def update_opacity(self, mesh_logic: MeshObjectLogic) -> Callable:
         @debounce(0.05)
-        def _update_opacity(opacity: float) -> None:
-            if opacity < 0 or not mesh_logic.is_visible:
-                return
+        def _update_opacity(*_args) -> None:
             for view in self.views_logic.views:
-                modified = view.mesh_handler.set_mesh_opacity(mesh_logic._id, opacity)
+                modified = view.mesh_handler.update_mesh_opacity(mesh_logic._id, mesh_logic.display)
                 if modified:
                     view.update()
 
@@ -39,42 +37,29 @@ class MeshDisplayHandler:
 
     def update_solid_coloring(self, mesh_logic: MeshObjectLogic) -> Callable:
         @debounce(0.05)
-        def _update_solid_coloring(color: str) -> None:
-            if not mesh_logic.is_visible:
-                return
+        def _update_solid_coloring(*_args) -> None:
             for view in self.views_logic.views:
-                modified = view.mesh_handler.set_mesh_solid_color(mesh_logic._id, color)
+                modified = view.mesh_handler.update_mesh_solid_color(mesh_logic._id, mesh_logic.display)
                 if modified:
                     view.update()
 
         return _update_solid_coloring
 
     def update_array_coloring(self, mesh_logic: MeshObjectLogic) -> Callable:
-        def _update_array_coloring(name: str, is_inverted: bool, scalar_range: list[float]) -> None:
-            if not mesh_logic.is_visible:
-                return
-            active_array = get_instance(mesh_logic.display.active_array_id)
+        def _update_array_coloring(*_args) -> None:
             for view in self.views_logic.views:
-                modified = view.mesh_handler.set_mesh_array_color(
-                    mesh_logic._id,
-                    active_array,
-                    name,
-                    is_inverted,
-                    scalar_range,
-                )
+                modified = view.mesh_handler.update_mesh_array_color(mesh_logic._id, mesh_logic.display)
                 if modified:
                     view.update()
 
         return _update_array_coloring
 
     def update_active_array(self, mesh_logic: MeshObjectLogic) -> Callable:
-        def _update_active_array(active_array_id: str) -> None:
-            if not mesh_logic.is_visible:
-                return
-            active_array = get_instance(active_array_id)
+        def _update_active_array(*_args) -> None:
+            active_array = get_instance(mesh_logic.display.active_array_id)
             assert isinstance(active_array, DataArray)
             if active_array.coloring_mode == MeshColoringMode.SOLID:
-                self.update_solid_coloring(mesh_logic)(mesh_logic.display.solid_color)
+                self.update_solid_coloring(mesh_logic)()
 
             elif active_array.coloring_mode == MeshColoringMode.ARRAY:
                 mesh_logic.display.array_color.array_range = active_array.array_min_max

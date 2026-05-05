@@ -13,6 +13,7 @@ from ....utils import (
     SceneObjectSubtype,
     VolumeLayer,
     VolumePresetParser,
+    create_rendering_pipeline,
 )
 from ...base_logic import BaseLogic
 from ...scene.objects.mesh_object_logic import MeshDisplay
@@ -37,18 +38,16 @@ class ViewLogic(BaseLogic[ViewState], Generic[T], ABC):
         color_preset_parser: ColorPresetParser,
     ) -> None:
         super().__init__(server, ViewState, view_type.value)
+        self.renderer, self.render_window = create_rendering_pipeline()
         self.type = view_type
         self.volume_preset_parser = volume_preset_parser
         self.color_preset_parser = color_preset_parser
 
-        self.mesh_handler = MeshHandler(color_preset_parser)
+        self.mesh_handler = MeshHandler(color_preset_parser, self.renderer)
 
         self._views_state = TypedState(self.state, ViewsState)
 
     def set_ui(self, ui: ViewUI) -> None:
-        self.renderer = ui.renderer
-        self.mesh_handler.set_renderer(ui.renderer)
-        self.volume_handler.set_renderer(ui.renderer)
         self.update = ui.update
 
     @abstractmethod

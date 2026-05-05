@@ -2,9 +2,7 @@ from typing import Any
 
 from trame_server.core import Server
 from undo_stack import Signal
-from vtk import vtkImageData, vtkPolyData
-
-from girdermedviewer.app.widgets.logic.vtk.handlers.volume_handler import VolumeHandler
+from vtk import vtkImageData, vtkPolyData, vtkRenderWindow
 
 from ...logic.base_logic import BaseLogic
 from ...ui import ViewsState, ViewsUI, ViewType
@@ -15,6 +13,7 @@ from ...utils import (
     get_volume_preset_parser,
 )
 from ..scene.objects.volume_object_logic import VolumeDisplay
+from .handlers.volume_handler import VolumeHandler
 from .views.slice_view_logic import SliceViewLogic
 from .views.threed_view_logic import ThreeDViewLogic
 from .views.view_logic import ViewLogic
@@ -42,6 +41,10 @@ class ViewsLogic(BaseLogic[ViewsState]):
                 color_preset_parser=self.color_preset_parser,
             )
             self.view_logics[view_type].window_level_changed.connect(self.window_level_changed)
+
+    @property
+    def render_windows(self) -> dict[ViewType, vtkRenderWindow]:
+        return {view_type: view.render_window for view_type, view in self.view_logics.items()}
 
     @property
     def views(self) -> list[ViewLogic[VolumeHandler]]:

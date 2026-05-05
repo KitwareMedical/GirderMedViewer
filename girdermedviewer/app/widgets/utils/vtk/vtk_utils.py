@@ -716,7 +716,7 @@ def remove_prop(renderer: vtkRenderer, prop: vtkProp | vtkResliceImageViewer):
         raise Exception(f"Can't remove prop {prop}")
 
 
-def create_rendering_pipeline():
+def create_rendering_pipeline() -> tuple[vtkRenderer, vtkRenderWindow]:
     renderer = vtkRenderer()
     render_window = vtkRenderWindow()
     render_window.ShowWindowOff()

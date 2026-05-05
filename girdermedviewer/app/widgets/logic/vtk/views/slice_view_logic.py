@@ -63,7 +63,7 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
             }
         )
 
-        self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.orientation.value)
+        self.volume_handler = VolumeSliceHandler(self.color_preset_parser, self.renderer, self.orientation.value)
 
     @property
     def position(self) -> tuple[float]:
@@ -96,15 +96,13 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
         self,
         data_id: str,
         image_data: vtkImageData,
-        display_properties: VolumeDisplay,
+        data_display: VolumeDisplay,
         layer: VolumeLayer,
         subtype: SceneObjectSubtype,
     ):
-        is_primary = False
         if subtype == SceneObjectSubtype.LABELMAP and layer == VolumeLayer.SECONDARY:
             self.volume_handler.add_labelmap(data_id, image_data)
         elif layer == VolumeLayer.PRIMARY:
-            is_primary = True
             self.volume_handler.add_primary_volume(data_id, image_data)
             self._set_reslice_interaction()
         elif layer == VolumeLayer.SECONDARY:
@@ -112,11 +110,11 @@ class SliceViewLogic(ViewLogic[VolumeSliceHandler]):
         else:
             raise ValueError("Volume layer cannot be undefined.")
 
-        self.volume_handler.apply_volume_display_properties(data_id, display_properties, is_primary)
+        self.volume_handler.apply_data_display(data_id, data_display)
 
-    def add_mesh(self, data_id: str, poly_data: vtkPolyData, display_properties: MeshDisplay) -> None:
+    def add_mesh(self, data_id: str, poly_data: vtkPolyData, data_display: MeshDisplay) -> None:
         self.mesh_handler.add_mesh_in_slice(data_id, poly_data, self.orientation.value)
-        self.mesh_handler.apply_mesh_display_properties(data_id, display_properties)
+        self.mesh_handler.apply_data_display(data_id, data_display)
 
     def flush(self) -> None:
         if SliceViewLogic.DEBOUNCED_FLUSH:
