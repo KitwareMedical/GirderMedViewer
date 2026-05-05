@@ -49,6 +49,20 @@ class ArraySelector(Selector):
             )
 
 
+class ColorHeader(html.Div):
+    def __init__(self, obj_display: str, is_disabled: str | None = None, **kwargs):
+        super().__init__(classes="d-flex justify-space-between align-center", **kwargs)
+        with self:
+            Text("Color", classes="text-header")
+            Button(
+                click=f"{obj_display}.is_threed_visible = !{obj_display}.is_threed_visible",
+                disabled=(is_disabled,),
+                icon=(f"{obj_display}.is_threed_visible ? 'mdi-video-3d' : 'mdi-video-3d-off'",),
+                size="small",
+                tooltip=(f"{obj_display}.is_threed_visible ? 'Hide volume' : 'Show volume'",),
+            )
+
+
 class MeshDisplayColorUI(html.Div):
     def __init__(self, obj_display: str, color_presets: str, **kwargs):
         super().__init__(
@@ -61,7 +75,7 @@ class MeshDisplayColorUI(html.Div):
 
     def _build_ui(self) -> None:
         with self:
-            Text("Color", classes="text-header")
+            ColorHeader(self.display)
             ArraySelector(
                 solid_color=f"{self.display}.solid_color",
                 v_model=(f"{self.display}.active_array_id",),
@@ -103,10 +117,12 @@ class MeshDisplayColorUI(html.Div):
                         )
 
 
-class VolumeDisplayThreeDColorUI(html.Div):
+class VolumeThreeDPresetsUI(html.Div):
     def __init__(self, obj_display: str, threed_presets: str, **kwargs):
         super().__init__(
-            classes="display-property",
+            classes=(
+                f"{obj_display}.is_threed_visible ? 'display-property-setting' : 'display-property-setting disabled'",
+            ),
             **kwargs,
         )
         self.display = obj_display
@@ -115,20 +131,32 @@ class VolumeDisplayThreeDColorUI(html.Div):
 
     def _build_ui(self) -> None:
         with self:
-            Text("Preset 3D", classes="text-header")
-            (
-                PresetSelector(
-                    items=(self.threed_presets,),
-                    v_model=(f"{self.display}.threed_color.name",),
-                ),
+            Text("Preset 3D", classes="text-subtitle")
+            PresetSelector(
+                items=(self.threed_presets,),
+                v_model=(f"{self.display}.threed_color.name",),
             )
-            with html.Div(classes="display-property-setting"):
-                Text("Rendering Shift", classes="text-subtitle")
-                RangeSlider(
-                    v_model=(f"{self.display}.threed_color.vr_shift",),
-                    min=(f"{self.display}.scalar_range[0]",),
-                    max=(f"{self.display}.scalar_range[1]",),
-                )
+
+
+class VolumeRenderingShiftUI(html.Div):
+    def __init__(self, obj_display: str, **kwargs):
+        super().__init__(
+            classes=(
+                f"{obj_display}.is_threed_visible ? 'display-property-setting' : 'display-property-setting disabled'",
+            ),
+            **kwargs,
+        )
+        self.display = obj_display
+        self._build_ui()
+
+    def _build_ui(self) -> None:
+        with self:
+            Text("Rendering Shift", classes="text-subtitle")
+            RangeSlider(
+                v_model=(f"{self.display}.threed_color.vr_shift",),
+                min=(f"{self.display}.scalar_range[0]",),
+                max=(f"{self.display}.scalar_range[1]",),
+            )
 
 
 class VolumeWindowLevelUI(html.Div):
@@ -161,10 +189,10 @@ class VolumeWindowLevelUI(html.Div):
                 )
 
 
-class VolumeDisplayTwoDColorUI(html.Div):
+class VolumeTwoDPresetsUI(html.Div):
     def __init__(self, obj_display: str, twod_presets: str, **kwargs):
         super().__init__(
-            classes="display-property",
+            classes="display-property-setting",
             **kwargs,
         )
         self.display = obj_display
@@ -173,7 +201,7 @@ class VolumeDisplayTwoDColorUI(html.Div):
 
     def _build_ui(self) -> None:
         with self:
-            Text("Preset 2D", classes="text-header")
+            Text("Preset 2D", classes="text-subtitle")
             with (
                 PresetSelector(
                     items=(self.twod_presets,),
@@ -188,54 +216,68 @@ class VolumeDisplayTwoDColorUI(html.Div):
                     density="compact",
                 )
 
-            VolumeWindowLevelUI(self.display)
 
-
-class VolumeDisplayNormalColorUI(html.Div):
+class VolumeNormalColorUI(html.Div):
     def __init__(self, obj_display: str, **kwargs):
         super().__init__(
-            classes="display-property",
+            classes="display-property-setting",
             **kwargs,
         )
-        self.display = obj_display
+        self.normal_color = f"{obj_display}.normal_color"
         self._build_ui()
 
-    def _build_ui(self) -> None:
+    def _build_ui(self):
         with self:
-            Text("Color", classes="text-header")
-            with html.Div(classes="display-property-setting"):
-                Text("Arrows", classes="text-subtitle")
-                Button(
-                    icon=(f"{self.display}.normal_color.show_arrows ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
-                    tooltip=(f"{self.display}.normal_color.show_arrows ? 'Hide arrows' : 'Show arrows'",),
-                    click=f"{self.display}.normal_color.show_arrows = !{self.display}.normal_color.show_arrows",
-                )
-                NumberInput(
-                    v_model=(f"{self.display}.normal_color.sampling",),
-                    disabled=(f"!{self.display}.normal_color.show_arrows",),
-                    label="Sampling",
-                    min=1,
-                    max=100,
-                    step=(1.0,),
-                    suffix="%",
-                )
-                NumberInput(
-                    v_model=(f"{self.display}.normal_color.arrow_length",),
-                    disabled=(f"!{self.display}.normal_color.show_arrows",),
-                    label="Length",
-                    min=0.01,
-                    max=20.0,
-                    step=(1.0,),
-                    precision=2,
-                )
-                NumberInput(
-                    v_model=(f"{self.display}.normal_color.arrow_width",),
-                    disabled=(f"!{self.display}.normal_color.show_arrows",),
-                    label="Width",
-                    min=0.01,
-                    max=1.0,
-                    step=(0.01,),
-                    precision=2,
-                )
+            Text("Arrows", classes="text-subtitle")
+            Button(
+                icon=(f"{self.normal_color}.show_arrows ? 'mdi-eye-outline' : 'mdi-eye-off-outline'",),
+                tooltip=(f"{self.normal_color}.show_arrows ? 'Hide arrows' : 'Show arrows'",),
+                click=f"{self.normal_color}.show_arrows = !{self.normal_color}.show_arrows",
+            )
+            NumberInput(
+                v_model=(f"{self.normal_color}.sampling",),
+                disabled=(f"!{self.normal_color}.show_arrows",),
+                label="Sampling",
+                min=1,
+                max=100,
+                step=(1.0,),
+                suffix="%",
+            )
+            NumberInput(
+                v_model=(f"{self.normal_color}.arrow_length",),
+                disabled=(f"!{self.normal_color}.show_arrows",),
+                label="Length",
+                min=0.01,
+                max=20.0,
+                step=(1.0,),
+                precision=2,
+            )
+            NumberInput(
+                v_model=(f"{self.normal_color}.arrow_width",),
+                disabled=(f"!{self.normal_color}.show_arrows",),
+                label="Width",
+                min=0.01,
+                max=1.0,
+                step=(0.01,),
+                precision=2,
+            )
 
-            VolumeWindowLevelUI(self.display, is_disabled=f"{self.display}.normal_color.show_arrows")
+
+class VolumeDisplayVectorColorUI(html.Div):
+    def __init__(self, obj_display: str, **kwargs):
+        super().__init__(classes="display-property", **kwargs)
+        with self:
+            ColorHeader(obj_display, is_disabled=f"{obj_display}.normal_color.show_arrows")
+            VolumeNormalColorUI(obj_display)
+            VolumeWindowLevelUI(obj_display, is_disabled=f"{obj_display}.normal_color.show_arrows")
+
+
+class VolumeDisplayScalarColorUI(html.Div):
+    def __init__(self, obj_display: str, twod_presets: str, threed_presets: str, **kwargs):
+        super().__init__(classes="display-property", **kwargs)
+        with self:
+            ColorHeader(obj_display)
+            VolumeThreeDPresetsUI(obj_display, threed_presets)
+            VolumeRenderingShiftUI(obj_display)
+            VolumeTwoDPresetsUI(obj_display, twod_presets)
+            VolumeWindowLevelUI(obj_display)

@@ -23,12 +23,14 @@ from ..handlers.volume_handler import VolumeHandler
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", bound=VolumeHandler)
+T = TypeVar("T", bound=MeshHandler)
+U = TypeVar("U", bound=VolumeHandler)
 
 
-class ViewLogic(BaseLogic[ViewState], Generic[T], ABC):
+class ViewLogic(BaseLogic[ViewState], Generic[T, U], ABC):
     window_level_changed = Signal(str)
-    volume_handler: T
+    mesh_handler: T
+    volume_handler: U
 
     def __init__(
         self,
@@ -42,8 +44,6 @@ class ViewLogic(BaseLogic[ViewState], Generic[T], ABC):
         self.type = view_type
         self.volume_preset_parser = volume_preset_parser
         self.color_preset_parser = color_preset_parser
-
-        self.mesh_handler = MeshHandler(color_preset_parser, self.renderer)
 
         self._views_state = TypedState(self.state, ViewsState)
 

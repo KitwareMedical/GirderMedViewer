@@ -120,8 +120,8 @@ class VolumeSliceHandler(VolumeHandler):
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None:
             modified = set_reslice_visibility(reslice_image_viewer, show_volume)
-        for slice in self.get_image_slices(data_id):
-            modified = set_slice_visibility(slice, show_volume) or modified
+        for image_slice in self.get_image_slices(data_id):
+            modified = set_slice_visibility(image_slice, show_volume) or modified
         for glyph_actor in self.get_glyph_actors(data_id):
             modified = set_actor_visibility(glyph_actor, show_arrows) or modified
 
@@ -131,8 +131,8 @@ class VolumeSliceHandler(VolumeHandler):
         logger.debug(f"set_volume_opacity({data_id}): {data_display.opacity}")
         modified = False
         # Do not set opacity for reslice image viewer
-        for slice in self.get_image_slices(data_id):
-            modified = set_slice_opacity(slice, data_display.opacity) or modified
+        for image_slice in self.get_image_slices(data_id):
+            modified = set_slice_opacity(image_slice, data_display.opacity) or modified
         for glyph_actor in self.get_glyph_actors(data_id):
             modified = set_actor_opacity(glyph_actor, data_display.opacity) or modified
         return modified
@@ -150,8 +150,8 @@ class VolumeSliceHandler(VolumeHandler):
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None:
             modified = set_reslice_window_level(reslice_image_viewer, window_level)
-        for slice in self.get_image_slices(data_id):
-            modified = set_slice_window_level(slice, window_level) or modified
+        for image_slice in self.get_image_slices(data_id):
+            modified = set_slice_window_level(image_slice, window_level) or modified
         return modified
 
     def update_volume_scalar_color_preset(self, data_id: str, data_display: VolumeDisplay) -> bool:
@@ -170,9 +170,9 @@ class VolumeSliceHandler(VolumeHandler):
         modified = False
         reslice_image_viewer = self.get_reslice_image_viewer(data_id)
         if reslice_image_viewer is not None or preset is None:
-            modified = self.preset_parser.apply_preset_to_volume(reslice_image_viewer, preset, twod_color.is_inverted)
-        for slice in self.get_image_slices(data_id):
-            modified = self.preset_parser.apply_preset_to_volume(slice.GetProperty(), preset, twod_color.is_inverted)
+            modified = self.preset_parser.apply_preset_to_reslice(reslice_image_viewer, preset, twod_color.is_inverted)
+        for image_slice in self.get_image_slices(data_id):
+            modified = self.preset_parser.apply_preset_to_slice(image_slice, preset, twod_color.is_inverted)
         return modified
 
     def update_volume_normal_color(self, data_id: str, data_display: VolumeDisplay) -> bool:
@@ -203,6 +203,7 @@ class VolumeSliceHandler(VolumeHandler):
         return [self.get_data(id) for id in ids if self._is_secondary_volume(id)]
 
     def update_segment_color(self, data_id: str, segment_id: int, segment_display: SegmentDisplay) -> bool:
+        logger.debug(f"set_segment_color({segment_id}: {segment_display.color})")
         color_tuple = convert_color_hex_to_normalized_rgb(segment_display.color)
         modified = False
         for image_slice in self.get_image_slices(data_id):
@@ -210,6 +211,7 @@ class VolumeSliceHandler(VolumeHandler):
         return modified
 
     def update_segment_visibility(self, data_id: str, segment_id: int, segment_display: SegmentDisplay) -> bool:
+        logger.debug(f"set_segment_visibility({segment_id}: {segment_display.is_visible})")
         modified = False
         for image_slice in self.get_image_slices(data_id):
             modified = set_segment_visibility(image_slice, segment_id, segment_display.is_visible) or modified
@@ -242,11 +244,13 @@ class VolumeThreeDHandler(VolumeHandler):
         if volume is None:
             return False
 
-        logger.debug(f"set_volume_visibility({data_id}): {data_display.is_visible}")
-        modified = set_volume_visibility(volume, data_display.is_visible and data_display.normal_color is None)
-        show_arrows = (
-            data_display.is_visible and data_display.normal_color is not None and data_display.normal_color.show_arrows
-        )
+        visible = data_display.is_visible and data_display.is_threed_visible
+        show_arrows = visible and data_display.normal_color and data_display.normal_color.show_arrows
+        show_volume = visible and data_display.normal_color is None
+
+        logger.debug(f"set_volume_visibility({data_id}): {show_arrows or show_volume}")
+        modified = set_volume_visibility(volume, show_volume)
+
         for glyph_actor in self.get_glyph_actors(data_id):
             modified = set_actor_visibility(glyph_actor, show_arrows) or modified
         return modified

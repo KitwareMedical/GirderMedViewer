@@ -22,6 +22,15 @@ class VolumeDisplayHandler:
             if modified:
                 view.update()
 
+    def update_threed_visibility(self, volume_logic: VolumeObjectLogic) -> Callable:
+        def _update_threed_visibility(*_args) -> None:
+            for view in self.views_logic.threed_views:
+                modified = view.volume_handler.update_volume_visibility(volume_logic._id, volume_logic.display)
+                if modified:
+                    view.update()
+
+        return _update_threed_visibility
+
     def update_opacity(self, volume_logic: VolumeObjectLogic) -> Callable:
         @debounce(0.05)
         def _update_opacity(*_args) -> None:
@@ -123,13 +132,14 @@ class VolumeHandler(ObjectHandler):
     def _connect_volume_to_display_handler(self, volume_logic: VolumeObjectLogic):
         volume_logic.display.watch(("opacity",), self._display_handler.update_opacity(volume_logic))
         volume_logic.display.watch(("window_level",), self._display_handler.update_window_level(volume_logic))
+        volume_logic.display.watch(("is_threed_visible",), self._display_handler.update_threed_visibility(volume_logic))
 
         if volume_logic.display.normal_color is not None:
             volume_logic.display.normal_color.watch(
                 ("show_arrows", "sampling", "arrow_length", "arrow_width"),
                 self._display_handler.update_normal_coloring(volume_logic),
             )
-        else:
+        elif volume_logic.display.twod_color is not None and volume_logic.display.threed_color is not None:
             volume_logic.display.threed_color.watch(
                 ("name", "vr_shift"), self._display_handler.update_threed_coloring(volume_logic)
             )
@@ -142,6 +152,9 @@ class VolumeHandler(ObjectHandler):
         if layer == VolumeLayer.PRIMARY:
             self._add_to_primary_volumes(volume_logic._id)
             self._set_active_primary_volume_id(volume_logic._id)
+
+        elif layer == VolumeLayer.SECONDARY:
+            volume_logic.display.is_threed_visible = False
 
         volume_logic.display.is_visible = True
 

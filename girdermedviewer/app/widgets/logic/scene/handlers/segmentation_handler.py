@@ -27,7 +27,7 @@ class SegmentationDisplayHandler:
 
     def update_visibility(self, seg_logic: SegmentationFilterLogic) -> Callable:
         def _update_visibility(*_args):
-            for view in self.views_logic.views:
+            for view in self.views_logic.slice_views:
                 modified = view.volume_handler.update_volume_visibility(seg_logic._id, seg_logic.display)
                 if modified:
                     view.update()
@@ -134,8 +134,8 @@ class SegmentationHandler(ObjectHandler):
 
     def add_segment_to_labelmap(self, seg_filter_logic: SegmentationFilterLogic) -> None:
         new_segment = seg_filter_logic.create_segment()
-        new_segment.watch(("color",), self._display_handler.update_segment_color(seg_filter_logic, new_segment))
-        new_segment.watch(
+        new_segment.display.watch(("color",), self._display_handler.update_segment_color(seg_filter_logic, new_segment))
+        new_segment.display.watch(
             ("is_visible",), self._display_handler.update_segment_visibility(seg_filter_logic, new_segment)
         )
         self.select_segment_in_labelmap(seg_filter_logic)
