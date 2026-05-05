@@ -62,12 +62,12 @@ class SegmentationEffectUI(v3.VCard):
                 Text(text="Segmentation effect")
                 with Provider(name="active_segment", instance=(self.active_segment_id,)):
                     Text(
-                        v_if=("active_segment_available",),
+                        v_if=("active_segment_available && !!active_segment.display",),
                         classes="text-subtitle-2",
                         text="{{ active_segment.name }}",
                         icon="mdi-circle",
                         icon_size="small",
-                        icon_color=("active_segment.color",),
+                        icon_color=("active_segment.display.color",),
                     )
                     Text(
                         v_else=True,

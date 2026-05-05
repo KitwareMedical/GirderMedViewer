@@ -74,7 +74,7 @@ class MeshHandler(ObjectHandler, ABC):
 
     def has_mesh(self) -> bool:
         return len(list(self.object_data)) > 0
-    
+
     def apply_data_display(self, data_id: str, data_display: MeshDisplay) -> None:
         # Set opacity
         self.update_mesh_opacity(data_id, data_display)
