@@ -267,7 +267,7 @@ class VolumeDisplayVectorColorUI(html.Div):
     def __init__(self, obj_display: str, **kwargs):
         super().__init__(classes="display-property", **kwargs)
         with self:
-            ColorHeader(obj_display, is_disabled=f"{obj_display}.normal_color.show_arrows")
+            ColorHeader(obj_display, is_disabled=f"!{obj_display}.normal_color.show_arrows")
             VolumeNormalColorUI(obj_display)
             VolumeWindowLevelUI(obj_display, is_disabled=f"{obj_display}.normal_color.show_arrows")
 

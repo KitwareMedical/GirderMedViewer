@@ -168,6 +168,9 @@ class ColorPresetParser(PresetParser):
         return [PresetInfo(d["name"], d["points"]) for d in data["colormaps"]]
 
     def apply_preset_to_slice(self, slice: vtkImageSlice, preset: PresetInfo, is_inverted: bool) -> bool:
+        if slice.GetMapper().GetInput().GetPointData().GetNumberOfComponents() > 1:
+            return False
+
         color_transfer_function = self._array_to_function(
             vtkColorTransferFunction, "AddRGBPoint", preset.points, is_inverted
         )
