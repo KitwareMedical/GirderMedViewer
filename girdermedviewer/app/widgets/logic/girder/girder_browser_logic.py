@@ -60,11 +60,15 @@ class GirderBrowserLogic(BaseLogic[GirderBrowserState]):
     def _update_location(self, location: dict[str, Any] | None) -> None:
         new_location = None
         if location is not None:
+            location_type = location.get("type")
             location_id = location.get("_id")
-            location_type = location.get("_modelType")
-            if location_id and location_type:
+            location_model_type = location.get("_modelType")
+            if location_id is not None and location_model_type is not None:
                 logger.debug(f"Location changed to {location_id}")
-                new_location = {"_id": location_id, "_modelType": location_type}
+                new_location = {"_id": location_id, "_modelType": location_model_type}
+            elif location_type is not None:
+                logger.debug(f"Location changed to {location_type}")
+                new_location = location
 
         self.data.location = new_location
         self._update_selected_items_in_location(self.data.selected_items)
