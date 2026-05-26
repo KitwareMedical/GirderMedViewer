@@ -129,3 +129,7 @@ python -m wslink.launcher .\examples\launcher\launcher.json --debug
 ```
 
 Open launcher page at "localhost:9999"
+
+## Acknowledgements
+
+This work was partly funded by the French government through the National Research Agency (ANR) under the [PEPR Digital Health ChroniCardio (22-PESN-0015)](https://pepr-santenum.fr/en/2023/11/08/chronicardio-en/>).
